@@ -1,0 +1,66 @@
+<div class="city-manage-content">
+
+  <section class="city-section">
+    <h3>{{localize "SANDBOX_CITY_MANAGER.manage.sections.cityDetails"}}</h3>
+    <div class="city-details-row">
+      <input type="text" name="cityName" value="{{cityName}}"
+             placeholder="{{localize 'SANDBOX_CITY_MANAGER.manage.cityNamePlaceholder'}}">
+      <select name="cityType">
+        <option value="">— {{localize "SANDBOX_CITY_MANAGER.manage.cityType"}} —</option>
+        {{#each cityTypes}}
+          <option value="{{value}}"{{#if (eq value ../selectedType)}} selected{{/if}}>{{label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </section>
+
+  <hr class="city-section-divider">
+
+  <section class="city-section">
+    <h3>{{localize "SANDBOX_CITY_MANAGER.manage.sections.cityResources"}}</h3>
+    <ul class="city-resource-list">
+      {{#each resources}}
+      <li class="city-resource-item" data-resource-id="{{this.id}}">
+        <button type="button" class="discovered-toggle{{#if this.discovered.default}} is-discovered{{/if}}"
+                data-action="toggleDiscovered"
+                data-tooltip="{{#if this.discovered.default}}{{localize 'SANDBOX_CITY_MANAGER.resource.discovered'}}{{else}}{{localize 'SANDBOX_CITY_MANAGER.resource.undiscovered'}}{{/if}}">
+          <i class="{{#if this.discovered.default}}fa-solid fa-eye{{else}}fa-regular fa-eye-slash{{/if}}"></i>
+        </button>
+        <i class="{{this.typeIcon}} resource-type-icon" inert></i>
+        <div class="city-resource-info">
+          <span class="city-resource-name">{{this.name}}</span>
+          <span class="city-resource-type">
+            {{this.typeName}}{{#if this.subTypeName}} &middot; {{this.subTypeName}}{{/if}}
+          </span>
+        </div>
+        <div class="controls">
+          {{#if this.isCurrencyTest}}
+          <button type="button" class="icon" data-action="configureExpenses"
+                  aria-label="{{localize 'SANDBOX_CITY_MANAGER.currencyTest.configureExpenses'}}">
+            <i class="fa-solid fa-flask-vial"></i>
+          </button>
+          {{/if}}
+          <button type="button" class="icon" data-action="editResource"
+                  aria-label="{{localize 'SANDBOX_CITY_MANAGER.resource.edit'}}">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button type="button" class="icon" data-action="deleteResource"
+                  aria-label="{{localize 'SANDBOX_CITY_MANAGER.resource.delete'}}">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </li>
+      {{else}}
+      <li class="city-resource-empty">
+        <em>{{localize "SANDBOX_CITY_MANAGER.resource.empty"}}</em>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="city-resource-actions">
+      <button type="button" data-action="addResource">
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_CITY_MANAGER.resource.add"}}
+      </button>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,29 @@
+<div class="resource-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.resource.nameLabel"}}</label>
+    <input type="text" name="name" value="{{resource.name}}"
+           placeholder="{{localize 'SANDBOX_CITY_MANAGER.resource.namePlaceholder'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.resource.typeLabel"}}</label>
+    <select name="typeId">
+      <option value="">— Select Type —</option>
+      {{#each resourceTypes}}
+        <option value="{{value}}"{{#if (eq value ../resource.typeId)}} selected{{/if}}>{{label}}</option>
+      {{/each}}
+    </select>
+  </div>
+  <div class="form-group sub-type-group"{{#unless hasSubTypes}} style="display:none"{{/unless}}>
+    <label>{{localize "SANDBOX_CITY_MANAGER.resource.subTypeLabel"}}</label>
+    <select name="subTypeId">
+      <option value="">— None —</option>
+      {{#each subTypes}}
+        <option value="{{this.id}}"{{#if (eq this.id ../../resource.subTypeId)}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.resource.discoveredLabel"}}</label>
+    <input type="checkbox" name="discovered"{{#if resource.discovered.default}} checked{{/if}}>
+  </div>
+</div>

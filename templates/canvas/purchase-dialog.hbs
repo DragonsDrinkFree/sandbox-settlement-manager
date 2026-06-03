@@ -1,0 +1,66 @@
+<div class="purchase-dialog-content">
+  <header class="purchase-header">
+    <strong>{{expense.name}}</strong>
+    <span class="purchase-cost">{{expenseCostLabel}}</span>
+  </header>
+
+  {{#if isAttributeOrItem}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.purchase.actorLabel"}}</label>
+    <select name="actorId">
+      {{#if ownedActors.length}}
+        {{#each ownedActors}}
+        <option value="{{this.value}}"{{#if (eq this.value ../selectedActorId)}} selected{{/if}}>
+          {{this.label}}
+        </option>
+        {{/each}}
+      {{else}}
+        <option value="">— No owned actors —</option>
+      {{/if}}
+    </select>
+  </div>
+  {{#if showBalance}}
+  <div class="balance-display">
+    <h4>{{localize "SANDBOX_CITY_MANAGER.purchase.balanceHeader"}}</h4>
+    <ul class="balance-list">
+      {{#each currencies}}
+      <li>
+        <span class="balance-currency">{{this.name}}</span>
+        <span class="balance-amount">{{lookup ../balance this.id}}</span>
+        <span class="balance-abbr">{{this.abbreviation}}</span>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+  {{/if}}
+
+  <div class="payment-section">
+    <h4>{{localize "SANDBOX_CITY_MANAGER.purchase.paymentHeader"}}</h4>
+    <ul class="payment-inputs">
+      {{#each currencies}}
+      <li class="payment-row">
+        <label>{{this.name}} <em>({{this.abbreviation}})</em></label>
+        <input type="number" class="payment-input" name="payment-{{this.id}}"
+               data-currency-id="{{this.id}}" min="0" value="0">
+        <button type="button" class="fill-button" data-action="fillCurrency"
+                data-currency-id="{{this.id}}"
+                {{#if this.fillDisabled}}disabled{{/if}}
+                data-tooltip="{{localize 'SANDBOX_CITY_MANAGER.purchase.fillTooltip'}}">+</button>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+
+  <div class="calc-section">
+    <span>{{localize "SANDBOX_CITY_MANAGER.purchase.offering"}}: <strong class="calc-offering">—</strong></span>
+    <span>{{localize "SANDBOX_CITY_MANAGER.purchase.cost"}}: <strong>{{expenseCostLabel}}</strong></span>
+    <span>{{localize "SANDBOX_CITY_MANAGER.purchase.change"}}: <strong class="calc-change">—</strong></span>
+  </div>
+
+  <p class="purchase-error"></p>
+
+  <div class="purchase-actions">
+    <button type="submit" disabled>{{localize "SANDBOX_CITY_MANAGER.purchase.confirm"}}</button>
+  </div>
+</div>

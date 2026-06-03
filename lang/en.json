@@ -1,0 +1,168 @@
+{
+  "SANDBOX_CITY_MANAGER": {
+    "module": {
+      "name": "Sandbox City Manager"
+    },
+    "scene": {
+      "isCity": "Mark as City"
+    },
+    "controls": {
+      "city": "City",
+      "select": "Select",
+      "manage": "Manage City",
+      "cityResources": "City Resources"
+    },
+    "manage": {
+      "title": "City Manager",
+      "cityName": "City Name",
+      "cityNamePlaceholder": "Enter city name...",
+      "cityType": "City Type",
+      "cityDescription": "Description",
+      "sections": {
+        "cityDetails": "City Details",
+        "cityResources": "City Resources"
+      }
+    },
+    "resources": {
+      "title": "City Resources",
+      "noneDiscovered": "No resources discovered yet."
+    },
+    "setting": {
+      "cityTypeConfig": {
+        "name": "City Type Configuration",
+        "label": "Configure City Types",
+        "hint": "Define the list of city types ordered from smallest to largest."
+      },
+      "cityTypes": {
+        "name": "City Types",
+        "hint": "City types ordered from smallest to largest. Drag to reorder.",
+        "add": "Add City Type",
+        "reset": "Reset to Defaults"
+      },
+      "resourceTypeConfig": {
+        "name": "Resource Type Configuration",
+        "label": "Configure Resource Types",
+        "hint": "Define the types of establishments and resources that can appear in cities."
+      },
+      "resourceTypes": {
+        "name": "Resource Types",
+        "hint": "Resource types define establishment categories. Drag to reorder.",
+        "add": "Add Resource Type",
+        "reset": "Reset to Defaults"
+      },
+      "currencyConfig": {
+        "name": "Currency Configuration",
+        "label": "Configure Currency",
+        "hint": "Configure the currency system used by all city interactions."
+      }
+    },
+    "currency": {
+      "addTitle": "Add Currency",
+      "editTitle": "Edit Currency",
+      "modeLabel": "Currency Mode",
+      "mode": {
+        "loose": "Loose",
+        "attribute": "Attribute",
+        "item": "Item"
+      },
+      "modeLooseHint": "Untracked currency. When a purchase occurs, the total cost is whispered to the GM and the purchasing player so they can adjust records manually.",
+      "modeAttributeHint": "Currency is stored as a numeric attribute on the character sheet. Each currency must have a dot-notation attribute path configured.",
+      "modeItemHint": "Currency is represented by item documents in the world. Each currency must be linked to a specific item.",
+      "listHeader": "Currencies",
+      "listHint": "Define denominations ordered as you prefer. Drag to reorder.",
+      "nameLabel": "Name",
+      "abbreviationLabel": "Abbreviation",
+      "isStandardLabel": "Standard Currency",
+      "isStandardHint": "The standard currency is the base for all exchange rates (always 1:1). Only one currency should be standard.",
+      "exchangeRateLabel": "Exchange Rate",
+      "exchangeRateHelp": "Enter as A:B — where A of the STANDARD currency equals B of THIS currency.",
+      "exchangeRateExample1": "Gold (standard): 1:1",
+      "exchangeRateExample2": "Silver (10 per gold): 1:10 — 1 gold = 10 silver",
+      "exchangeRateExample3": "Platinum (worth 5 gold): 5:1 — 5 gold = 1 platinum",
+      "attributePathLabel": "Attribute Path",
+      "attributePathHint": "Dot-notation path on the actor data model (e.g. system.currency.gp).",
+      "itemLabel": "Linked Item",
+      "itemSearchPlaceholder": "Search world items...",
+      "itemHint": "Search and select the item document that represents this currency.",
+      "itemClear": "Clear",
+      "standardBadge": "Standard",
+      "empty": "No currencies defined.",
+      "add": "Add Currency",
+      "reset": "Reset to Defaults"
+    },
+    "cityType": {
+      "addTitle": "Add City Type",
+      "editTitle": "Edit City Type",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Hamlet",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No city types defined."
+    },
+    "resourceType": {
+      "addTitle": "Add Resource Type",
+      "editTitle": "Edit Resource Type",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Inn",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "e.g. fa-solid fa-bed",
+      "subTypesLabel": "Sub-types",
+      "addSubType": "Add Sub-type",
+      "removeSubType": "Remove",
+      "subTypeNameLabel": "Sub-type name",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No resource types defined.",
+      "noSubTypes": "No sub-types defined."
+    },
+    "currencyTest": {
+      "configTitle": "Configure Expenses",
+      "configureExpenses": "Configure Expenses",
+      "expensesHeader": "Expenses",
+      "noExpenses": "No expenses configured.",
+      "addExpense": "Add Expense",
+      "deleteExpense": "Delete Expense",
+      "expenseNamePlaceholder": "e.g. Room for the Night"
+    },
+    "purchase": {
+      "title": "Purchase",
+      "buy": "Buy",
+      "actorLabel": "Character",
+      "balanceHeader": "Current Balance",
+      "paymentHeader": "Payment",
+      "offering": "Offering",
+      "cost": "Cost",
+      "change": "Change",
+      "noChange": "None",
+      "fillTooltip": "Add enough of this currency to cover the remaining cost",
+      "confirm": "Confirm Purchase",
+      "complete": "Purchase complete.",
+      "whisperContent": "Purchase: {expense} — Cost: {cost} | Paid: {payment} | Change: {change}",
+      "error": {
+        "underpay": "Payment does not cover the cost.",
+        "cannotMakeChange": "Cannot make exact change using the highest denomination entered.",
+        "insufficientFunds": "Insufficient funds."
+      }
+    },
+    "resource": {
+      "addTitle": "Add Resource",
+      "editTitle": "Edit Resource",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. The Green Dragon Inn",
+      "typeLabel": "Type",
+      "subTypeLabel": "Sub-type",
+      "discoveredLabel": "Discovered",
+      "add": "Add Resource",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No resources yet.",
+      "unknownType": "Unknown Type",
+      "discovered": "Discovered",
+      "undiscovered": "Not Discovered",
+      "noDetailView": "No additional details available for this resource type."
+    },
+    "keybinding": {},
+    "dialog": {},
+    "error": {}
+  }
+}

@@ -1,0 +1,33 @@
+<div class="resource-type-config">
+  <p class="hint">{{localize "SANDBOX_CITY_MANAGER.setting.resourceTypes.hint"}}</p>
+
+  {{#each coreTypes}}
+  <section class="core-type-section" data-type-id="{{this.id}}">
+    <h3 class="core-type-header">
+      <i class="{{this.icon}}"></i>
+      <span>{{this.name}}</span>
+    </h3>
+    <ul class="sub-type-list">
+      {{#each this.subTypes}}
+      <li class="sub-type-item">
+        <span class="sub-type-name">{{this.name}}</span>
+        <button type="button" class="icon" data-action="deleteSubType"
+                data-type-id="{{../id}}" data-sub-index="{{@index}}"
+                aria-label="{{localize 'SANDBOX_CITY_MANAGER.resourceType.removeSubType'}}">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </li>
+      {{else}}
+      <li class="sub-type-empty"><em>{{localize "SANDBOX_CITY_MANAGER.resourceType.noSubTypes"}}</em></li>
+      {{/each}}
+    </ul>
+    <div class="add-subtype-row">
+      <input type="text" class="new-subtype-name" data-type-id="{{this.id}}"
+             placeholder="{{localize 'SANDBOX_CITY_MANAGER.resourceType.subTypeNameLabel'}}...">
+      <button type="button" data-action="addSubType" data-type-id="{{this.id}}">
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_CITY_MANAGER.resourceType.addSubType"}}
+      </button>
+    </div>
+  </section>
+  {{/each}}
+</div>

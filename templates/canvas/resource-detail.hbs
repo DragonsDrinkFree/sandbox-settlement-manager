@@ -1,0 +1,21 @@
+<div class="resource-detail-content">
+  {{#if isCurrencyTest}}
+  <ul class="expense-list">
+    {{#each expenses}}
+    <li class="expense-entry" data-expense-id="{{this.id}}">
+      <div class="expense-info">
+        <span class="expense-name">{{this.name}}</span>
+        <span class="expense-cost">{{this.costLabel}}</span>
+      </div>
+      <button type="button" class="buy-button" data-action="buyExpense">
+        {{localize "SANDBOX_CITY_MANAGER.purchase.buy"}}
+      </button>
+    </li>
+    {{else}}
+    <li class="expense-empty"><em>{{localize "SANDBOX_CITY_MANAGER.currencyTest.noExpenses"}}</em></li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="notification info">{{localize "SANDBOX_CITY_MANAGER.resource.noDetailView"}}</p>
+  {{/if}}
+</div>

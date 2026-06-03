@@ -1,0 +1,57 @@
+<div class="currency-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.currency.nameLabel"}}</label>
+    <input type="text" name="name" value="{{currency.name}}" placeholder="Gold">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.currency.abbreviationLabel"}}</label>
+    <input type="text" name="abbreviation" value="{{currency.abbreviation}}" placeholder="gp">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.currency.isStandardLabel"}}</label>
+    <input type="checkbox" name="isStandard"{{#if currency.isStandard}} checked{{/if}}>
+    <p class="hint">{{localize "SANDBOX_CITY_MANAGER.currency.isStandardHint"}}</p>
+  </div>
+  <div class="form-group">
+    <label>
+      {{localize "SANDBOX_CITY_MANAGER.currency.exchangeRateLabel"}}
+      <button type="button" class="inline-control icon fa-solid fa-circle-question"
+              data-action="toggleHelp" aria-label="Help"></button>
+    </label>
+    <input type="text" name="exchangeRate" value="{{currency.exchangeRate}}" placeholder="1:1">
+    <div class="exchange-rate-help hidden">
+      <p>{{localize "SANDBOX_CITY_MANAGER.currency.exchangeRateHelp"}}</p>
+      <ul>
+        <li>{{localize "SANDBOX_CITY_MANAGER.currency.exchangeRateExample1"}}</li>
+        <li>{{localize "SANDBOX_CITY_MANAGER.currency.exchangeRateExample2"}}</li>
+        <li>{{localize "SANDBOX_CITY_MANAGER.currency.exchangeRateExample3"}}</li>
+      </ul>
+    </div>
+  </div>
+
+  {{#if isAttribute}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.currency.attributePathLabel"}}</label>
+    <input type="text" name="attributePath" value="{{currency.attributePath}}"
+           placeholder="system.currency.gp">
+    <p class="hint">{{localize "SANDBOX_CITY_MANAGER.currency.attributePathHint"}}</p>
+  </div>
+  {{/if}}
+
+  {{#if isItem}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_CITY_MANAGER.currency.itemLabel"}}</label>
+    <div class="selected-item{{#unless currency.itemName}} hidden{{/unless}}">
+      <span class="selected-item-name">{{currency.itemName}}</span>
+      <button type="button" class="icon" data-action="clearItem"
+              aria-label="{{localize 'SANDBOX_CITY_MANAGER.currency.itemClear'}}">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <input type="text" class="item-search-input"
+           placeholder="{{localize 'SANDBOX_CITY_MANAGER.currency.itemSearchPlaceholder'}}">
+    <ul class="item-search-results"></ul>
+    <p class="hint">{{localize "SANDBOX_CITY_MANAGER.currency.itemHint"}}</p>
+  </div>
+  {{/if}}
+</div>

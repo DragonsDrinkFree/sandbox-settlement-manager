@@ -1,0 +1,66 @@
+import { MODULE_ID, SETTINGS } from "../constants.js";
+import { CityTypeConfigApp } from "./city-type-config.js";
+import { ResourceTypeConfigApp } from "./resource-type-config.js";
+import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
+
+export function registerSettings() {
+  game.settings.register(MODULE_ID, SETTINGS.CITY_TYPES, {
+    scope: "world",
+    config: false,
+    type: new foundry.data.fields.ArrayField(
+      new foundry.data.fields.SchemaField({
+        name: new foundry.data.fields.StringField({ blank: false, trim: true })
+      })
+    ),
+    default: [
+      { name: "Hamlet" },
+      { name: "Village" },
+      { name: "Small Town" },
+      { name: "Large Town" },
+      { name: "City" }
+    ]
+  });
+
+  // Sub-types keyed by core resource type id: { inn: [{id, name}], merchant: [...], ... }
+  // Core types themselves are hardcoded in CORE_RESOURCE_TYPES (constants.js).
+  game.settings.register(MODULE_ID, SETTINGS.RESOURCE_TYPES, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { inn: [], merchant: [], bank: [], currency_test: [] }
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.CURRENCY_CONFIG, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { mode: "loose", currencies: DEFAULT_CURRENCIES.map(c => ({ ...c })) }
+  });
+
+  game.settings.registerMenu(MODULE_ID, "cityTypeConfig", {
+    name: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.name",
+    label: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.label",
+    hint: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.hint",
+    icon: "fa-solid fa-city",
+    type: CityTypeConfigApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "resourceTypeConfig", {
+    name: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.name",
+    label: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.label",
+    hint: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.hint",
+    icon: "fa-solid fa-warehouse",
+    type: ResourceTypeConfigApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "currencyConfig", {
+    name: "SANDBOX_CITY_MANAGER.setting.currencyConfig.name",
+    label: "SANDBOX_CITY_MANAGER.setting.currencyConfig.label",
+    hint: "SANDBOX_CITY_MANAGER.setting.currencyConfig.hint",
+    icon: "fa-solid fa-coins",
+    type: CurrencyConfigApp,
+    restricted: true
+  });
+}

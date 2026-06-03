@@ -1,0 +1,24 @@
+<div class="city-resources-content">
+  {{#if hasDiscovered}}
+    {{#each groups}}
+    <section class="resource-group">
+      <h3 class="resource-group-header">
+        <i class="{{this.typeIcon}}" inert></i>
+        <span>{{this.typeName}}</span>
+      </h3>
+      <ul class="resource-group-list">
+        {{#each this.resources}}
+        <li class="resource-entry" data-resource-id="{{this.id}}">
+          <span class="resource-name">{{this.name}}</span>
+          {{#if this.subTypeName}}
+            <span class="resource-subtype">{{this.subTypeName}}</span>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+    {{/each}}
+  {{else}}
+    <p class="notification info">{{localize "SANDBOX_CITY_MANAGER.resources.noneDiscovered"}}</p>
+  {{/if}}
+</div>

@@ -1,0 +1,29 @@
+{
+  "id": "sandbox-city-manager",
+  "title": "Sandbox City Manager",
+  "description": "A GM toolkit for managing living cities in sandbox campaigns — track factions, NPCs, rumours, and district events across sessions.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14.363"
+  },
+  "authors": [
+    {
+      "name": "GravyBoat, DragonsDrinkFree",
+      "url": "https://patreon.com/DragonsDrinkFree"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/sandbox-city-manager.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ]
+}

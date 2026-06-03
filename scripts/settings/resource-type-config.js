@@ -1,0 +1,62 @@
+import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+
+const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+
+export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  // Working copy: { [typeId]: [{ id, name }] }
+  _subTypes = null;
+
+  static DEFAULT_OPTIONS = {
+    id: `${MODULE_ID}-resource-type-config`,
+    tag: "form",
+    form: { handler: ResourceTypeConfigApp.#onSubmit, closeOnSubmit: true },
+    window: { title: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.name" },
+    position: { width: 460 },
+    actions: {
+      addSubType:    ResourceTypeConfigApp.#onAddSubType,
+      deleteSubType: ResourceTypeConfigApp.#onDeleteSubType
+    }
+  };
+
+  static PARTS = {
+    form:   { template: `modules/${MODULE_ID}/templates/settings/resource-type-config.hbs`, scrollable: [""] },
+    footer: { template: "templates/generic/form-footer.hbs" }
+  };
+
+  async _prepareContext(options) {
+    if (this._subTypes === null) {
+      const raw = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+      // Migrate from old array format if needed
+      this._subTypes = Array.isArray(raw) ? {} : foundry.utils.deepClone(raw ?? {});
+    }
+    return {
+      coreTypes: CORE_RESOURCE_TYPES.map(t => ({
+        ...t,
+        subTypes: this._subTypes[t.id] ?? []
+      })),
+      buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
+    };
+  }
+
+  static #onAddSubType(event, target) {
+    const typeId = target.dataset.typeId;
+    const input = this.element.querySelector(`.new-subtype-name[data-type-id="${typeId}"]`);
+    const name = input?.value.trim();
+    if (!name) return;
+    this._subTypes[typeId] ??= [];
+    this._subTypes[typeId].push({ id: foundry.utils.randomID(), name });
+    input.value = "";
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteSubType(event, target) {
+    const typeId = target.dataset.typeId;
+    const index = parseInt(target.dataset.subIndex);
+    this._subTypes[typeId]?.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onSubmit() {
+    await game.settings.set(MODULE_ID, SETTINGS.RESOURCE_TYPES, this._subTypes);
+  }
+}
