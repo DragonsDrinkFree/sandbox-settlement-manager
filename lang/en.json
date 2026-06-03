@@ -113,7 +113,16 @@
       "edit": "Edit",
       "delete": "Delete",
       "empty": "No resource types defined.",
-      "noSubTypes": "No sub-types defined."
+      "noSubTypes": "No sub-types defined.",
+      "subType": {
+        "addTitle": "Add Sub-type",
+        "editTitle": "Edit Sub-type",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Blacksmith",
+        "add": "Add Sub-type",
+        "edit": "Edit Sub-type",
+        "delete": "Delete Sub-type"
+      }
     },
     "currencyTest": {
       "configTitle": "Configure Expenses",

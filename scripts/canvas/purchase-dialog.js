@@ -204,12 +204,17 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    if (this._mode === "attribute") {
-      await this.#executeAttributeTransaction(payment, change);
-    } else if (this._mode === "item") {
-      await this.#executeItemTransaction(payment, change);
-    } else {
-      await this.#executeLooseTransaction(payment, change);
+    try {
+      if (this._mode === "attribute") {
+        await this.#executeAttributeTransaction(payment, change);
+      } else if (this._mode === "item") {
+        await this.#executeItemTransaction(payment, change);
+      } else {
+        await this.#executeLooseTransaction(payment, change);
+      }
+    } catch (err) {
+      // Transaction aborted (e.g. last-moment insufficient funds guard)
+      return;
     }
 
     ui.notifications.info(game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.complete"));
@@ -232,16 +237,37 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async #executeItemTransaction(payment, change) {
-    const apply = async (currencyId, delta) => {
-      const c = this._currencies.find(x => x.id === currencyId);
-      if (!c) return;
-      const item = this._actor.items.find(i => i.name === c.itemName);
-      if (!item) return;
-      const qty = foundry.utils.getProperty(item, "system.quantity") ?? 0;
-      await item.update({ "system.quantity": qty + delta });
-    };
-    for (const [id, coins] of Object.entries(payment)) if (coins > 0) await apply(id, -coins);
-    for (const [id, coins] of Object.entries(change)) if (coins > 0) await apply(id, coins);
+    for (const [id, coins] of Object.entries(payment)) if (coins > 0) await this.#applyItemDelta(id, -coins);
+    for (const [id, coins] of Object.entries(change)) if (coins > 0) await this.#applyItemDelta(id, coins);
+  }
+
+  async #applyItemDelta(currencyId, delta) {
+    const c = this._currencies.find(x => x.id === currencyId);
+    if (!c) return;
+    const existing = this._actor.items.find(i => i.name === c.itemName);
+
+    if (existing) {
+      const qty = foundry.utils.getProperty(existing, "system.quantity") ?? 0;
+      // Guard: never allow negative quantity when paying
+      if (delta < 0 && qty + delta < 0) {
+        ui.notifications.warn(`${game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.error.insufficientFunds")}: ${c.name}`);
+        throw new Error("Insufficient item quantity");
+      }
+      await existing.update({ "system.quantity": qty + delta });
+      return;
+    }
+
+    // Item not on actor — only relevant when giving change (delta > 0)
+    if (delta <= 0) return;
+    const source = game.items.find(i => i.name === c.itemName)
+      ?? (c.itemId ? await fromUuid(c.itemId).catch(() => null) : null);
+    if (source) {
+      const data = source.toObject();
+      foundry.utils.setProperty(data, "system.quantity", delta);
+      await this._actor.createEmbeddedDocuments("Item", [data]);
+    } else {
+      ui.notifications.warn(`Cannot give change: no world item found for "${c.itemName}"`);
+    }
   }
 
   async #executeLooseTransaction(payment, change) {

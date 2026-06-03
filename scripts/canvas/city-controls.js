@@ -49,10 +49,11 @@ export function registerCityControls() {
     };
   });
 
-  // Refresh controls when the IS_CITY flag changes on the active scene
+  // Refresh controls when the IS_CITY flag changes on the active scene.
+  // Direct bracket navigation avoids hasProperty dot-notation issues with hyphenated module IDs.
   Hooks.on("updateScene", (scene, changes) => {
     if (scene.id !== canvas.scene?.id) return;
-    if (!foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.IS_CITY}`)) return;
+    if (changes.flags?.[MODULE_ID]?.[FLAGS.IS_CITY] === undefined) return;
     ui.controls.initialize();
   });
 }

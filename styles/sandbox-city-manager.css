@@ -801,3 +801,66 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* -------------------------------------------- */
+/*  Resource Type Config — Editable Lines       */
+/* -------------------------------------------- */
+
+#sandbox-city-manager-resource-type-config .core-type-block {
+  margin-bottom: 0.15rem;
+}
+
+#sandbox-city-manager-resource-type-config .core-type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--color-bg-option, rgba(0,0,0,0.05));
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: var(--font-size-14, 14px);
+}
+
+#sandbox-city-manager-resource-type-config .core-type-name {
+  flex: 1;
+}
+
+#sandbox-city-manager-resource-type-config .add-subtype-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.5rem 0.2rem 1.5rem;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-row:hover {
+  background: var(--color-bg-option, rgba(0,0,0,0.03));
+  border-radius: 3px;
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-indent {
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-11, 11px);
+  flex-shrink: 0;
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-name {
+  flex: 1;
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-row .controls {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+#sandbox-city-manager-resource-type-config .sub-type-row:hover .controls {
+  opacity: 1;
+}
