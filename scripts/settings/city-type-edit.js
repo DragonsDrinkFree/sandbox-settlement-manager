@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../constants.js";
+﻿import { MODULE_ID } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -14,8 +14,8 @@ export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // Dynamic title: "Add City Type" for new, "Edit City Type" for existing
   get title() {
     const key = this._cityType?.name
-      ? "SANDBOX_CITY_MANAGER.cityType.editTitle"
-      : "SANDBOX_CITY_MANAGER.cityType.addTitle";
+      ? "SANDBOX_SETTLEMENT_MANAGER.cityType.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.cityType.addTitle";
     return game.i18n.localize(key);
   }
 

@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../constants.js";
+﻿import { MODULE_ID } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -13,8 +13,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get title() {
     const key = this._subType?.name
-      ? "SANDBOX_CITY_MANAGER.resourceType.subType.editTitle"
-      : "SANDBOX_CITY_MANAGER.resourceType.subType.addTitle";
+      ? "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.addTitle";
     return game.i18n.localize(key);
   }
 

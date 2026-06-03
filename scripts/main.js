@@ -1,5 +1,5 @@
 /**
- * Entry point for sandbox-city-manager.
+ * Entry point for sandbox-settlement-manager.
  * Loaded as an ES module before the "init" hook fires (declared in module.json → esmodules).
  *
  * Hook order:

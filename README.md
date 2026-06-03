@@ -1,1 +1,1 @@
-# sandbox-city-manager
+# sandbox-settlement-manager

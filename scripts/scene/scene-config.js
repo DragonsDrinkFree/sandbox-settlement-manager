@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS } from "../constants.js";
+﻿import { MODULE_ID, FLAGS } from "../constants.js";
 
 export class SandboxSceneConfig extends SceneConfig {
   async _onRender(context, options) {
@@ -16,7 +16,7 @@ export class SandboxSceneConfig extends SceneConfig {
     const group = document.createElement("div");
     group.className = "form-group";
     group.innerHTML = `
-      <label>${game.i18n.localize("SANDBOX_CITY_MANAGER.scene.isCity")}</label>
+      <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.scene.isCity")}</label>
       <input type="checkbox" name="flags.${MODULE_ID}.${FLAGS.IS_CITY}" ${isCity ? "checked" : ""}>
     `;
     basicsTab.prepend(group);

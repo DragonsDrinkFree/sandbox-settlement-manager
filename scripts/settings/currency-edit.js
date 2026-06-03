@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../constants.js";
+﻿import { MODULE_ID } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -15,8 +15,8 @@ export class CurrencyEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get title() {
     const key = this._currency?.name
-      ? "SANDBOX_CITY_MANAGER.currency.editTitle"
-      : "SANDBOX_CITY_MANAGER.currency.addTitle";
+      ? "SANDBOX_SETTLEMENT_MANAGER.currency.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.currency.addTitle";
     return game.i18n.localize(key);
   }
 

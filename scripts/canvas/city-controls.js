@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS } from "../constants.js";
+﻿import { MODULE_ID, FLAGS } from "../constants.js";
 import { CityManageApp } from "./city-manage-app.js";
 import { CityResourcesApp } from "./city-resources-app.js";
 
@@ -10,20 +10,20 @@ export function registerCityControls() {
     controls["sandbox-city"] = {
       name: "sandbox-city",
       order: 100,
-      title: "SANDBOX_CITY_MANAGER.controls.city",
+      title: "SANDBOX_SETTLEMENT_MANAGER.controls.city",
       icon: "fa-solid fa-city",
       activeTool: "select",
       tools: {
         select: {
           name: "select",
           order: 0,
-          title: "SANDBOX_CITY_MANAGER.controls.select",
+          title: "SANDBOX_SETTLEMENT_MANAGER.controls.select",
           icon: "fa-solid fa-expand"
         },
         manage: {
           name: "manage",
           order: 1,
-          title: "SANDBOX_CITY_MANAGER.controls.manage",
+          title: "SANDBOX_SETTLEMENT_MANAGER.controls.manage",
           icon: "fa-solid fa-gears",
           button: true,
           visible: game.user.isGM,
@@ -36,7 +36,7 @@ export function registerCityControls() {
         cityResources: {
           name: "cityResources",
           order: 2,
-          title: "SANDBOX_CITY_MANAGER.controls.cityResources",
+          title: "SANDBOX_SETTLEMENT_MANAGER.controls.cityResources",
           icon: "fa-solid fa-warehouse",
           button: true,
           onChange: () => {

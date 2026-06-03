@@ -1,4 +1,4 @@
-/* sandbox-city-manager — main stylesheet
+﻿/* sandbox-settlement-manager — main stylesheet
  *
  * Scope all rules under a module-specific selector to avoid conflicts with
  * Foundry core and other modules.
@@ -12,14 +12,14 @@
 /*  City Type Configuration Dialog              */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-city-type-config .city-type-list {
+#sandbox-settlement-manager-city-type-config .city-type-list {
   list-style: none;
   padding: 0;
   margin: 0.25rem 0 0.5rem;
   min-height: 2rem;
 }
 
-#sandbox-city-manager-city-type-config .city-type-item {
+#sandbox-settlement-manager-city-type-config .city-type-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -30,35 +30,35 @@
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
 }
 
-#sandbox-city-manager-city-type-config .city-type-item.dragging {
+#sandbox-settlement-manager-city-type-config .city-type-item.dragging {
   opacity: 0.35;
 }
 
-#sandbox-city-manager-city-type-config .drag-handle {
+#sandbox-settlement-manager-city-type-config .drag-handle {
   cursor: grab;
   color: var(--color-text-dark-inactive, #999);
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-city-type-config .city-type-name {
+#sandbox-settlement-manager-city-type-config .city-type-name {
   flex: 1;
   font-size: var(--font-size-14, 14px);
 }
 
-#sandbox-city-manager-city-type-config .city-type-item .controls {
+#sandbox-settlement-manager-city-type-config .city-type-item .controls {
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-city-type-config .city-type-empty {
+#sandbox-settlement-manager-city-type-config .city-type-empty {
   padding: 0.5rem;
   color: var(--color-text-dark-inactive, #999);
   text-align: center;
   font-style: italic;
 }
 
-#sandbox-city-manager-city-type-config .city-type-actions {
+#sandbox-settlement-manager-city-type-config .city-type-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -69,14 +69,14 @@
 /*  Resource Type Configuration Dialog          */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-resource-type-config .resource-type-list {
+#sandbox-settlement-manager-resource-type-config .resource-type-list {
   list-style: none;
   padding: 0;
   margin: 0.25rem 0 0.5rem;
   min-height: 2rem;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-item {
+#sandbox-settlement-manager-resource-type-config .resource-type-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -87,47 +87,47 @@
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-item.dragging {
+#sandbox-settlement-manager-resource-type-config .resource-type-item.dragging {
   opacity: 0.35;
 }
 
-#sandbox-city-manager-resource-type-config .drag-handle {
+#sandbox-settlement-manager-resource-type-config .drag-handle {
   cursor: grab;
   color: var(--color-text-dark-inactive, #999);
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-icon {
+#sandbox-settlement-manager-resource-type-config .resource-type-icon {
   width: 1em;
   text-align: center;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-name {
+#sandbox-settlement-manager-resource-type-config .resource-type-name {
   flex: 1;
   font-size: var(--font-size-14, 14px);
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-sub-count {
+#sandbox-settlement-manager-resource-type-config .resource-type-sub-count {
   color: var(--color-text-dark-inactive, #999);
   font-size: var(--font-size-12, 12px);
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-item .controls {
+#sandbox-settlement-manager-resource-type-config .resource-type-item .controls {
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-empty {
+#sandbox-settlement-manager-resource-type-config .resource-type-empty {
   padding: 0.5rem;
   color: var(--color-text-dark-inactive, #999);
   text-align: center;
   font-style: italic;
 }
 
-#sandbox-city-manager-resource-type-config .resource-type-actions {
+#sandbox-settlement-manager-resource-type-config .resource-type-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -138,37 +138,37 @@
 /*  Resource Type Edit Dialog                   */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-resource-type-edit .resource-type-subtypes {
+#sandbox-settlement-manager-resource-type-edit .resource-type-subtypes {
   border: 1px solid var(--color-border-light-tertiary, #ccc);
   border-radius: 3px;
   padding: 0.5rem;
   margin-top: 0.5rem;
 }
 
-#sandbox-city-manager-resource-type-edit .sub-type-list {
+#sandbox-settlement-manager-resource-type-edit .sub-type-list {
   list-style: none;
   padding: 0;
   margin: 0 0 0.5rem;
 }
 
-#sandbox-city-manager-resource-type-edit .sub-type-item {
+#sandbox-settlement-manager-resource-type-edit .sub-type-item {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-bottom: 0.25rem;
 }
 
-#sandbox-city-manager-resource-type-edit .sub-type-item input {
+#sandbox-settlement-manager-resource-type-edit .sub-type-item input {
   flex: 1;
 }
 
-#sandbox-city-manager-resource-type-edit .sub-type-add-row {
+#sandbox-settlement-manager-resource-type-edit .sub-type-add-row {
   display: flex;
   gap: 0.25rem;
   align-items: center;
 }
 
-#sandbox-city-manager-resource-type-edit .new-subtype-input {
+#sandbox-settlement-manager-resource-type-edit .new-subtype-input {
   flex: 1;
 }
 
@@ -176,23 +176,23 @@
 /*  City Manager Window (Manage Tool)           */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-city-manage .city-details-row {
+#sandbox-settlement-manager-city-manage .city-details-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
 
-#sandbox-city-manager-city-manage .city-details-row input {
+#sandbox-settlement-manager-city-manage .city-details-row input {
   flex: 2;
   min-width: 0;
 }
 
-#sandbox-city-manager-city-manage .city-details-row select {
+#sandbox-settlement-manager-city-manage .city-details-row select {
   flex: 1;
   min-width: 0;
 }
 
-#sandbox-city-manager-city-manage .city-section h3 {
+#sandbox-settlement-manager-city-manage .city-section h3 {
   font-size: var(--font-size-14, 14px);
   font-weight: bold;
   margin: 0 0 0.5rem;
@@ -200,20 +200,20 @@
   border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
 }
 
-#sandbox-city-manager-city-manage .city-section-divider {
+#sandbox-settlement-manager-city-manage .city-section-divider {
   border: none;
   border-top: 1px solid var(--color-border-light-tertiary, #ccc);
   margin: 0.75rem 0;
 }
 
-#sandbox-city-manager-city-manage .city-resource-list {
+#sandbox-settlement-manager-city-manage .city-resource-list {
   list-style: none;
   padding: 0;
   margin: 0 0 0.5rem;
   min-height: 2rem;
 }
 
-#sandbox-city-manager-city-manage .city-resource-item {
+#sandbox-settlement-manager-city-manage .city-resource-item {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -224,7 +224,7 @@
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
 }
 
-#sandbox-city-manager-city-manage .discovered-toggle {
+#sandbox-settlement-manager-city-manage .discovered-toggle {
   background: none;
   border: none;
   padding: 0.1rem 0.2rem;
@@ -234,58 +234,58 @@
   border-radius: 3px;
 }
 
-#sandbox-city-manager-city-manage .discovered-toggle i {
+#sandbox-settlement-manager-city-manage .discovered-toggle i {
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-city-manager-city-manage .discovered-toggle.is-discovered i {
+#sandbox-settlement-manager-city-manage .discovered-toggle.is-discovered i {
   color: var(--color-level-success, #4caf50);
 }
 
-#sandbox-city-manager-city-manage .discovered-toggle:hover i {
+#sandbox-settlement-manager-city-manage .discovered-toggle:hover i {
   opacity: 0.7;
 }
 
-#sandbox-city-manager-city-manage .resource-type-icon {
+#sandbox-settlement-manager-city-manage .resource-type-icon {
   width: 1em;
   text-align: center;
   flex-shrink: 0;
   color: var(--color-text-dark-secondary, #555);
 }
 
-#sandbox-city-manager-city-manage .city-resource-info {
+#sandbox-settlement-manager-city-manage .city-resource-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-#sandbox-city-manager-city-manage .city-resource-name {
+#sandbox-settlement-manager-city-manage .city-resource-name {
   font-size: var(--font-size-13, 13px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-#sandbox-city-manager-city-manage .city-resource-type {
+#sandbox-settlement-manager-city-manage .city-resource-type {
   font-size: var(--font-size-11, 11px);
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-city-manager-city-manage .city-resource-item .controls {
+#sandbox-settlement-manager-city-manage .city-resource-item .controls {
   display: flex;
   gap: 0.2rem;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-city-manage .city-resource-empty {
+#sandbox-settlement-manager-city-manage .city-resource-empty {
   padding: 0.5rem;
   color: var(--color-text-dark-inactive, #999);
   text-align: center;
   font-style: italic;
 }
 
-#sandbox-city-manager-city-manage .city-resource-actions {
+#sandbox-settlement-manager-city-manage .city-resource-actions {
   margin-top: 0.25rem;
 }
 
@@ -293,11 +293,11 @@
 /*  City Resources Panel (Player View)          */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-city-resources .resource-group {
+#sandbox-settlement-manager-city-resources .resource-group {
   margin-bottom: 0.75rem;
 }
 
-#sandbox-city-manager-city-resources .resource-group-header {
+#sandbox-settlement-manager-city-resources .resource-group-header {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -308,13 +308,13 @@
   margin-bottom: 0.25rem;
 }
 
-#sandbox-city-manager-city-resources .resource-group-list {
+#sandbox-settlement-manager-city-resources .resource-group-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-#sandbox-city-manager-city-resources .resource-entry {
+#sandbox-settlement-manager-city-resources .resource-entry {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -323,16 +323,16 @@
   border-radius: 3px;
 }
 
-#sandbox-city-manager-city-resources .resource-entry:hover {
+#sandbox-settlement-manager-city-resources .resource-entry:hover {
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
 }
 
-#sandbox-city-manager-city-resources .resource-name {
+#sandbox-settlement-manager-city-resources .resource-name {
   flex: 1;
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-city-resources .resource-subtype {
+#sandbox-settlement-manager-city-resources .resource-subtype {
   font-size: var(--font-size-11, 11px);
   color: var(--color-text-dark-inactive, #999);
 }
@@ -341,14 +341,14 @@
 /*  Currency Configuration Dialog               */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-currency-config .currency-list {
+#sandbox-settlement-manager-currency-config .currency-list {
   list-style: none;
   padding: 0;
   margin: 0.25rem 0 0.5rem;
   min-height: 2rem;
 }
 
-#sandbox-city-manager-currency-config .currency-item {
+#sandbox-settlement-manager-currency-config .currency-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -359,17 +359,17 @@
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
 }
 
-#sandbox-city-manager-currency-config .currency-item.dragging {
+#sandbox-settlement-manager-currency-config .currency-item.dragging {
   opacity: 0.35;
 }
 
-#sandbox-city-manager-currency-config .drag-handle {
+#sandbox-settlement-manager-currency-config .drag-handle {
   cursor: grab;
   color: var(--color-text-dark-inactive, #999);
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-currency-config .currency-info {
+#sandbox-settlement-manager-currency-config .currency-info {
   flex: 1;
   display: flex;
   align-items: center;
@@ -378,17 +378,17 @@
   flex-wrap: wrap;
 }
 
-#sandbox-city-manager-currency-config .currency-name {
+#sandbox-settlement-manager-currency-config .currency-name {
   font-size: var(--font-size-14, 14px);
   font-weight: bold;
 }
 
-#sandbox-city-manager-currency-config .currency-abbr {
+#sandbox-settlement-manager-currency-config .currency-abbr {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-city-manager-currency-config .currency-standard-badge {
+#sandbox-settlement-manager-currency-config .currency-standard-badge {
   font-size: var(--font-size-11, 11px);
   background: var(--color-level-success, #4caf50);
   color: white;
@@ -397,13 +397,13 @@
   white-space: nowrap;
 }
 
-#sandbox-city-manager-currency-config .currency-rate {
+#sandbox-settlement-manager-currency-config .currency-rate {
   font-size: var(--font-size-12, 12px);
   font-family: monospace;
   color: var(--color-text-dark-secondary, #555);
 }
 
-#sandbox-city-manager-currency-config .currency-secondary {
+#sandbox-settlement-manager-currency-config .currency-secondary {
   font-size: var(--font-size-11, 11px);
   color: var(--color-text-dark-inactive, #999);
   font-family: monospace;
@@ -413,27 +413,27 @@
   white-space: nowrap;
 }
 
-#sandbox-city-manager-currency-config .currency-item .controls {
+#sandbox-settlement-manager-currency-config .currency-item .controls {
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-currency-config .currency-empty {
+#sandbox-settlement-manager-currency-config .currency-empty {
   padding: 0.5rem;
   color: var(--color-text-dark-inactive, #999);
   text-align: center;
   font-style: italic;
 }
 
-#sandbox-city-manager-currency-config .currency-actions {
+#sandbox-settlement-manager-currency-config .currency-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-top: 0.25rem;
 }
 
-#sandbox-city-manager-currency-config h3 {
+#sandbox-settlement-manager-currency-config h3 {
   font-size: var(--font-size-14, 14px);
   font-weight: bold;
   margin: 0.75rem 0 0.25rem;
@@ -443,7 +443,7 @@
 /*  Currency Edit Dialog                        */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-currency-edit .exchange-rate-help {
+#sandbox-settlement-manager-currency-edit .exchange-rate-help {
   margin-top: 0.4rem;
   padding: 0.5rem;
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
@@ -452,20 +452,20 @@
   font-size: var(--font-size-12, 12px);
 }
 
-#sandbox-city-manager-currency-edit .exchange-rate-help.hidden {
+#sandbox-settlement-manager-currency-edit .exchange-rate-help.hidden {
   display: none;
 }
 
-#sandbox-city-manager-currency-edit .exchange-rate-help ul {
+#sandbox-settlement-manager-currency-edit .exchange-rate-help ul {
   margin: 0.25rem 0 0 1rem;
   padding: 0;
 }
 
-#sandbox-city-manager-currency-edit .exchange-rate-help p {
+#sandbox-settlement-manager-currency-edit .exchange-rate-help p {
   margin: 0 0 0.25rem;
 }
 
-#sandbox-city-manager-currency-edit .selected-item {
+#sandbox-settlement-manager-currency-edit .selected-item {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -476,16 +476,16 @@
   margin-bottom: 0.4rem;
 }
 
-#sandbox-city-manager-currency-edit .selected-item.hidden {
+#sandbox-settlement-manager-currency-edit .selected-item.hidden {
   display: none;
 }
 
-#sandbox-city-manager-currency-edit .selected-item-name {
+#sandbox-settlement-manager-currency-edit .selected-item-name {
   flex: 1;
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-currency-edit .item-search-results {
+#sandbox-settlement-manager-currency-edit .item-search-results {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -495,11 +495,11 @@
   overflow-y: auto;
 }
 
-#sandbox-city-manager-currency-edit .item-search-results:empty {
+#sandbox-settlement-manager-currency-edit .item-search-results:empty {
   display: none;
 }
 
-#sandbox-city-manager-currency-edit .item-search-result {
+#sandbox-settlement-manager-currency-edit .item-search-result {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -508,11 +508,11 @@
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-currency-edit .item-search-result:hover {
+#sandbox-settlement-manager-currency-edit .item-search-result:hover {
   background: var(--color-bg-option, rgba(0, 0, 0, 0.08));
 }
 
-#sandbox-city-manager-currency-edit .item-search-result img {
+#sandbox-settlement-manager-currency-edit .item-search-result img {
   object-fit: contain;
   border-radius: 2px;
   flex-shrink: 0;
@@ -522,13 +522,13 @@
 /*  Currency Test Config (GM Expense Manager)   */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-currency-test-config .expense-list {
+#sandbox-settlement-manager-currency-test-config .expense-list {
   list-style: none;
   padding: 0;
   margin: 0 0 0.5rem;
 }
 
-#sandbox-city-manager-currency-test-config .expense-item {
+#sandbox-settlement-manager-currency-test-config .expense-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -539,28 +539,28 @@
   background: var(--color-bg-option, rgba(0,0,0,0.05));
 }
 
-#sandbox-city-manager-currency-test-config .expense-info {
+#sandbox-settlement-manager-currency-test-config .expense-info {
   flex: 1;
   display: flex;
   gap: 0.5rem;
   align-items: baseline;
 }
 
-#sandbox-city-manager-currency-test-config .expense-name { font-size: var(--font-size-13, 13px); }
+#sandbox-settlement-manager-currency-test-config .expense-name { font-size: var(--font-size-13, 13px); }
 
-#sandbox-city-manager-currency-test-config .expense-cost {
+#sandbox-settlement-manager-currency-test-config .expense-cost {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-city-manager-currency-test-config .expense-empty {
+#sandbox-settlement-manager-currency-test-config .expense-empty {
   color: var(--color-text-dark-inactive, #999);
   font-style: italic;
   padding: 0.5rem;
   text-align: center;
 }
 
-#sandbox-city-manager-currency-test-config .add-expense-form {
+#sandbox-settlement-manager-currency-test-config .add-expense-form {
   display: flex;
   gap: 0.4rem;
   align-items: center;
@@ -570,7 +570,7 @@
   border-top: 1px solid var(--color-border-light-tertiary, #ccc);
 }
 
-#sandbox-city-manager-currency-test-config .add-expense-form input[name="newExpenseName"] {
+#sandbox-settlement-manager-currency-test-config .add-expense-form input[name="newExpenseName"] {
   flex: 2;
 }
 
@@ -578,13 +578,13 @@
 /*  Resource Detail App (Player View)           */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-resource-detail .expense-list {
+#sandbox-settlement-manager-resource-detail .expense-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-#sandbox-city-manager-resource-detail .expense-entry {
+#sandbox-settlement-manager-resource-detail .expense-entry {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -592,29 +592,29 @@
   border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
 }
 
-#sandbox-city-manager-resource-detail .expense-entry:last-child { border-bottom: none; }
+#sandbox-settlement-manager-resource-detail .expense-entry:last-child { border-bottom: none; }
 
-#sandbox-city-manager-resource-detail .expense-info {
+#sandbox-settlement-manager-resource-detail .expense-info {
   flex: 1;
   display: flex;
   gap: 0.5rem;
   align-items: baseline;
 }
 
-#sandbox-city-manager-resource-detail .expense-name { font-size: var(--font-size-13, 13px); }
+#sandbox-settlement-manager-resource-detail .expense-name { font-size: var(--font-size-13, 13px); }
 
-#sandbox-city-manager-resource-detail .expense-cost {
+#sandbox-settlement-manager-resource-detail .expense-cost {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-city-manager-resource-detail .buy-button {
+#sandbox-settlement-manager-resource-detail .buy-button {
   flex-shrink: 0;
   padding: 0.2rem 0.6rem;
   font-size: var(--font-size-12, 12px);
 }
 
-#sandbox-city-manager-resource-detail .expense-empty {
+#sandbox-settlement-manager-resource-detail .expense-empty {
   color: var(--color-text-dark-inactive, #999);
   font-style: italic;
   padding: 0.5rem;
@@ -625,7 +625,7 @@
 /*  Purchase Dialog                             */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-purchase-dialog .purchase-header {
+#sandbox-settlement-manager-purchase-dialog .purchase-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -634,25 +634,25 @@
   border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
 }
 
-#sandbox-city-manager-purchase-dialog .purchase-cost {
+#sandbox-settlement-manager-purchase-dialog .purchase-cost {
   color: var(--color-text-dark-inactive, #999);
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-purchase-dialog .balance-display {
+#sandbox-settlement-manager-purchase-dialog .balance-display {
   background: var(--color-bg-option, rgba(0,0,0,0.05));
   border-radius: 3px;
   padding: 0.4rem 0.5rem;
   margin-bottom: 0.5rem;
 }
 
-#sandbox-city-manager-purchase-dialog .balance-display h4 {
+#sandbox-settlement-manager-purchase-dialog .balance-display h4 {
   font-size: var(--font-size-12, 12px);
   margin: 0 0 0.25rem;
   font-weight: bold;
 }
 
-#sandbox-city-manager-purchase-dialog .balance-list {
+#sandbox-settlement-manager-purchase-dialog .balance-list {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -661,44 +661,44 @@
   flex-wrap: wrap;
 }
 
-#sandbox-city-manager-purchase-dialog .balance-list li {
+#sandbox-settlement-manager-purchase-dialog .balance-list li {
   font-size: var(--font-size-12, 12px);
   display: flex;
   gap: 0.25rem;
 }
 
-#sandbox-city-manager-purchase-dialog .balance-currency { color: var(--color-text-dark-inactive, #999); }
+#sandbox-settlement-manager-purchase-dialog .balance-currency { color: var(--color-text-dark-inactive, #999); }
 
-#sandbox-city-manager-purchase-dialog .payment-section h4 {
+#sandbox-settlement-manager-purchase-dialog .payment-section h4 {
   font-size: var(--font-size-13, 13px);
   font-weight: bold;
   margin: 0.5rem 0 0.25rem;
 }
 
-#sandbox-city-manager-purchase-dialog .payment-inputs {
+#sandbox-settlement-manager-purchase-dialog .payment-inputs {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-#sandbox-city-manager-purchase-dialog .payment-row {
+#sandbox-settlement-manager-purchase-dialog .payment-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
 }
 
-#sandbox-city-manager-purchase-dialog .payment-row label {
+#sandbox-settlement-manager-purchase-dialog .payment-row label {
   flex: 1;
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-purchase-dialog .payment-input {
+#sandbox-settlement-manager-purchase-dialog .payment-input {
   width: 5rem;
   text-align: right;
 }
 
-#sandbox-city-manager-purchase-dialog .calc-section {
+#sandbox-settlement-manager-purchase-dialog .calc-section {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -708,21 +708,21 @@
   font-size: var(--font-size-12, 12px);
 }
 
-#sandbox-city-manager-purchase-dialog .purchase-error {
+#sandbox-settlement-manager-purchase-dialog .purchase-error {
   color: var(--color-level-error, #c53030);
   font-size: var(--font-size-12, 12px);
   min-height: 1em;
   margin: 0.25rem 0;
 }
 
-#sandbox-city-manager-purchase-dialog .purchase-error:empty { display: none; }
+#sandbox-settlement-manager-purchase-dialog .purchase-error:empty { display: none; }
 
-#sandbox-city-manager-purchase-dialog .purchase-actions {
+#sandbox-settlement-manager-purchase-dialog .purchase-actions {
   margin-top: 0.5rem;
   text-align: right;
 }
 
-#sandbox-city-manager-purchase-dialog .purchase-actions button {
+#sandbox-settlement-manager-purchase-dialog .purchase-actions button {
   padding: 0.3rem 1rem;
 }
 
@@ -730,14 +730,14 @@
 /*  Resource Type Config (Sub-type manager)     */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-resource-type-config .core-type-section {
+#sandbox-settlement-manager-resource-type-config .core-type-section {
   margin-bottom: 0.75rem;
   border: 1px solid var(--color-border-light-tertiary, #ccc);
   border-radius: 4px;
   padding: 0.5rem;
 }
 
-#sandbox-city-manager-resource-type-config .core-type-header {
+#sandbox-settlement-manager-resource-type-config .core-type-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -746,13 +746,13 @@
   margin: 0 0 0.4rem;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-list {
+#sandbox-settlement-manager-resource-type-config .sub-type-list {
   list-style: none;
   padding: 0;
   margin: 0 0 0.4rem;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-item {
+#sandbox-settlement-manager-resource-type-config .sub-type-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -761,32 +761,32 @@
   border-radius: 3px;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-item:hover {
+#sandbox-settlement-manager-resource-type-config .sub-type-item:hover {
   background: var(--color-bg-option, rgba(0,0,0,0.04));
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-empty {
+#sandbox-settlement-manager-resource-type-config .sub-type-empty {
   color: var(--color-text-dark-inactive, #999);
   font-style: italic;
   font-size: var(--font-size-12, 12px);
   padding: 0.15rem 0.4rem;
 }
 
-#sandbox-city-manager-resource-type-config .add-subtype-row {
+#sandbox-settlement-manager-resource-type-config .add-subtype-row {
   display: flex;
   gap: 0.4rem;
   align-items: center;
 }
 
-#sandbox-city-manager-resource-type-config .new-subtype-name {
+#sandbox-settlement-manager-resource-type-config .new-subtype-name {
   flex: 1;
 }
 
-#sandbox-city-manager-purchase-dialog .payment-row {
+#sandbox-settlement-manager-purchase-dialog .payment-row {
   gap: 0.4rem;
 }
 
-#sandbox-city-manager-purchase-dialog .fill-button {
+#sandbox-settlement-manager-purchase-dialog .fill-button {
   flex-shrink: 0;
   width: 1.6rem;
   height: 1.6rem;
@@ -797,7 +797,7 @@
   border-radius: 3px;
 }
 
-#sandbox-city-manager-purchase-dialog .fill-button:disabled {
+#sandbox-settlement-manager-purchase-dialog .fill-button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
@@ -806,11 +806,11 @@
 /*  Resource Type Config — Editable Lines       */
 /* -------------------------------------------- */
 
-#sandbox-city-manager-resource-type-config .core-type-block {
+#sandbox-settlement-manager-resource-type-config .core-type-block {
   margin-bottom: 0.15rem;
 }
 
-#sandbox-city-manager-resource-type-config .core-type-row {
+#sandbox-settlement-manager-resource-type-config .core-type-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -821,16 +821,16 @@
   font-size: var(--font-size-14, 14px);
 }
 
-#sandbox-city-manager-resource-type-config .core-type-name {
+#sandbox-settlement-manager-resource-type-config .core-type-name {
   flex: 1;
 }
 
-#sandbox-city-manager-resource-type-config .add-subtype-btn {
+#sandbox-settlement-manager-resource-type-config .add-subtype-btn {
   margin-left: auto;
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-row {
+#sandbox-settlement-manager-resource-type-config .sub-type-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -838,22 +838,22 @@
   font-size: var(--font-size-13, 13px);
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-row:hover {
+#sandbox-settlement-manager-resource-type-config .sub-type-row:hover {
   background: var(--color-bg-option, rgba(0,0,0,0.03));
   border-radius: 3px;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-indent {
+#sandbox-settlement-manager-resource-type-config .sub-type-indent {
   color: var(--color-text-dark-inactive, #999);
   font-size: var(--font-size-11, 11px);
   flex-shrink: 0;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-name {
+#sandbox-settlement-manager-resource-type-config .sub-type-name {
   flex: 1;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-row .controls {
+#sandbox-settlement-manager-resource-type-config .sub-type-row .controls {
   display: flex;
   gap: 0.2rem;
   flex-shrink: 0;
@@ -861,6 +861,6 @@
   transition: opacity 0.1s;
 }
 
-#sandbox-city-manager-resource-type-config .sub-type-row:hover .controls {
+#sandbox-settlement-manager-resource-type-config .sub-type-row:hover .controls {
   opacity: 1;
 }

@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -13,8 +13,8 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get title() {
     const key = this._resource?.name
-      ? "SANDBOX_CITY_MANAGER.resource.editTitle"
-      : "SANDBOX_CITY_MANAGER.resource.addTitle";
+      ? "SANDBOX_SETTLEMENT_MANAGER.resource.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.resource.addTitle";
     return game.i18n.localize(key);
   }
 

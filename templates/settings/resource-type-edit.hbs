@@ -1,27 +1,27 @@
-<div class="resource-type-edit-form">
+﻿<div class="resource-type-edit-form">
   <div class="form-group">
-    <label>{{localize "SANDBOX_CITY_MANAGER.resourceType.nameLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.nameLabel"}}</label>
     <input type="text" name="name" value="{{resourceType.name}}"
-           placeholder="{{localize 'SANDBOX_CITY_MANAGER.resourceType.namePlaceholder'}}">
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.namePlaceholder'}}">
   </div>
   <div class="form-group">
-    <label>{{localize "SANDBOX_CITY_MANAGER.resourceType.iconLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.iconLabel"}}</label>
     <div class="form-fields">
       {{#if resourceType.icon}}
         <i class="{{resourceType.icon}}" style="width:1.5em;text-align:center;flex-shrink:0"></i>
       {{/if}}
       <input type="text" name="icon" value="{{resourceType.icon}}"
-             placeholder="{{localize 'SANDBOX_CITY_MANAGER.resourceType.iconPlaceholder'}}">
+             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.iconPlaceholder'}}">
     </div>
   </div>
   <fieldset class="resource-type-subtypes">
-    <legend>{{localize "SANDBOX_CITY_MANAGER.resourceType.subTypesLabel"}}</legend>
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.subTypesLabel"}}</legend>
     <ul class="sub-type-list">
       {{#each resourceType.subTypes}}
       <li class="sub-type-item">
         <input type="text" name="subTypeName[{{@index}}]" value="{{this.name}}">
         <button type="button" class="icon" data-action="removeSubType" data-index="{{@index}}"
-                aria-label="{{localize 'SANDBOX_CITY_MANAGER.resourceType.removeSubType'}}">
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.removeSubType'}}">
           <i class="fa-solid fa-times"></i>
         </button>
       </li>
@@ -29,9 +29,9 @@
     </ul>
     <div class="sub-type-add-row">
       <input type="text" class="new-subtype-input"
-             placeholder="{{localize 'SANDBOX_CITY_MANAGER.resourceType.subTypeNameLabel'}}...">
+             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subTypeNameLabel'}}...">
       <button type="button" data-action="addSubType">
-        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_CITY_MANAGER.resourceType.addSubType"}}
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.addSubType"}}
       </button>
     </div>
   </fieldset>

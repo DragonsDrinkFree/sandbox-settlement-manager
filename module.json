@@ -1,7 +1,7 @@
 {
-  "id": "sandbox-city-manager",
-  "title": "Sandbox City Manager",
-  "description": "A GM toolkit for managing living cities in sandbox campaigns — track factions, NPCs, rumours, and district events across sessions.",
+  "id": "sandbox-settlement-manager",
+  "title": "Sandbox Settlement Manager",
+  "description": "A GM toolkit for managing living settlements in sandbox campaigns — track factions, NPCs, rumours, and district events across sessions.",
   "version": "0.1.0",
   "compatibility": {
     "minimum": "13",
@@ -17,7 +17,7 @@
     "scripts/main.js"
   ],
   "styles": [
-    "styles/sandbox-city-manager.css"
+    "styles/sandbox-settlement-manager.css"
   ],
   "languages": [
     {

@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS } from "../constants.js";
 import {
   parseExchangeRate,
   costInStandard,
@@ -27,7 +27,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       ?? null;
   }
 
-  get title() { return game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.title"); }
+  get title() { return game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.title"); }
 
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-purchase-dialog`,
@@ -158,13 +158,13 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const usedCurrencies = this._currencies.filter(c => (payment[c.id] ?? 0) > 0);
 
     if (usedCurrencies.length === 0 || offered < 1e-9) {
-      setError("SANDBOX_CITY_MANAGER.purchase.error.underpay");
+      setError("SANDBOX_SETTLEMENT_MANAGER.purchase.error.underpay");
       if (errorEl && offered < 1e-9) errorEl.textContent = "";
       return;
     }
 
     if (excess < -1e-9) {
-      setError("SANDBOX_CITY_MANAGER.purchase.error.underpay");
+      setError("SANDBOX_SETTLEMENT_MANAGER.purchase.error.underpay");
       return;
     }
 
@@ -172,13 +172,13 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const change = calculateChange(excess, this._currencies, maxPayValue);
 
     if (change === null) {
-      setError("SANDBOX_CITY_MANAGER.purchase.error.cannotMakeChange");
+      setError("SANDBOX_SETTLEMENT_MANAGER.purchase.error.cannotMakeChange");
       return;
     }
 
     const changeStr = Object.values(change).some(v => v > 0)
       ? formatAmounts(change, this._currencies)
-      : game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.noChange");
+      : game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.noChange");
 
     if (changeEl) changeEl.textContent = changeStr;
     if (errorEl) errorEl.textContent = "";
@@ -198,7 +198,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!c) continue;
         const balance = this.#readActorBalance(c);
         if (balance < coins) {
-          ui.notifications.warn(game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.error.insufficientFunds"));
+          ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.error.insufficientFunds"));
           return;
         }
       }
@@ -217,7 +217,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    ui.notifications.info(game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.complete"));
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.complete"));
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.(true);
@@ -250,7 +250,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       const qty = foundry.utils.getProperty(existing, "system.quantity") ?? 0;
       // Guard: never allow negative quantity when paying
       if (delta < 0 && qty + delta < 0) {
-        ui.notifications.warn(`${game.i18n.localize("SANDBOX_CITY_MANAGER.purchase.error.insufficientFunds")}: ${c.name}`);
+        ui.notifications.warn(`${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.error.insufficientFunds")}: ${c.name}`);
         throw new Error("Insufficient item quantity");
       }
       await existing.update({ "system.quantity": qty + delta });
@@ -273,7 +273,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async #executeLooseTransaction(payment, change) {
     const costCurrency = this._currencies.find(c => c.id === this._expense.currencyId);
     const costStr = `${this._expense.amount} ${costCurrency?.abbreviation ?? "?"}`;
-    const content = game.i18n.format("SANDBOX_CITY_MANAGER.purchase.whisperContent", {
+    const content = game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.purchase.whisperContent", {
       expense: this._expense.name,
       cost: costStr,
       payment: formatAmounts(payment, this._currencies),

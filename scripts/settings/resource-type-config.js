@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
 import { SubTypeEditApp } from "./sub-type-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -11,7 +11,7 @@ export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
     id: `${MODULE_ID}-resource-type-config`,
     tag: "form",
     form: { handler: ResourceTypeConfigApp.#onSubmit, closeOnSubmit: true },
-    window: { title: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.name" },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.name" },
     position: { width: 460 },
     actions: {
       addSubType:    ResourceTypeConfigApp.#onAddSubType,

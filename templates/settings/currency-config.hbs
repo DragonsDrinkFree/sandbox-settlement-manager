@@ -1,29 +1,29 @@
-<div class="currency-config">
+﻿<div class="currency-config">
   <div class="form-group">
-    <label>{{localize "SANDBOX_CITY_MANAGER.currency.modeLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}}</label>
     <select name="mode">
       <option value="loose"{{#if (eq currentMode "loose")}} selected{{/if}}>
-        {{localize "SANDBOX_CITY_MANAGER.currency.mode.loose"}}
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.loose"}}
       </option>
       <option value="attribute"{{#if (eq currentMode "attribute")}} selected{{/if}}>
-        {{localize "SANDBOX_CITY_MANAGER.currency.mode.attribute"}}
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.attribute"}}
       </option>
       <option value="item"{{#if (eq currentMode "item")}} selected{{/if}}>
-        {{localize "SANDBOX_CITY_MANAGER.currency.mode.item"}}
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.item"}}
       </option>
     </select>
   </div>
 
   {{#if (eq currentMode "loose")}}
-    <p class="notification info">{{localize "SANDBOX_CITY_MANAGER.currency.modeLooseHint"}}</p>
+    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLooseHint"}}</p>
   {{else if (eq currentMode "attribute")}}
-    <p class="notification info">{{localize "SANDBOX_CITY_MANAGER.currency.modeAttributeHint"}}</p>
+    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeAttributeHint"}}</p>
   {{else if (eq currentMode "item")}}
-    <p class="notification info">{{localize "SANDBOX_CITY_MANAGER.currency.modeItemHint"}}</p>
+    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeItemHint"}}</p>
   {{/if}}
 
-  <h3>{{localize "SANDBOX_CITY_MANAGER.currency.listHeader"}}</h3>
-  <p class="hint">{{localize "SANDBOX_CITY_MANAGER.currency.listHint"}}</p>
+  <h3>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.listHeader"}}</h3>
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.listHint"}}</p>
 
   <ul class="currency-list">
     {{#each currencies}}
@@ -33,7 +33,7 @@
         <span class="currency-name">{{this.name}}</span>
         <span class="currency-abbr">({{this.abbreviation}})</span>
         {{#if this.isStandard}}
-          <span class="currency-standard-badge">{{localize "SANDBOX_CITY_MANAGER.currency.standardBadge"}}</span>
+          <span class="currency-standard-badge">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.standardBadge"}}</span>
         {{/if}}
         <span class="currency-rate">{{this.exchangeRate}}</span>
         {{#if (eq ../currentMode "attribute")}}
@@ -50,16 +50,16 @@
       </div>
     </li>
     {{else}}
-    <li class="currency-empty"><em>{{localize "SANDBOX_CITY_MANAGER.currency.empty"}}</em></li>
+    <li class="currency-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.empty"}}</em></li>
     {{/each}}
   </ul>
 
   <div class="currency-actions">
     <button type="button" data-action="addCurrency">
-      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_CITY_MANAGER.currency.add"}}
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.add"}}
     </button>
     <button type="button" data-action="resetToDefaults">
-      <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_CITY_MANAGER.currency.reset"}}
+      <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.reset"}}
     </button>
   </div>
 </div>

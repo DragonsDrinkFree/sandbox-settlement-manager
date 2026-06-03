@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS } from "../constants.js";
 import { CityTypeConfigApp } from "./city-type-config.js";
 import { ResourceTypeConfigApp } from "./resource-type-config.js";
 import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
@@ -38,27 +38,27 @@ export function registerSettings() {
   });
 
   game.settings.registerMenu(MODULE_ID, "cityTypeConfig", {
-    name: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.name",
-    label: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.label",
-    hint: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.hint",
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.hint",
     icon: "fa-solid fa-city",
     type: CityTypeConfigApp,
     restricted: true
   });
 
   game.settings.registerMenu(MODULE_ID, "resourceTypeConfig", {
-    name: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.name",
-    label: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.label",
-    hint: "SANDBOX_CITY_MANAGER.setting.resourceTypeConfig.hint",
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.hint",
     icon: "fa-solid fa-warehouse",
     type: ResourceTypeConfigApp,
     restricted: true
   });
 
   game.settings.registerMenu(MODULE_ID, "currencyConfig", {
-    name: "SANDBOX_CITY_MANAGER.setting.currencyConfig.name",
-    label: "SANDBOX_CITY_MANAGER.setting.currencyConfig.label",
-    hint: "SANDBOX_CITY_MANAGER.setting.currencyConfig.hint",
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.hint",
     icon: "fa-solid fa-coins",
     type: CurrencyConfigApp,
     restricted: true

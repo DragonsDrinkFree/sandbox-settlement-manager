@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+﻿import { MODULE_ID, FLAGS, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
 import { ResourceDetailApp } from "./resource-detail-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -8,7 +8,7 @@ export class CityResourcesApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-city-resources`,
-    window: { title: "SANDBOX_CITY_MANAGER.resources.title", resizable: false },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.resources.title", resizable: false },
     position: { width: 280 }
   };
 
@@ -28,7 +28,7 @@ export class CityResourcesApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const type = CORE_RESOURCE_TYPES.find(t => t.id === r.typeId);
         groupMap[r.typeId] = {
           typeId: r.typeId,
-          typeName: type?.name ?? game.i18n.localize("SANDBOX_CITY_MANAGER.resource.unknownType"),
+          typeName: type?.name ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.unknownType"),
           typeIcon: type?.icon ?? "fa-solid fa-question",
           resources: []
         };

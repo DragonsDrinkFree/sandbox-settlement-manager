@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS, SETTINGS } from "../constants.js";
+﻿import { MODULE_ID, FLAGS, SETTINGS } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -13,7 +13,7 @@ export class CurrencyTestConfigApp extends HandlebarsApplicationMixin(Applicatio
   }
 
   get title() {
-    return `${this._resource.name} — ${game.i18n.localize("SANDBOX_CITY_MANAGER.currencyTest.configTitle")}`;
+    return `${this._resource.name} — ${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.currencyTest.configTitle")}`;
   }
 
   static DEFAULT_OPTIONS = {

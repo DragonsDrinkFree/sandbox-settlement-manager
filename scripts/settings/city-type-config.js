@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS } from "../constants.js";
 import { CityTypeEditApp } from "./city-type-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -19,7 +19,7 @@ export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
     id: `${MODULE_ID}-city-type-config`,
     tag: "form",
     form: { handler: CityTypeConfigApp.#onSubmit, closeOnSubmit: true },
-    window: { title: "SANDBOX_CITY_MANAGER.setting.cityTypeConfig.name" },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.name" },
     position: { width: 460 },
     actions: {
       addCityType: CityTypeConfigApp.#onAddCityType,

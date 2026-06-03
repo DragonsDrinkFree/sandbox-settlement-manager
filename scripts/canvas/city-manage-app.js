@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES } from "../constants.js";
+﻿import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES } from "../constants.js";
 import { ResourceEditApp } from "./resource-edit-app.js";
 import { CurrencyTestConfigApp } from "./currency-test-config.js";
 
@@ -7,7 +7,7 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-city-manage`,
-    window: { title: "SANDBOX_CITY_MANAGER.manage.title", resizable: true },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.manage.title", resizable: true },
     position: { width: 440, height: "auto" },
     actions: {
       addResource:        CityManageApp.#onAddResource,
@@ -42,7 +42,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const subType = (subTypeMap[r.typeId] ?? []).find(s => s.id === r.subTypeId) ?? null;
       return {
         ...r,
-        typeName: type?.name ?? game.i18n.localize("SANDBOX_CITY_MANAGER.resource.unknownType"),
+        typeName: type?.name ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.unknownType"),
         typeIcon: type?.icon ?? "fa-solid fa-question",
         subTypeName: subType?.name ?? null,
         isCurrencyTest: r.typeId === RESOURCE_TYPE_IDS.CURRENCY_TEST

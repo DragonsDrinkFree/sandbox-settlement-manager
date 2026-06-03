@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS } from "../constants.js";
 import { CurrencyEditApp } from "./currency-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -16,7 +16,7 @@ export class CurrencyConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
     id: `${MODULE_ID}-currency-config`,
     tag: "form",
     form: { handler: CurrencyConfigApp.#onSubmit, closeOnSubmit: true },
-    window: { title: "SANDBOX_CITY_MANAGER.setting.currencyConfig.name" },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.name" },
     position: { width: 540 },
     actions: {
       addCurrency:     CurrencyConfigApp.#onAddCurrency,

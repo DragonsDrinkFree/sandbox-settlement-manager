@@ -1,5 +1,5 @@
-<div class="resource-type-config">
-  <p class="hint">{{localize "SANDBOX_CITY_MANAGER.setting.resourceTypes.hint"}}</p>
+﻿<div class="resource-type-config">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypes.hint"}}</p>
 
   {{#each coreTypes}}
   <div class="core-type-block" data-type-id="{{this.id}}">
@@ -7,7 +7,7 @@
       <i class="{{this.icon}}" inert></i>
       <span class="core-type-name">{{this.name}}</span>
       <button type="button" class="icon add-subtype-btn" data-action="addSubType" data-type-id="{{this.id}}"
-              aria-label="{{localize 'SANDBOX_CITY_MANAGER.resourceType.subType.add'}}">
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.add'}}">
         <i class="fa-solid fa-plus"></i>
       </button>
     </div>
@@ -18,12 +18,12 @@
       <div class="controls">
         <button type="button" class="icon" data-action="editSubType"
                 data-type-id="{{../id}}" data-sub-index="{{@index}}"
-                aria-label="{{localize 'SANDBOX_CITY_MANAGER.resourceType.subType.edit'}}">
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.edit'}}">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
         <button type="button" class="icon" data-action="deleteSubType"
                 data-type-id="{{../id}}" data-sub-index="{{@index}}"
-                aria-label="{{localize 'SANDBOX_CITY_MANAGER.resourceType.subType.delete'}}">
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.delete'}}">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>
