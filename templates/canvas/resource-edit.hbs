@@ -1,27 +1,59 @@
-﻿<div class="resource-edit-form">
+<div class="resource-edit-form">
   <div class="form-group">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.nameLabel"}}</label>
     <input type="text" name="name" value="{{resource.name}}"
            placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.namePlaceholder'}}">
   </div>
+
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.typeLabel"}}</label>
-    <select name="typeId">
-      <option value="">— Select Type —</option>
-      {{#each resourceTypes}}
-        <option value="{{value}}"{{#if (eq value ../resource.typeId)}} selected{{/if}}>{{label}}</option>
-      {{/each}}
-    </select>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.typesLabel"}}</label>
+    <div class="type-entries-area">
+      <div class="type-chips">
+        {{#each typeEntries}}
+        <span class="type-entry-chip">
+          <i class="{{this.typeIcon}}" inert></i>
+          <span>{{this.typeName}}{{#if this.subTypeName}} &middot; {{this.subTypeName}}{{/if}}</span>
+          <button type="button" class="icon remove-chip" data-action="removeTypeEntry"
+                  data-entry-index="{{this.index}}" aria-label="Remove">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </span>
+        {{/each}}
+      </div>
+      <div class="add-type-trigger">
+        <button type="button" class="add-type-btn">
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resource.addType"}}
+        </button>
+        <div class="type-picker-dropdown">
+          <input type="text" class="type-picker-filter"
+                 placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.filterTypes'}}">
+          <ul class="type-picker-list">
+            {{#each pickerGroups}}
+            <li class="picker-group">
+              {{#if this.typeItselfAvailable}}
+              <button type="button" class="picker-item picker-type-item"
+                      data-type-id="{{this.typeId}}" data-sub-type-id="">
+                <i class="{{this.icon}}" inert></i> {{this.name}}
+              </button>
+              {{else}}
+              <span class="picker-group-label">
+                <i class="{{this.icon}}" inert></i> {{this.name}}
+              </span>
+              {{/if}}
+              {{#each this.subTypes}}
+              <button type="button" class="picker-item picker-subtype-item"
+                      data-type-id="{{../typeId}}" data-sub-type-id="{{this.id}}">
+                <i class="fa-solid fa-turn-down-right" inert></i> {{this.name}}
+              </button>
+              {{/each}}
+            </li>
+            {{/each}}
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="form-group sub-type-group"{{#unless hasSubTypes}} style="display:none"{{/unless}}>
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.subTypeLabel"}}</label>
-    <select name="subTypeId">
-      <option value="">— None —</option>
-      {{#each subTypes}}
-        <option value="{{this.id}}"{{#if (eq this.id ../../resource.subTypeId)}} selected{{/if}}>{{this.name}}</option>
-      {{/each}}
-    </select>
-  </div>
+
   <div class="form-group">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.discoveredLabel"}}</label>
     <input type="checkbox" name="discovered"{{#if resource.discovered.default}} checked{{/if}}>

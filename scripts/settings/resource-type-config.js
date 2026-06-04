@@ -1,5 +1,5 @@
-﻿import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
-import { SubTypeEditApp } from "./sub-type-edit.js";
+import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+import { ResourceTypeEditApp } from "./resource-type-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -14,9 +14,7 @@ export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
     window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.name" },
     position: { width: 460 },
     actions: {
-      addSubType:    ResourceTypeConfigApp.#onAddSubType,
-      editSubType:   ResourceTypeConfigApp.#onEditSubType,
-      deleteSubType: ResourceTypeConfigApp.#onDeleteSubType
+      editCoreType: ResourceTypeConfigApp.#onEditCoreType
     }
   };
 
@@ -39,31 +37,13 @@ export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
     };
   }
 
-  static async #onAddSubType(event, target) {
+  static async #onEditCoreType(event, target) {
     const typeId = target.dataset.typeId;
-    const result = await SubTypeEditApp.open({});
-    if (!result) return;
-    result.id ??= foundry.utils.randomID();
-    this._subTypes[typeId] ??= [];
-    this._subTypes[typeId].push(result);
-    this.render({ parts: ["form"] });
-  }
-
-  static async #onEditSubType(event, target) {
-    const typeId = target.dataset.typeId;
-    const index = parseInt(target.dataset.subIndex);
-    const existing = this._subTypes[typeId]?.[index];
-    if (!existing) return;
-    const result = await SubTypeEditApp.open(existing);
-    if (!result) return;
-    this._subTypes[typeId][index] = result;
-    this.render({ parts: ["form"] });
-  }
-
-  static #onDeleteSubType(event, target) {
-    const typeId = target.dataset.typeId;
-    const index = parseInt(target.dataset.subIndex);
-    this._subTypes[typeId]?.splice(index, 1);
+    const coreType = CORE_RESOURCE_TYPES.find(t => t.id === typeId);
+    if (!coreType) return;
+    const result = await ResourceTypeEditApp.open(coreType, this._subTypes[typeId] ?? []);
+    if (result === null) return;
+    this._subTypes[typeId] = result;
     this.render({ parts: ["form"] });
   }
 

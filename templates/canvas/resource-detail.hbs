@@ -1,21 +1,110 @@
-﻿<div class="resource-detail-content">
-  {{#if isCurrencyTest}}
-  <ul class="expense-list">
-    {{#each expenses}}
-    <li class="expense-entry" data-expense-id="{{this.id}}">
-      <div class="expense-info">
-        <span class="expense-name">{{this.name}}</span>
-        <span class="expense-cost">{{this.costLabel}}</span>
-      </div>
-      <button type="button" class="buy-button" data-action="buyExpense">
-        {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
-      </button>
-    </li>
-    {{else}}
-    <li class="expense-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.noExpenses"}}</em></li>
+<div class="resource-detail-content">
+  {{#if hasMultipleTabs}}
+  <nav class="resource-detail-tabs">
+    {{#each tabs}}
+    <button type="button" class="resource-detail-tab{{#if this.active}} active{{/if}}"
+            data-action="switchTab" data-tab-id="{{this.id}}">
+      <i class="{{this.icon}}" inert></i> {{this.name}}
+    </button>
     {{/each}}
-  </ul>
-  {{else}}
-  <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.noDetailView"}}</p>
+  </nav>
   {{/if}}
+  {{#each tabs}}
+  <div class="resource-detail-tab-pane{{#if this.active}} active{{/if}}">
+    {{#if this.isInn}}
+    <div class="inn-detail">
+
+      <div class="inn-section">
+        <div class="inn-section-header">
+          <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodgingSection"}}</span>
+          {{#if this.innData.isGM}}
+          <button type="button" class="icon" data-action="addLodging"
+                  aria-label="Add Lodging">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          {{/if}}
+        </div>
+        <ul class="inn-lodging-list">
+          {{#each this.innData.lodgings}}
+          <li class="inn-lodging-row">
+            <div class="lodging-info">
+              <span class="lodging-name">{{this.name}}</span>
+              <span class="lodging-meta">{{this.beds}} beds &middot; {{this.pricePerDayLabel}}/day &middot; {{this.pricePerWeekLabel}}/wk</span>
+            </div>
+            <div class="controls">
+              {{#if ../innData.isGM}}
+              <button type="button" class="icon" data-action="editLodging" data-lodging-id="{{this.id}}"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button type="button" class="icon" data-action="deleteLodging" data-lodging-id="{{this.id}}"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              {{/if}}
+              <button type="button" class="inn-rent-btn" data-action="rentLodging" data-lodging-id="{{this.id}}">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.rent"}}
+              </button>
+            </div>
+          </li>
+          {{else}}
+          <li class="inn-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noLodgings"}}</em></li>
+          {{/each}}
+        </ul>
+      </div>
+
+      <div class="inn-section">
+        <div class="inn-section-header">
+          <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.ledger"}}</span>
+        </div>
+        <ul class="inn-ledger-list">
+          {{#each this.innData.ledger}}
+          <li class="inn-ledger-entry{{#if this.isExpired}} expired{{/if}}">
+            <div class="ledger-info">
+              <span class="ledger-who">{{this.actorName}}</span>
+              <span class="ledger-what">{{this.lodgingName}} ({{this.beds}} beds)</span>
+              <span class="ledger-time">{{this.timeRemainingLabel}}</span>
+            </div>
+            {{#if ../innData.isGM}}
+            <button type="button" class="icon" data-action="dismissLedgerEntry" data-entry-id="{{this.id}}"
+                    aria-label="Dismiss">
+              <i class="fa-solid fa-times"></i>
+            </button>
+            {{/if}}
+          </li>
+          {{else}}
+          <li class="inn-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noBookings"}}</em></li>
+          {{/each}}
+        </ul>
+      </div>
+
+      <div class="inn-section">
+        <div class="inn-section-header">
+          <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu"}}</span>
+        </div>
+        <p class="inn-coming-soon"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuComingSoon"}}</em></p>
+      </div>
+
+    </div>
+    {{else if this.isCurrencyTest}}
+    <ul class="expense-list">
+      {{#each this.expenses}}
+      <li class="expense-entry" data-expense-id="{{this.id}}">
+        <div class="expense-info">
+          <span class="expense-name">{{this.name}}</span>
+          <span class="expense-cost">{{this.costLabel}}</span>
+        </div>
+        <button type="button" class="buy-button" data-action="buyExpense">
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
+        </button>
+      </li>
+      {{else}}
+      <li class="expense-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.noExpenses"}}</em></li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.noDetailView"}}</p>
+    {{/if}}
+  </div>
+  {{/each}}
 </div>

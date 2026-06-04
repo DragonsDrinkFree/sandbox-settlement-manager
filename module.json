@@ -19,6 +19,7 @@
   "styles": [
     "styles/sandbox-settlement-manager.css"
   ],
+  "socket": true,
   "languages": [
     {
       "lang": "en",

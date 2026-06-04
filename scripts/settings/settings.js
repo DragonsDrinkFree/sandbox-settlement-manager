@@ -37,6 +37,26 @@ export function registerSettings() {
     default: { mode: "loose", currencies: DEFAULT_CURRENCIES.map(c => ({ ...c })) }
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.HOURS_PER_DAY, {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.hoursPerDay.name",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.hoursPerDay.hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 24,
+    restricted: true
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.DAYS_PER_WEEK, {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.daysPerWeek.name",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.daysPerWeek.hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 7,
+    restricted: true
+  });
+
   game.settings.registerMenu(MODULE_ID, "cityTypeConfig", {
     name: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.name",
     label: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.label",

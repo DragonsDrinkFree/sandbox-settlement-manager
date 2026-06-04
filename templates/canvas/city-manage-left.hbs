@@ -1,0 +1,39 @@
+<div class="city-left-pane">
+  <div class="city-controls">
+    <input type="text" name="cityName" value="{{cityName}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.manage.cityNamePlaceholder'}}"
+           class="city-name-input">
+    <select name="cityType" class="city-type-select">
+      <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.manage.cityType"}} —</option>
+      {{#each cityTypes}}
+      <option value="{{value}}"{{#if (eq value ../selectedType)}} selected{{/if}}>{{label}}</option>
+      {{/each}}
+    </select>
+    <button type="button" data-action="addResource" class="city-add-resource-btn">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resource.add"}}
+    </button>
+  </div>
+  <hr class="city-pane-divider">
+  <ul class="city-resource-list">
+    {{#each resources}}
+    <li class="city-resource-row{{#if this.selected}} selected{{/if}}"
+        data-resource-id="{{this.id}}"
+        data-action="selectResource">
+      <button type="button" class="discovered-toggle{{#if this.discovered.default}} is-discovered{{/if}}"
+              data-action="toggleDiscovered"
+              aria-label="{{#if this.discovered.default}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.discovered'}}{{else}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.undiscovered'}}{{/if}}">
+        <i class="{{#if this.discovered.default}}fa-solid fa-eye{{else}}fa-regular fa-eye-slash{{/if}}"></i>
+      </button>
+      <i class="{{this.typeIcon}} city-type-icon" inert></i>
+      <div class="city-resource-info">
+        <span class="city-resource-name">{{this.name}}</span>
+        <span class="city-resource-type">{{this.typeName}}</span>
+      </div>
+    </li>
+    {{else}}
+    <li class="city-resource-empty">
+      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.empty"}}</em>
+    </li>
+    {{/each}}
+  </ul>
+</div>

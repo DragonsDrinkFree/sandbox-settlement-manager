@@ -51,9 +51,11 @@ export function registerCityControls() {
 
   // Refresh controls when the IS_CITY flag changes on the active scene.
   // Direct bracket navigation avoids hasProperty dot-notation issues with hyphenated module IDs.
+  // render({ reset: true }) is required — it triggers #prepareControls() which re-fires
+  // getSceneControlButtons. The deprecated initialize() omits reset and the hook never re-fires.
   Hooks.on("updateScene", (scene, changes) => {
     if (scene.id !== canvas.scene?.id) return;
     if (changes.flags?.[MODULE_ID]?.[FLAGS.IS_CITY] === undefined) return;
-    ui.controls.initialize();
+    ui.controls.render({ reset: true });
   });
 }

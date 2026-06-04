@@ -151,15 +151,50 @@
   margin: 0 0 0.5rem;
 }
 
+#sandbox-settlement-manager-resource-type-edit .core-type-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  padding: 0.3rem 0.4rem;
+  margin-bottom: 0.4rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+  border-radius: 3px;
+}
+
 #sandbox-settlement-manager-resource-type-edit .sub-type-item {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-bottom: 0.25rem;
+  padding: 0.15rem 0.25rem;
+  border-radius: 3px;
 }
 
-#sandbox-settlement-manager-resource-type-edit .sub-type-item input {
+#sandbox-settlement-manager-resource-type-edit .sub-type-item:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.04));
+}
+
+#sandbox-settlement-manager-resource-type-edit .sub-type-item .sub-type-name {
   flex: 1;
+}
+
+#sandbox-settlement-manager-resource-type-edit .sub-type-item .controls {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+#sandbox-settlement-manager-resource-type-edit .sub-type-item:hover .controls {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-resource-type-edit .sub-type-empty {
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-12, 12px);
+  padding: 0.25rem 0.4rem;
 }
 
 #sandbox-settlement-manager-resource-type-edit .sub-type-add-row {
@@ -168,66 +203,94 @@
   align-items: center;
 }
 
-#sandbox-settlement-manager-resource-type-edit .new-subtype-input {
-  flex: 1;
+/* -------------------------------------------- */
+/*  City Manager Window — two-pane layout       */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-manage .window-content {
+  padding: 0;
+  overflow: hidden;
 }
 
-/* -------------------------------------------- */
-/*  City Manager Window (Manage Tool)           */
-/* -------------------------------------------- */
-
-#sandbox-settlement-manager-city-manage .city-details-row {
+#sandbox-settlement-manager-city-manage .city-two-pane {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  height: 100%;
+  overflow: hidden;
 }
 
-#sandbox-settlement-manager-city-manage .city-details-row input {
-  flex: 2;
-  min-width: 0;
+#sandbox-settlement-manager-city-manage .city-left-pane {
+  width: 230px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border-light-tertiary, #ccc);
+  overflow-y: auto;
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
-#sandbox-settlement-manager-city-manage .city-details-row select {
+#sandbox-settlement-manager-city-manage .city-right-pane {
   flex: 1;
+  overflow-y: auto;
+  padding: 0.6rem 0.75rem;
   min-width: 0;
 }
 
-#sandbox-settlement-manager-city-manage .city-section h3 {
-  font-size: var(--font-size-14, 14px);
-  font-weight: bold;
-  margin: 0 0 0.5rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+/* Left pane */
+#sandbox-settlement-manager-city-manage .city-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
-#sandbox-settlement-manager-city-manage .city-section-divider {
+#sandbox-settlement-manager-city-manage .city-name-input,
+#sandbox-settlement-manager-city-manage .city-type-select {
+  width: 100%;
+}
+
+#sandbox-settlement-manager-city-manage .city-add-resource-btn {
+  font-size: var(--font-size-12, 12px);
+  padding: 0.25rem 0.5rem;
+  align-self: flex-start;
+}
+
+#sandbox-settlement-manager-city-manage .city-pane-divider {
   border: none;
   border-top: 1px solid var(--color-border-light-tertiary, #ccc);
-  margin: 0.75rem 0;
+  margin: 0.3rem 0 0.4rem;
 }
 
 #sandbox-settlement-manager-city-manage .city-resource-list {
   list-style: none;
   padding: 0;
-  margin: 0 0 0.5rem;
-  min-height: 2rem;
+  margin: 0;
+  flex: 1;
 }
 
-#sandbox-settlement-manager-city-manage .city-resource-item {
+#sandbox-settlement-manager-city-manage .city-resource-row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  gap: 0.3rem;
+  padding: 0.25rem 0.3rem;
   border-radius: 3px;
-  margin-bottom: 0.25rem;
+  cursor: pointer;
+  margin-bottom: 0.1rem;
+}
+
+#sandbox-settlement-manager-city-manage .city-resource-row:hover {
   background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+}
+
+#sandbox-settlement-manager-city-manage .city-resource-row.selected {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.09));
+  border-left: 2px solid var(--color-border-highlight, #7b2d8b);
+  padding-left: 0.15rem;
 }
 
 #sandbox-settlement-manager-city-manage .discovered-toggle {
   background: none;
   border: none;
-  padding: 0.1rem 0.2rem;
+  padding: 0.1rem 0.15rem;
   cursor: pointer;
   line-height: 1;
   flex-shrink: 0;
@@ -242,15 +305,12 @@
   color: var(--color-level-success, #4caf50);
 }
 
-#sandbox-settlement-manager-city-manage .discovered-toggle:hover i {
-  opacity: 0.7;
-}
-
-#sandbox-settlement-manager-city-manage .resource-type-icon {
+#sandbox-settlement-manager-city-manage .city-type-icon {
   width: 1em;
   text-align: center;
   flex-shrink: 0;
   color: var(--color-text-dark-secondary, #555);
+  font-size: var(--font-size-12, 12px);
 }
 
 #sandbox-settlement-manager-city-manage .city-resource-info {
@@ -272,26 +332,249 @@
   color: var(--color-text-dark-inactive, #999);
 }
 
-#sandbox-settlement-manager-city-manage .city-resource-item .controls {
+#sandbox-settlement-manager-city-manage .city-resource-empty {
+  padding: 0.5rem 0.25rem;
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+  font-size: var(--font-size-12, 12px);
+}
+
+/* Right pane */
+#sandbox-settlement-manager-city-manage .city-right-placeholder {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-city-manage .resource-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .resource-name-input {
+  flex: 1;
+  font-size: var(--font-size-15, 15px);
+  font-weight: bold;
+  min-width: 0;
+}
+
+#sandbox-settlement-manager-city-manage .resource-types-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-city-manage .resource-type-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-city-manage .resource-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.3rem 0.1rem 0.4rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 999px;
+  font-size: var(--font-size-11, 11px);
+  line-height: 1.4;
+}
+
+#sandbox-settlement-manager-city-manage .badge-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0 0.1rem;
+  cursor: pointer;
+  font-size: var(--font-size-10, 10px);
+  line-height: 1;
+  color: var(--color-text-dark-inactive, #999);
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-city-manage .badge-remove:hover {
+  color: var(--color-text-dark-primary, #111);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+#sandbox-settlement-manager-city-manage .add-type-btn {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.15rem 0.4rem;
+  align-self: flex-start;
+}
+
+#sandbox-settlement-manager-city-manage .resource-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+#sandbox-settlement-manager-city-manage .resource-detail-divider {
+  border: none;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  margin: 0.4rem 0 0.5rem;
+}
+
+/* Inn sections inside the right pane reuse resource-detail styles */
+#sandbox-settlement-manager-city-manage .inn-lodging-row .controls {
+  display: flex;
+  align-items: center;
   gap: 0.2rem;
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-city-manage .city-resource-empty {
-  padding: 0.5rem;
+/* -------------------------------------------- */
+/*  Resource Edit Dialog — type picker          */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-resource-edit .type-entries-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#sandbox-settlement-manager-resource-edit .type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-height: 1.5rem;
+}
+
+#sandbox-settlement-manager-resource-edit .type-entry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.4rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-resource-edit .remove-chip {
+  margin-left: 0.1rem;
+  font-size: var(--font-size-10, 10px);
+  opacity: 0.6;
+}
+
+#sandbox-settlement-manager-resource-edit .remove-chip:hover {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-resource-edit .add-type-btn {
+  font-size: var(--font-size-12, 12px);
+  padding: 0.2rem 0.5rem;
+}
+
+/* Body-mounted picker dropdown — not scoped to app ID since it lives on document.body */
+.type-picker-dropdown {
+  position: fixed;
+  z-index: 9999;
+  min-width: 200px;
+  max-height: 240px;
+  background: var(--color-bg-primary, #f0ede0);
+  border: 1px solid var(--color-border-light-secondary, #aaa);
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.type-picker-dropdown.is-open {
+  display: flex;
+}
+
+.type-picker-filter {
+  border: none;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding: 0.3rem 0.5rem;
+  font-size: var(--font-size-12, 12px);
+  outline: none;
+  background: transparent;
+  width: 100%;
+}
+
+.type-picker-list {
+  list-style: none;
+  padding: 0.2rem 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.picker-group {
+  display: contents;
+}
+
+.picker-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
-  text-align: center;
   font-style: italic;
 }
 
-#sandbox-settlement-manager-city-manage .city-resource-actions {
-  margin-top: 0.25rem;
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: var(--font-size-12, 12px);
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-dark-primary, inherit);
+}
+
+.picker-item:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+}
+
+.picker-subtype-item {
+  padding-left: 1.4rem;
+  color: var(--color-text-dark-secondary, #555);
 }
 
 /* -------------------------------------------- */
 /*  City Resources Panel (Player View)          */
 /* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-resources .resource-flat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-city-resources .resource-type-badges {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-city-resources .resource-type-badge {
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-12, 12px);
+}
 
 #sandbox-settlement-manager-city-resources .resource-group {
   margin-bottom: 0.75rem;
@@ -621,6 +904,313 @@
   text-align: center;
 }
 
+#sandbox-settlement-manager-resource-detail .resource-detail-tabs {
+  display: flex;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-resource-detail .resource-detail-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  font-size: var(--font-size-12, 12px);
+  padding: 0.25rem 0.4rem;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-resource-detail .resource-detail-tab:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.04));
+}
+
+#sandbox-settlement-manager-resource-detail .resource-detail-tab.active {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+  border-color: var(--color-border-light-tertiary, #ccc);
+  border-bottom-color: transparent;
+  color: var(--color-text-dark-primary, #111);
+}
+
+#sandbox-settlement-manager-resource-detail .resource-detail-tab-pane {
+  display: none;
+}
+
+#sandbox-settlement-manager-resource-detail .resource-detail-tab-pane.active {
+  display: block;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-section {
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+}
+
+#sandbox-settlement-manager-resource-detail .inn-section:first-child {
+  border-top: none;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-section-title {
+  font-size: var(--font-size-11, 11px);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-resource-detail .inn-lodging-list,
+#sandbox-settlement-manager-resource-detail .inn-ledger-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-lodging-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.2rem;
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-lodging-row:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.04));
+}
+
+#sandbox-settlement-manager-resource-detail .lodging-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+#sandbox-settlement-manager-resource-detail .lodging-name {
+  font-size: var(--font-size-13, 13px);
+  font-weight: bold;
+}
+
+#sandbox-settlement-manager-resource-detail .lodging-meta {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+}
+
+#sandbox-settlement-manager-resource-detail .inn-lodging-row .controls {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-rent-btn {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.15rem 0.4rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-ledger-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.2rem;
+  border-radius: 3px;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-resource-detail .inn-ledger-entry.expired {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+#sandbox-settlement-manager-resource-detail .ledger-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+#sandbox-settlement-manager-resource-detail .ledger-who {
+  font-weight: bold;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-resource-detail .ledger-what,
+#sandbox-settlement-manager-resource-detail .ledger-time {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-resource-detail .inn-empty {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-inactive, #999);
+  padding: 0.2rem 0;
+}
+
+#sandbox-settlement-manager-resource-detail .inn-coming-soon {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-inactive, #999);
+  margin: 0.15rem 0;
+}
+
+/* Sub-type edit — inn inline lodging rows */
+#sandbox-settlement-manager-sub-type-edit .lodging-templates {
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-inline-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.02));
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-row-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-name-input {
+  flex: 1;
+  min-width: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-delete-btn {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-delete-btn:hover {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-beds-input {
+  width: 3.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-row-prices {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--font-size-12, 12px);
+  flex-wrap: wrap;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-price-group {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-field-label {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-secondary, #555);
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-price-input {
+  width: 4.5rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .price-currency-select {
+  width: auto;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-template-empty {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-inactive, #999);
+  margin: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-add-btn {
+  align-self: flex-start;
+  font-size: var(--font-size-12, 12px);
+  margin-top: 0.1rem;
+}
+
+/* Lodging edit dialog — price row */
+#sandbox-settlement-manager-lodging-edit .price-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-lodging-edit .price-amount-input {
+  flex: 1;
+  min-width: 0;
+}
+
+#sandbox-settlement-manager-lodging-edit .price-currency-select {
+  width: auto;
+  flex-shrink: 0;
+}
+
+/* Lodging rental dialog */
+#sandbox-settlement-manager-lodging-rental .rental-lodging-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.4rem;
+  margin-bottom: 0.4rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-lodging-rental .rental-beds {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-lodging-rental .rental-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#sandbox-settlement-manager-lodging-rental .rental-duration-input {
+  width: 4rem;
+}
+
+#sandbox-settlement-manager-lodging-rental .rental-cost-preview {
+  font-weight: bold;
+  font-size: var(--font-size-14, 14px);
+}
+
 /* -------------------------------------------- */
 /*  Purchase Dialog                             */
 /* -------------------------------------------- */
@@ -825,7 +1415,7 @@
   flex: 1;
 }
 
-#sandbox-settlement-manager-resource-type-config .add-subtype-btn {
+#sandbox-settlement-manager-resource-type-config .edit-core-type-btn {
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -853,14 +1443,3 @@
   flex: 1;
 }
 
-#sandbox-settlement-manager-resource-type-config .sub-type-row .controls {
-  display: flex;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-#sandbox-settlement-manager-resource-type-config .sub-type-row:hover .controls {
-  opacity: 1;
-}

@@ -1,5 +1,68 @@
-﻿<div class="form-group">
-  <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.nameLabel"}}</label>
-  <input type="text" name="name" value="{{subType.name}}"
-         placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.namePlaceholder'}}">
+<div class="sub-type-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.nameLabel"}}</label>
+    <input type="text" name="name" value="{{subType.name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.namePlaceholder'}}">
+  </div>
+  {{#if isInn}}
+  <fieldset class="lodging-templates">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.defaultLodgings"}}</legend>
+
+    {{#each lodgings}}
+    <div class="lodging-inline-row" data-lodging-id="{{this.id}}">
+      <div class="lodging-row-header">
+        <input type="text" data-field="name" value="{{this.name}}"
+               placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.name'}}"
+               class="lodging-name-input">
+        <button type="button" class="icon lodging-delete-btn" data-action="deleteLodging" data-index="{{@index}}"
+                aria-label="Remove">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="lodging-row-meta">
+        <span class="lodging-field-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.beds"}}</span>
+        <input type="number" data-field="beds" value="{{this.beds}}" min="1" step="1" class="lodging-beds-input">
+        <label class="checkbox-label">
+          <input type="checkbox" data-field="infinite" {{#if this.infinite}}checked{{/if}}>
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.infinite"}}
+        </label>
+      </div>
+      <div class="lodging-row-prices">
+        <div class="lodging-price-group">
+          <span class="lodging-field-label">/day</span>
+          <input type="number" data-field="pricePerDayAmount" value="{{this.pricePerDay.amount}}"
+                 min="0" step="0.01" class="lodging-price-input">
+          <select data-field="pricePerDayCurrencyId" class="price-currency-select">
+            {{#each ../currencies}}
+            <option value="{{this.id}}"{{#if (eq this.id ../pricePerDay.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="lodging-price-group">
+          <label class="checkbox-label">
+            <input type="checkbox" data-field="autoWeekly" {{#if this.autoWeekly}}checked{{/if}}>
+            Auto
+          </label>
+          <input type="number" data-field="pricePerWeekAmount" value="{{this.pricePerWeek.amount}}"
+                 min="0" step="0.01" class="lodging-price-input weekly-field">
+          <select data-field="pricePerWeekCurrencyId" class="price-currency-select weekly-field">
+            {{#each ../currencies}}
+            <option value="{{this.id}}"{{#if (eq this.id ../pricePerWeek.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
+            {{/each}}
+          </select>
+          <span class="lodging-field-label weekly-field">/wk</span>
+        </div>
+      </div>
+    </div>
+    {{else}}
+    <p class="lodging-template-empty">
+      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noDefaultLodgings"}}</em>
+    </p>
+    {{/each}}
+
+    <button type="button" data-action="addLodging" class="lodging-add-btn">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.add"}}
+    </button>
+  </fieldset>
+  {{/if}}
 </div>

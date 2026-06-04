@@ -1,22 +1,21 @@
-﻿import { MODULE_ID } from "../constants.js";
+import { MODULE_ID } from "../constants.js";
+import { SubTypeEditApp } from "./sub-type-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 export class ResourceTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
-  _resourceType;
+  _coreType;
+  _subTypes;
 
-  constructor(resourceType, options = {}) {
+  constructor(coreType, subTypes, options = {}) {
     super(options);
-    this._resourceType = resourceType;
-    this._resourceType.subTypes ??= [];
+    this._coreType = coreType;
+    this._subTypes = subTypes;
   }
 
   get title() {
-    const key = this._resourceType?.name
-      ? "SANDBOX_SETTLEMENT_MANAGER.resourceType.editTitle"
-      : "SANDBOX_SETTLEMENT_MANAGER.resourceType.addTitle";
-    return game.i18n.localize(key);
+    return game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resourceType.editTitle");
   }
 
   static DEFAULT_OPTIONS = {
@@ -25,19 +24,20 @@ export class ResourceTypeEditApp extends HandlebarsApplicationMixin(ApplicationV
     form: { handler: ResourceTypeEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 420 },
     actions: {
-      addSubType: ResourceTypeEditApp.#onAddSubType,
-      removeSubType: ResourceTypeEditApp.#onRemoveSubType
+      addSubType:    ResourceTypeEditApp.#onAddSubType,
+      editSubType:   ResourceTypeEditApp.#onEditSubType,
+      deleteSubType: ResourceTypeEditApp.#onDeleteSubType
     }
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/settings/resource-type-edit.hbs` },
+    form:   { template: `modules/${MODULE_ID}/templates/settings/resource-type-edit.hbs` },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(resourceType = {}) {
+  static async open(coreType, subTypes = []) {
     return new Promise(resolve => {
-      const app = new ResourceTypeEditApp(foundry.utils.deepClone(resourceType));
+      const app = new ResourceTypeEditApp(coreType, foundry.utils.deepClone(subTypes));
       app._resolve = resolve;
       app.render(true);
     });
@@ -45,55 +45,39 @@ export class ResourceTypeEditApp extends HandlebarsApplicationMixin(ApplicationV
 
   async _prepareContext(options) {
     return {
-      resourceType: this._resourceType,
+      coreType: this._coreType,
+      subTypes: this._subTypes,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
 
-  async _onRender(context, options) {
-    await super._onRender(context, options);
-    this.element.querySelector('[name="name"]')?.focus();
-  }
-
-  static #onAddSubType() {
-    // Sync any in-progress edits to existing sub-type names before re-rendering
-    this.element.querySelectorAll('.sub-type-item [name^="subTypeName"]').forEach((input, i) => {
-      if (this._resourceType.subTypes[i]) this._resourceType.subTypes[i].name = input.value;
-    });
-    const newName = this.element.querySelector(".new-subtype-input")?.value?.trim();
-    if (!newName) return;
-    this._resourceType.subTypes.push({ id: foundry.utils.randomID(), name: newName });
+  static async #onAddSubType() {
+    const result = await SubTypeEditApp.open({}, this._coreType.id);
+    if (!result) return;
+    result.id ??= foundry.utils.randomID();
+    this._subTypes.push(result);
     this.render({ parts: ["form"] });
   }
 
-  static #onRemoveSubType(event, target) {
-    // Sync names before splicing
-    this.element.querySelectorAll('.sub-type-item [name^="subTypeName"]').forEach((input, i) => {
-      if (this._resourceType.subTypes[i]) this._resourceType.subTypes[i].name = input.value;
-    });
-    this._resourceType.subTypes.splice(parseInt(target.dataset.index), 1);
+  static async #onEditSubType(event, target) {
+    const index = parseInt(target.dataset.subIndex);
+    const existing = this._subTypes[index];
+    if (!existing) return;
+    const result = await SubTypeEditApp.open(existing, this._coreType.id);
+    if (!result) return;
+    this._subTypes[index] = result;
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteSubType(event, target) {
+    this._subTypes.splice(parseInt(target.dataset.subIndex), 1);
     this.render({ parts: ["form"] });
   }
 
   static async #onSubmit(event, form, formData) {
-    const name = (formData.object.name ?? "").trim();
-    if (!name) return;
-
-    // Collect final sub-type names from DOM inputs
-    const subTypeInputs = form.querySelectorAll('.sub-type-item [name^="subTypeName"]');
-    subTypeInputs.forEach((input, i) => {
-      if (this._resourceType.subTypes[i]) this._resourceType.subTypes[i].name = input.value.trim();
-    });
-    const subTypes = this._resourceType.subTypes.filter(s => s.name);
-
     const resolve = this._resolve;
     this._resolve = null;
-    resolve?.({
-      id: this._resourceType.id || foundry.utils.randomID(),
-      name,
-      icon: (formData.object.icon ?? "").trim(),
-      subTypes
-    });
+    resolve?.(this._subTypes.slice());
   }
 
   async _onClose(options) {

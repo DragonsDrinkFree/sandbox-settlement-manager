@@ -14,9 +14,11 @@ export const FLAGS = {
 
 /** Setting keys registered via game.settings.register. Usage: game.settings.get(MODULE_ID, SETTINGS.KEY) */
 export const SETTINGS = {
-  CITY_TYPES: "cityTypes",
+  CITY_TYPES:    "cityTypes",
   RESOURCE_TYPES: "resourceTypes",
-  CURRENCY_CONFIG: "currencyConfig"
+  CURRENCY_CONFIG: "currencyConfig",
+  HOURS_PER_DAY: "hoursPerDay",
+  DAYS_PER_WEEK:  "daysPerWeek"
 };
 
 export const RESOURCE_TYPE_IDS = {
@@ -25,6 +27,17 @@ export const RESOURCE_TYPE_IDS = {
   BANK:          "bank",
   CURRENCY_TEST: "currency_test"
 };
+
+/**
+ * Migration helper — reads typeEntries from any resource regardless of storage generation.
+ * Returns [{ typeId, subTypeId }]. Remove once all persisted data uses typeEntries format.
+ */
+export function getTypeEntries(resource) {
+  if (resource.typeEntries) return resource.typeEntries;
+  if (resource.typeIds) return resource.typeIds.map(id => ({ typeId: id, subTypeId: null }));
+  if (resource.typeId) return [{ typeId: resource.typeId, subTypeId: resource.subTypeId ?? null }];
+  return [];
+}
 
 /** Hardcoded core resource types. Sub-types are configured in SETTINGS.RESOURCE_TYPES. */
 export const CORE_RESOURCE_TYPES = [

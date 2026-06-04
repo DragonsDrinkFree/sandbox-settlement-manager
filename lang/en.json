@@ -18,6 +18,7 @@
       "cityNamePlaceholder": "Enter city name...",
       "cityType": "City Type",
       "cityDescription": "Description",
+      "selectResource": "Select a resource to view its details.",
       "sections": {
         "cityDetails": "City Details",
         "cityResources": "City Resources"
@@ -54,6 +55,14 @@
         "name": "Currency Configuration",
         "label": "Configure Currency",
         "hint": "Configure the currency system used by all city interactions."
+      },
+      "hoursPerDay": {
+        "name": "Hours Per Day",
+        "hint": "Number of in-game hours in a single day. Used to calculate time-based events."
+      },
+      "daysPerWeek": {
+        "name": "Days Per Week",
+        "hint": "Number of in-game days in a week. Used to calculate weekly schedules."
       }
     },
     "currency": {
@@ -159,6 +168,9 @@
       "nameLabel": "Name",
       "namePlaceholder": "e.g. The Green Dragon Inn",
       "typeLabel": "Type",
+      "typesLabel": "Types",
+      "addType": "Add Type",
+      "filterTypes": "Filter types...",
       "subTypeLabel": "Sub-type",
       "discoveredLabel": "Discovered",
       "add": "Add Resource",
@@ -169,6 +181,37 @@
       "discovered": "Discovered",
       "undiscovered": "Not Discovered",
       "noDetailView": "No additional details available for this resource type."
+    },
+    "inn": {
+      "rent": "Rent",
+      "noLodgings": "No lodgings configured.",
+      "noBookings": "No active bookings.",
+      "ledger": "Active Bookings",
+      "lodgingSection": "Lodging",
+      "menu": "Menu",
+      "menuComingSoon": "Menu coming soon.",
+      "expired": "Expired",
+      "defaultLodgings": "Default Lodgings",
+      "noDefaultLodgings": "No default lodgings.",
+      "lodging": {
+        "addTitle": "Add Lodging",
+        "editTitle": "Edit Lodging",
+        "add": "Add Lodging",
+        "name": "Name",
+        "beds": "Beds",
+        "infinite": "Unlimited Availability",
+        "pricePerDay": "Price per Day",
+        "pricePerWeek": "Price per Week",
+        "autoWeekly": "Auto (days/wk × daily price)"
+      },
+      "rental": {
+        "title": "Rent Lodging",
+        "duration": "Duration",
+        "days": "Days",
+        "weeks": "Weeks",
+        "totalCost": "Total Cost",
+        "actor": "Character"
+      }
     },
     "keybinding": {},
     "dialog": {},

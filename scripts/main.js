@@ -12,6 +12,8 @@ import { MODULE_ID } from "./constants.js";
 import { registerSettings } from "./settings/settings.js";
 import { SandboxSceneConfig } from "./scene/scene-config.js";
 import { registerCityControls } from "./canvas/city-controls.js";
+import { registerWorldTimeHooks } from "./time/world-time.js";
+import { registerSocketHandlers } from "./socket.js";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | Initializing`);
@@ -21,6 +23,7 @@ Hooks.once("init", () => {
 
   registerSettings();
   registerCityControls();
+  registerWorldTimeHooks();
   foundry.applications.apps.DocumentSheetConfig.registerSheet(Scene, MODULE_ID, SandboxSceneConfig, {
     makeDefault: true
   });
@@ -28,4 +31,5 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | Ready`);
+  registerSocketHandlers();
 });
