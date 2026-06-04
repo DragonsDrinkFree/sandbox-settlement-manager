@@ -5,10 +5,12 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
   _lodging;
+  _templateLodging;
 
-  constructor(lodging, options = {}) {
+  constructor(lodging, templateLodging, options = {}) {
     super(options);
-    this._lodging = lodging;
+    this._lodging         = lodging;
+    this._templateLodging = templateLodging ?? null;
   }
 
   get title() {
@@ -31,9 +33,9 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(lodging = {}) {
+  static async open(lodging = {}, templateLodging = null) {
     return new Promise(resolve => {
-      const app = new LodgingEditApp(foundry.utils.deepClone(lodging));
+      const app = new LodgingEditApp(foundry.utils.deepClone(lodging), templateLodging);
       app._resolve = resolve;
       app.render(true);
     });
@@ -44,6 +46,10 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencies = currencyConfig.currencies ?? [];
     const defaultCurrencyId = currencies[0]?.id ?? "";
     const autoWeekly = !this._lodging.pricePerWeek;
+    const buttons = [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }];
+    if (this._templateLodging) {
+      buttons.unshift({ type: "button", icon: "fa-solid fa-rotate-left", label: "Restore to Template", cssClass: "restore-template-btn" });
+    }
     return {
       lodging: {
         name:       this._lodging.name       ?? "",
@@ -57,7 +63,7 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       currencies,
       autoWeekly,
-      buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
+      buttons
     };
   }
 
@@ -71,6 +77,21 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     toggleWeekly();
     autoCheckbox?.addEventListener("change", toggleWeekly);
+
+    this.element.querySelector('.restore-template-btn')?.addEventListener("click", () => {
+      const t = this._templateLodging;
+      if (!t) return;
+      const resolve = this._resolve;
+      this._resolve = null;
+      resolve?.({
+        ...foundry.utils.deepClone(t),
+        id:             this._lodging.id || foundry.utils.randomID(),
+        templateItemId: this._lodging.templateItemId ?? null,
+        overridden:     false,
+        _restored:      true
+      });
+      this.close();
+    });
   }
 
   static async #onSubmit(event, form, formData) {
@@ -90,8 +111,10 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({
-      id: this._lodging.id || foundry.utils.randomID(),
-      name, beds, infinite, pricePerDay, pricePerWeek
+      id:             this._lodging.id || foundry.utils.randomID(),
+      name, beds, infinite, pricePerDay, pricePerWeek,
+      templateItemId: this._lodging.templateItemId ?? null,
+      overridden:     this._lodging.overridden ?? false
     });
   }
 

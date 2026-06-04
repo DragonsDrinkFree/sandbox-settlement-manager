@@ -194,9 +194,15 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       typeData = {
         ...typeData,
         inn: {
-          lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []),
+          lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []).map(l => ({
+            ...l, templateItemId: l.id, overridden: false
+          })),
           ledger: [],
-          menu: foundry.utils.deepClone(subType?.typeData?.menu ?? { courses: [] })
+          menu: {
+            courses: foundry.utils.deepClone(subType?.typeData?.menu?.courses ?? []).map(c => ({
+              ...c, templateItemId: c.id, overridden: false
+            }))
+          }
         }
       };
     }

@@ -2,8 +2,10 @@ import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES, get
 import { ResourceEditApp } from "./resource-edit-app.js";
 import { CurrencyTestConfigApp } from "./currency-test-config.js";
 import { LodgingEditApp } from "./inn/lodging-edit-app.js";
-import { LodgingRentalDialog } from "./inn/lodging-rental-dialog.js";
+import { cartManager } from "./cart-manager.js";
+import { CartApp } from "./cart-app.js";
 import { MenuConfigApp } from "./inn/menu-config-app.js";
+import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
@@ -32,9 +34,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteLodging:      CityManageApp.#onDeleteLodging,
       rentLodging:        CityManageApp.#onRentLodging,
       dismissLedgerEntry: CityManageApp.#onDismissLedgerEntry,
-      configureMenu:      CityManageApp.#onConfigureMenu,
-      refreshCourse:      CityManageApp.#onRefreshCourse,
-      buyMenuItem:        CityManageApp.#onBuyMenuItem
+      configureMenu:        CityManageApp.#onConfigureMenu,
+      refreshCourse:        CityManageApp.#onRefreshCourse,
+      buyMenuItem:          CityManageApp.#onBuyMenuItem,
+      restoreFromTemplate:  CityManageApp.#onRestoreFromTemplate
     }
   };
 
@@ -129,6 +132,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
+    const innTemplate = isGM ? this.#getTemplateForResource(resource) : null;
     return {
       id: resource.id,
       name: resource.name,
@@ -136,9 +140,17 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       typeEntries,
       pickerGroups,
       hasAvailableTypes: isGM && pickerGroups.length > 0,
+      hasInnTemplate:    !!innTemplate,
       sections,
       hasDetails: sections.length > 0
     };
+  }
+
+  #getTemplateForResource(resource) {
+    const entry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.INN);
+    if (!entry?.subTypeId) return null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+    return (subTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
   #buildInnData(resource, currencies, isGM = true) {
@@ -152,7 +164,14 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const weeklyAmt   = l.pricePerWeek?.amount ?? ((l.pricePerDay?.amount ?? 0) * daysPerWeek);
       const weekCurr    = l.pricePerWeek ? currencies.find(c => c.id === l.pricePerWeek.currencyId) : dayCurr;
       const weekLabel   = `${weeklyAmt} ${weekCurr?.abbreviation ?? "?"}`;
-      return { ...l, pricePerDayLabel: dayLabel, pricePerWeekLabel: weekLabel };
+      const avail       = l.availability ?? null;
+      return {
+        ...l,
+        pricePerDayLabel:    dayLabel,
+        pricePerWeekLabel:   weekLabel,
+        availabilityDisplay: avail === null ? "∞" : String(avail),
+        isSoldOut:           typeof avail === "number" && avail <= 0
+      };
     });
 
     const allLedger = innRaw.ledger ?? [];
@@ -332,9 +351,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const subType = (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
           resource.typeData ??= {};
           resource.typeData.inn = {
-            lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []),
+            lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []).map(l => ({
+              ...l, templateItemId: l.id, overridden: false
+            })),
             ledger: [],
-            menu: foundry.utils.deepClone(subType?.typeData?.menu ?? { courses: [] })
+            menu: {
+              courses: foundry.utils.deepClone(subType?.typeData?.menu?.courses ?? []).map(c => ({
+                ...c, templateItemId: c.id, overridden: false
+              }))
+            }
           };
         }
         dropdown.classList.remove("is-open");
@@ -468,11 +493,19 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
-    const index = innData.lodgings.findIndex(l => l.id === lodgingId);
+    const resource = this.#syncSelectedResource();
+    const innData  = foundry.utils.deepClone(resource?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const index    = innData.lodgings.findIndex(l => l.id === lodgingId);
     if (index === -1) return;
-    const result = await LodgingEditApp.open(innData.lodgings[index]);
+    const lodging = innData.lodgings[index];
+    const template = lodging.templateItemId ? this.#getTemplateForResource(resource) : null;
+    const templateLodging = template
+      ? (template.typeData?.lodgings ?? []).find(l => l.id === lodging.templateItemId) ?? null
+      : null;
+    const result = await LodgingEditApp.open(lodging, templateLodging);
     if (!result) return;
+    if (result.templateItemId && !result._restored) result.overridden = true;
+    delete result._restored;
     innData.lodgings[index] = result;
     await this.#saveInnData(innData);
   }
@@ -492,29 +525,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resource = this.#syncSelectedResource();
     const lodging  = resource?.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
     if (!lodging) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-
-    const rental = await LodgingRentalDialog.open(lodging, currencies);
-    if (!rental) return;
-
-    const paymentResult = await PurchaseDialog.open({
-      expense: rental.expense, currencies, mode: currencyConfig.mode ?? "loose"
+    cartManager.addLodging({
+      sceneId: canvas.scene?.id,
+      resourceId: resource.id,
+      resourceName: resource.name,
+      lodging
     });
-    if (!paymentResult) return;
-
-    const purchasedAt = game.time.worldTime;
-    const entry = {
-      id: foundry.utils.randomID(),
-      lodgingId: lodging.id, lodgingName: lodging.name, beds: lodging.beds,
-      actorId: rental.actorId, actorName: rental.actorName,
-      purchasedAt, durationSeconds: rental.durationSeconds,
-      expiresAt: purchasedAt + rental.durationSeconds
-    };
-
-    const innData = foundry.utils.deepClone(resource.typeData?.inn ?? { lodgings: [], ledger: [] });
-    innData.ledger.push(entry);
-    await this.#saveInnData(innData);
+    CartApp.open();
   }
 
   static async #onDismissLedgerEntry(event, target) {
@@ -530,15 +547,28 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const resource = this.#syncSelectedResource();
     if (!resource) return;
-    const inn = resource.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    const inn      = resource.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    const template = this.#getTemplateForResource(resource);
     await MenuConfigApp.open(
       inn.menu ?? { courses: [] },
       async (updatedMenu) => {
         const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
         innData.menu = updatedMenu;
         await this.#saveInnData(innData);
-      }
+      },
+      template
     );
+  }
+
+  static async #onRestoreFromTemplate() {
+    if (!game.user.isGM) return;
+    const resource = this.#syncSelectedResource();
+    const template = this.#getTemplateForResource(resource);
+    if (!resource || !template) return;
+    const innData = foundry.utils.deepClone(resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    await TemplateRestoreDialog.open(innData, template, async (updatedInn) => {
+      await this.#saveInnData(updatedInn);
+    });
   }
 
   static async #onRefreshCourse(event, target) {
@@ -565,22 +595,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const allItems = course.mode === "random" ? (course.drawnItems ?? []) : (course.items ?? []);
     const item = allItems.find(i => i.id === itemId);
     if (!item) return;
-    const resolvedPrice = item.price ?? course.price;
-    if (!resolvedPrice) return;
-
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const expense = { id: item.id, name: item.name, currencyId: resolvedPrice.currencyId, amount: resolvedPrice.amount };
-
-    const paid = await PurchaseDialog.open({ expense, currencies, mode: currencyConfig.mode ?? "loose" });
-    if (!paid) return;
-
-    // Grant the linked Foundry item to the actor if configured
-    // NOTE: This pattern (purchase + item grant) will be shared with future Merchant resource type
-    if (item.itemId) {
-      const actor  = game.actors.get(paid.actorId);
-      const source = await fromUuid(item.itemId).catch(() => null);
-      if (actor && source) await actor.createEmbeddedDocuments("Item", [source.toObject()]);
-    }
+    cartManager.addMenuItem({
+      sceneId: canvas.scene?.id,
+      resourceId: resource.id,
+      resourceName: resource.name,
+      course,
+      item
+    });
+    CartApp.open();
   }
 }

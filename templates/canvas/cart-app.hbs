@@ -1,0 +1,45 @@
+<div class="ssm-cart-content">
+  {{#if isEmpty}}
+  <p class="ssm-cart-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.empty"}}</p>
+  {{else}}
+  <ul class="ssm-cart-list">
+    {{#each items}}
+    <li class="ssm-cart-item" data-cart-id="{{this.id}}">
+      <div class="ssm-cart-item-header">
+        <span class="ssm-cart-item-name">{{#if this.isLodging}}{{this.lodgingName}}{{else}}{{this.itemName}}{{/if}}</span>
+        <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+        <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="ssm-cart-item-controls">
+        {{#if this.isLodging}}
+        <input type="number" class="ssm-cart-duration" min="1" value="{{this.duration}}"
+               data-cart-id="{{this.id}}">
+        <select class="ssm-cart-unit" data-cart-id="{{this.id}}">
+          <option value="days"{{#if (eq this.unit 'days')}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.days"}}</option>
+          <option value="weeks"{{#if (eq this.unit 'weeks')}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.weeks"}}</option>
+        </select>
+        {{else}}
+        <label class="ssm-cart-qty-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.qty"}}:</label>
+        <input type="number" class="ssm-cart-quantity" min="1" value="{{this.quantity}}"
+               data-cart-id="{{this.id}}">
+        {{/if}}
+        <span class="ssm-cart-line-total">{{this.lineTotalLabel}}</span>
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  <div class="ssm-cart-footer">
+    <div class="ssm-cart-total-row">
+      <span class="ssm-cart-total-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.total"}}:</span>
+      <span class="ssm-cart-grand-total">{{cartTotalLabel}}</span>
+    </div>
+    <div class="ssm-cart-actions">
+      <button type="button" data-action="clearCart">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.clear"}}</button>
+      <button type="button" class="ssm-cart-checkout-btn" data-action="checkout">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.checkout"}}</button>
+    </div>
+  </div>
+  {{/if}}
+</div>

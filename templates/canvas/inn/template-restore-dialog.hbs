@@ -1,0 +1,61 @@
+<div class="template-restore-form">
+  {{#if changedLodgings.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.modifiedLodgings"}}</h4>
+    {{#each changedLodgings}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="changed" data-restore-category="lodging" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.modified"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if missingLodgings.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.removedLodgings"}}</h4>
+    {{#each missingLodgings}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="missing" data-restore-category="lodging" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.removed"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if changedCourses.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.modifiedCourses"}}</h4>
+    {{#each changedCourses}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="changed" data-restore-category="course" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.modified"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if missingCourses.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.removedCourses"}}</h4>
+    {{#each missingCourses}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="missing" data-restore-category="course" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.removed"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#unless hasAnyItems}}
+  <p class="restore-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.nothingToRestore"}}</em></p>
+  {{/unless}}
+</div>

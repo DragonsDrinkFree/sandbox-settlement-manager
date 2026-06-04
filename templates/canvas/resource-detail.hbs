@@ -69,6 +69,7 @@
               {{#if this.innData.isGM}}<th class="ssm-col-controls"></th>{{/if}}
               <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colName"}}</th>
               <th class="col-beds ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colBeds"}}</th>
+              {{#if this.innData.isGM}}<th class="col-avail ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colAvail"}}</th>{{/if}}
               <th class="col-day ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colDay"}}</th>
               <th class="col-week ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colWeek"}}</th>
               <th class="ssm-col-action"></th>
@@ -76,7 +77,7 @@
           </thead>
           <tbody>
             {{#each this.innData.lodgings}}
-            <tr class="inn-lodging-row">
+            <tr class="inn-lodging-row{{#if this.overridden}} is-overridden{{/if}}">
               {{#if ../innData.isGM}}
               <td class="ssm-col-controls">
                 <button type="button" class="icon lodging-ctrl-btn" data-action="editLodging" data-lodging-id="{{this.id}}"
@@ -91,17 +92,19 @@
               {{/if}}
               <td class="col-name">{{this.name}}</td>
               <td class="col-beds ssm-col-right">{{this.beds}}</td>
+              {{#if ../innData.isGM}}<td class="col-avail ssm-col-right">{{this.availabilityDisplay}}</td>{{/if}}
               <td class="col-day ssm-col-right">{{this.pricePerDayLabel}}</td>
               <td class="col-week ssm-col-right">{{this.pricePerWeekLabel}}</td>
               <td class="ssm-col-action">
-                <button type="button" class="inn-rent-btn" data-action="rentLodging" data-lodging-id="{{this.id}}">
+                <button type="button" class="inn-rent-btn" data-action="rentLodging" data-lodging-id="{{this.id}}"
+                        {{#if this.isSoldOut}}disabled{{/if}}>
                   {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.rent"}}
                 </button>
               </td>
             </tr>
             {{else}}
             <tr>
-              <td class="ssm-empty" colspan="6"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noLodgings"}}</em></td>
+              <td class="ssm-empty" colspan="7"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noLodgings"}}</em></td>
             </tr>
             {{/each}}
           </tbody>
@@ -120,7 +123,7 @@
         </div>
         {{#if this.innData.menuData.hasCourses}}
         {{#each this.innData.menuData.courses}}
-        <div class="inn-course-section" data-course-id="{{this.id}}">
+        <div class="inn-course-section{{#if this.overridden}} is-overridden{{/if}}" data-course-id="{{this.id}}">
           <div class="inn-course-header">
             <span class="inn-course-name">{{this.name}}</span>
             <span class="inn-course-mode-badge">{{#if this.isRandom}}{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeRandom"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeStatic"}}{{/if}}</span>

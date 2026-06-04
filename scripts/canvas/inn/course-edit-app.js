@@ -6,10 +6,12 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
   _course;
+  _templateCourse;
 
-  constructor(course, options = {}) {
+  constructor(course, templateCourse, options = {}) {
     super(options);
-    this._course = foundry.utils.deepClone(course);
+    this._course         = foundry.utils.deepClone(course);
+    this._templateCourse = templateCourse ?? null;
   }
 
   get title() {
@@ -37,11 +39,11 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(course = {}) {
+  static async open(course = {}, templateCourse = null) {
     return new Promise(resolve => {
       const existing = foundry.applications.instances.get(`${MODULE_ID}-course-edit`);
       if (existing) existing.close();
-      const app = new CourseEditApp(course);
+      const app = new CourseEditApp(course, templateCourse);
       app._resolve = resolve;
       app.render(true);
     });
@@ -69,13 +71,34 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasCoursePrice,
       items,
       currencies,
-      buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
+      hasTemplate: !!this._templateCourse,
+      buttons: this._templateCourse
+        ? [
+            { type: "button", icon: "fa-solid fa-rotate-left", label: "Restore to Template", cssClass: "restore-template-btn" },
+            { type: "submit", icon: "fa-solid fa-save", label: "Save" }
+          ]
+        : [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
 
   async _onRender(context, options) {
     await super._onRender(context, options);
     if (!this._course.name) this.element.querySelector('[name="name"]')?.focus();
+
+    this.element.querySelector('.restore-template-btn')?.addEventListener("click", () => {
+      const t = this._templateCourse;
+      if (!t) return;
+      const resolve = this._resolve;
+      this._resolve = null;
+      resolve?.({
+        ...foundry.utils.deepClone(t),
+        id:             this._course.id || foundry.utils.randomID(),
+        templateItemId: this._course.templateItemId ?? null,
+        overridden:     false,
+        _restored:      true
+      });
+      this.close();
+    });
 
     const modeRadios   = this.element.querySelectorAll('[name="mode"]');
     const randomFields = this.element.querySelector(".random-fields");
@@ -173,10 +196,12 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       price,
       drawCount,
       refreshCadence,
-      items:         mode === "static"  ? (this._course.items  ?? []) : [],
-      pool:          mode === "random"  ? (this._course.pool   ?? []) : [],
-      drawnItems:    mode === "random"  ? (this._course.drawnItems ?? []) : [],
-      lastRefreshed: this._course.lastRefreshed ?? null
+      items:          mode === "static"  ? (this._course.items  ?? []) : [],
+      pool:           mode === "random"  ? (this._course.pool   ?? []) : [],
+      drawnItems:     mode === "random"  ? (this._course.drawnItems ?? []) : [],
+      lastRefreshed:  this._course.lastRefreshed ?? null,
+      templateItemId: this._course.templateItemId ?? null,
+      overridden:     this._course.overridden ?? false
     });
   }
 

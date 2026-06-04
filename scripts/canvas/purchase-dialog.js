@@ -63,7 +63,14 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       ...context,
       expense: this._expense,
-      expenseCostLabel: `${this._expense.amount} ${costCurrency?.abbreviation ?? "?"}`,
+      expenseCostLabel: (() => {
+        const totalStd = costInStandard(this._expense, this._currencies);
+        const maxRate = this._currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+        const breakdown = calculateChange(totalStd, this._currencies, maxRate);
+        return (breakdown && Object.values(breakdown).some(v => v > 0))
+          ? formatAmounts(breakdown, this._currencies)
+          : `${this._expense.amount} ${costCurrency?.abbreviation ?? "?"}`;
+      })(),
       currencies: this._currencies.map(c => ({
         ...c,
         fillDisabled: isAttributeOrItem && (balance[c.id] ?? 0) === 0
@@ -220,7 +227,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.complete"));
     const resolve = this._resolve;
     this._resolve = null;
-    resolve?.(true);
+    resolve?.({ actorId: this._actor?.id ?? null });
   }
 
   async #executeAttributeTransaction(payment, change) {

@@ -41,24 +41,21 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <label>
+  <div class="form-group course-price-row">
+    <label class="course-price-check-label">
       <input type="checkbox" name="hasCoursePrice" {{#if hasCoursePrice}}checked{{/if}}>
       {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.price"}}
     </label>
-  </div>
-
-  <div class="course-price-fields form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.price"}}</label>
-    <div class="price-fields-row">
-      <select name="priceCurrencyId">
+    <div class="course-price-fields price-fields-row">
+      <input type="number" name="priceAmount" value="{{course.price.amount}}" min="0" step="0.01"
+             class="course-price-amount">
+      <select name="priceCurrencyId" class="course-price-currency">
         {{#each currencies}}
         <option value="{{this.id}}"{{#if (eq this.id ../course.price.currencyId)}} selected{{/if}}>
-          {{this.name}} ({{this.abbreviation}})
+          {{this.abbreviation}}
         </option>
         {{/each}}
       </select>
-      <input type="number" name="priceAmount" value="{{course.price.amount}}" min="0" step="0.01">
     </div>
   </div>
 
@@ -90,7 +87,7 @@
           </td>
           <td class="col-desc">{{this.description}}</td>
           <td class="col-price ssm-col-right">
-            {{#if this.price}}{{this.price.amount}} (override){{else}}<em>course</em>{{/if}}
+            {{#if this.price}}{{this.price.amount}} (override){{else}}<em>standard</em>{{/if}}
           </td>
           <td class="ssm-col-controls">
             <button type="button" class="icon lodging-ctrl-btn" data-action="editItem" data-item-id="{{this.id}}"

@@ -50,8 +50,6 @@ export class MenuItemEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       item: {
         name:        this._item.name        ?? "",
         description: this._item.description ?? "",
-        itemId:      this._item.itemId      ?? null,
-        itemName:    this._item.itemName    ?? null,
         price: {
           currencyId: this._item.price?.currencyId ?? defaultCurrencyId,
           amount:     this._item.price?.amount     ?? 0
@@ -72,30 +70,6 @@ export class MenuItemEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const togglePrice   = () => { if (priceFields) priceFields.hidden = !priceCheckbox?.checked; };
     togglePrice();
     priceCheckbox?.addEventListener("change", togglePrice);
-
-    this.element.querySelector(".clear-linked-item")?.addEventListener("click", () => {
-      this._item.itemId   = null;
-      this._item.itemName = null;
-      this.render();
-    });
-
-    const dropZone = this.element.querySelector(".item-drop-zone");
-    if (dropZone) {
-      dropZone.addEventListener("dragover", e => e.preventDefault());
-      dropZone.addEventListener("drop", async e => {
-        e.preventDefault();
-        let data;
-        try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
-        if (data?.type !== "Item" || !data?.uuid) return;
-        const item = await fromUuid(data.uuid).catch(() => null);
-        if (!item) return;
-        // Preserve any name the user typed; fill it if empty
-        if (!this._item.name) this._item.name = item.name;
-        this._item.itemId   = data.uuid;
-        this._item.itemName = item.name;
-        this.render();
-      });
-    }
   }
 
   static async #onSubmit(event, form, formData) {
@@ -113,8 +87,6 @@ export class MenuItemEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       id:          this._item.id || foundry.utils.randomID(),
       name,
       description,
-      itemId:   this._item.itemId   ?? null,
-      itemName: this._item.itemName ?? null,
       price
     });
   }

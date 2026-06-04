@@ -14,6 +14,7 @@ import { SandboxSceneConfig } from "./scene/scene-config.js";
 import { registerCityControls } from "./canvas/city-controls.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
 import { registerSocketHandlers } from "./socket.js";
+import "./canvas/cart-manager.js";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | Initializing`);

@@ -41,13 +41,13 @@
         "reset": "Reset to Defaults"
       },
       "resourceTypeConfig": {
-        "name": "Resource Type Configuration",
-        "label": "Configure Resource Types",
-        "hint": "Define the types of establishments and resources that can appear in cities."
+        "name": "Resource Templates",
+        "label": "Configure Resource Templates",
+        "hint": "Define templates for establishments and resources that can appear in cities."
       },
       "resourceTypes": {
-        "name": "Resource Types",
-        "hint": "Resource types define establishment categories. Drag to reorder.",
+        "name": "Resource Templates",
+        "hint": "Resource templates define establishment configurations. Drag to reorder.",
         "add": "Add Resource Type",
         "reset": "Reset to Defaults"
       },
@@ -111,26 +111,27 @@
     "resourceType": {
       "addTitle": "Add Resource Type",
       "editTitle": "Edit Resource Type",
+      "typeLabel": "Type",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Inn",
       "iconLabel": "Icon",
       "iconPlaceholder": "e.g. fa-solid fa-bed",
-      "subTypesLabel": "Sub-types",
-      "addSubType": "Add Sub-type",
+      "subTypesLabel": "Templates",
+      "addSubType": "Add Template",
       "removeSubType": "Remove",
       "subTypeNameLabel": "Sub-type name",
       "edit": "Edit",
       "delete": "Delete",
       "empty": "No resource types defined.",
-      "noSubTypes": "No sub-types defined.",
+      "noSubTypes": "No templates defined.",
       "subType": {
-        "addTitle": "Add Sub-type",
-        "editTitle": "Edit Sub-type",
+        "addTitle": "Add Template",
+        "editTitle": "Edit Template",
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Blacksmith",
-        "add": "Add Sub-type",
-        "edit": "Edit Sub-type",
-        "delete": "Delete Sub-type"
+        "add": "Add Template",
+        "edit": "Edit Template",
+        "delete": "Delete Template"
       }
     },
     "currencyTest": {
@@ -202,6 +203,8 @@
         "name": "Name",
         "beds": "Beds",
         "infinite": "Unlimited Availability",
+        "availability": "Avail",
+        "availabilityHint": "Number of rooms available. Leave blank for unlimited.",
         "pricePerDay": "Price per Day",
         "pricePerWeek": "Price per Week",
         "autoWeekly": "Auto (days/wk × daily price)"
@@ -219,6 +222,7 @@
         "colBeds": "Beds",
         "colDay": "Per Day",
         "colWeek": "Per Week",
+        "colAvail": "Avail",
         "colCharacter": "Character",
         "colLodging": "Lodging",
         "colTimeRemaining": "Expires"
@@ -242,7 +246,7 @@
         "mode": "Availability",
         "modeStatic": "Static",
         "modeRandom": "Random",
-        "price": "Course Default Price",
+        "price": "Standard Price",
         "priceNone": "No default price",
         "drawCount": "Items Drawn",
         "refreshCadence": "Refreshes",
@@ -252,18 +256,40 @@
         "noItems": "No items. Click Add Item to begin.",
         "addItem": "Add Item"
       },
+      "restore": {
+        "title": "Restore from Template",
+        "buttonLabel": "Restore from Template",
+        "modified": "modified",
+        "removed": "not in resource",
+        "modifiedLodgings": "Modified Lodgings",
+        "removedLodgings": "Removed Lodgings",
+        "modifiedCourses": "Modified Courses",
+        "removedCourses": "Removed Courses",
+        "nothingToRestore": "No template changes to restore."
+      },
       "menuItem": {
         "addTitle": "Add Menu Item",
         "editTitle": "Edit Menu Item",
         "name": "Name",
         "description": "Description",
-        "priceOverride": "Override course price",
+        "priceOverride": "Override Standard Price",
         "price": "Price",
         "linkedItem": "Linked Foundry Item",
         "linkedItemHint": "Drag an item from the Items sidebar to link it. The buyer receives a copy on purchase.",
         "dropZoneLabel": "Drop item here to link it",
         "clearLinkedItem": "Clear"
       }
+    },
+    "cart": {
+      "title": "Cart",
+      "empty": "Your cart is empty.",
+      "checkout": "Checkout",
+      "clear": "Clear Cart",
+      "total": "Total",
+      "days": "Days",
+      "weeks": "Weeks",
+      "qty": "Qty",
+      "remove": "Remove"
     },
     "keybinding": {},
     "dialog": {},

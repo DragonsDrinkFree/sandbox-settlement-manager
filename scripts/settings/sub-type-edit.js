@@ -1,5 +1,6 @@
-import { MODULE_ID, SETTINGS, RESOURCE_TYPE_IDS } from "../constants.js";
-import { MenuConfigApp } from "../canvas/inn/menu-config-app.js";
+import { MODULE_ID, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES } from "../constants.js";
+import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
+import { getWorldTimeConfig } from "../time/world-time.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -26,11 +27,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: `${MODULE_ID}-sub-type-edit`,
     tag: "form",
     form: { handler: SubTypeEditApp.#onSubmit, closeOnSubmit: true },
-    position: { width: 480 },
+    position: { width: 620 },
     actions: {
-      addLodging:      SubTypeEditApp.#onAddLodging,
-      deleteLodging:   SubTypeEditApp.#onDeleteLodging,
-      configureMenu:   SubTypeEditApp.#onConfigureMenu
+      addLodging:    SubTypeEditApp.#onAddLodging,
+      deleteLodging: SubTypeEditApp.#onDeleteLodging,
+      addCourse:     SubTypeEditApp.#onAddCourse,
+      editCourse:    SubTypeEditApp.#onEditCourse,
+      deleteCourse:  SubTypeEditApp.#onDeleteCourse
     }
   };
 
@@ -42,7 +45,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async open(subType = {}, typeId = null) {
     return new Promise(resolve => {
       const app = new SubTypeEditApp(foundry.utils.deepClone(subType));
-      app._typeId = typeId;
+      app._typeId   = typeId;
       app._lodgings = foundry.utils.deepClone(subType.typeData?.lodgings ?? []);
       app._menu     = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
       app._resolve  = resolve;
@@ -51,28 +54,38 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
-    const isInn = this._typeId === RESOURCE_TYPE_IDS.INN;
+    const isInn          = this._typeId === RESOURCE_TYPE_IDS.INN;
+    const showTypeSelect = !this._typeId;
+    const showInnSections = isInn || showTypeSelect;
     let lodgings = [];
     let currencies = [];
-    let menuCourseCount = 0;
-    if (isInn) {
+    let courses = [];
+    if (showInnSections) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
       const defaultCurrencyId = currencies[0]?.id ?? "";
       lodgings = this._lodgings.map(l => ({
         ...l,
-        autoWeekly: !l.pricePerWeek,
+        autoWeekly:   !l.pricePerWeek,
         pricePerDay:  l.pricePerDay  ?? { currencyId: defaultCurrencyId, amount: 0 },
         pricePerWeek: l.pricePerWeek ?? { currencyId: defaultCurrencyId, amount: 0 }
       }));
-      menuCourseCount = (this._menu.courses ?? []).length;
+      courses = (this._menu.courses ?? []).map((c, i) => ({
+        name:      c.name,
+        index:     i,
+        isRandom:  c.mode === "random",
+        itemCount: (c.mode === "random" ? (c.pool ?? []) : (c.items ?? [])).length
+      }));
     }
     return {
       subType: this._subType,
       isInn,
+      showTypeSelect,
+      showInnSections,
+      coreTypes: CORE_RESOURCE_TYPES,
       lodgings,
       currencies,
-      menuCourseCount,
+      courses,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -80,33 +93,78 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRender(context, options) {
     await super._onRender(context, options);
     this.element.querySelector('[name="name"]')?.focus();
-    if (this._typeId === RESOURCE_TYPE_IDS.INN) this.#wireAutoWeekly();
+    if (!this._typeId) this.#wireTypeSelect();
+    this.#wireWeeklyLinks();
   }
 
-  #wireAutoWeekly() {
-    this.element.querySelectorAll('.lodging-inline-row').forEach(row => {
-      const autoCheckbox = row.querySelector('[data-field="autoWeekly"]');
-      const weeklyFields = row.querySelectorAll('.weekly-field');
-      const toggle = () => weeklyFields.forEach(el => { el.hidden = !!autoCheckbox?.checked; });
-      toggle();
-      autoCheckbox?.addEventListener("change", toggle);
+  #wireTypeSelect() {
+    const sel = this.element.querySelector('[name="templateType"]');
+    if (!sel) return;
+    const innSection = this.element.querySelector('.inn-only');
+    const toggle = () => {
+      if (innSection) innSection.hidden = (sel.value !== RESOURCE_TYPE_IDS.INN);
+    };
+    sel.addEventListener('change', toggle);
+    toggle();
+  }
+
+  #wireWeeklyLinks() {
+    const { daysPerWeek } = getWorldTimeConfig();
+    this.element.querySelectorAll('.lodging-table-row').forEach(row => {
+      const stateBox = row.querySelector('[data-field="autoWeekly"]');
+      const linkBtn  = row.querySelector('.link-toggle-btn');
+      const dayAmt   = row.querySelector('[data-field="pricePerDayAmount"]');
+      const dayCurr  = row.querySelector('[data-field="pricePerDayCurrencyId"]');
+      const wkAmt    = row.querySelector('[data-field="pricePerWeekAmount"]');
+      const wkCurr   = row.querySelector('[data-field="pricePerWeekCurrencyId"]');
+
+      const applyState = () => {
+        const linked = !!stateBox?.checked;
+        linkBtn?.classList.toggle('is-linked', linked);
+        if (wkAmt)  wkAmt.readOnly  = linked;
+        if (wkCurr) wkCurr.disabled = linked;
+        if (linked) {
+          const amt = parseFloat(dayAmt?.value) || 0;
+          if (wkAmt)              wkAmt.value  = (amt * (daysPerWeek ?? 7)).toFixed(2);
+          if (wkCurr && dayCurr) wkCurr.value = dayCurr.value;
+        }
+      };
+
+      applyState();
+
+      linkBtn?.addEventListener('click', () => {
+        if (stateBox) stateBox.checked = !stateBox.checked;
+        applyState();
+      });
+
+      dayAmt?.addEventListener('input', () => {
+        if (!stateBox?.checked) return;
+        const amt = parseFloat(dayAmt.value) || 0;
+        if (wkAmt) wkAmt.value = (amt * (daysPerWeek ?? 7)).toFixed(2);
+      });
+
+      dayCurr?.addEventListener('change', () => {
+        if (!stateBox?.checked) return;
+        if (wkCurr) wkCurr.value = dayCurr.value;
+      });
     });
   }
 
-  // Read all inline lodging row values from the DOM into _lodgings.
   #syncLodgingsFromDOM() {
-    const rows = this.element?.querySelectorAll('.lodging-inline-row') ?? [];
+    const rows = this.element?.querySelectorAll('.lodging-table-row') ?? [];
     this._lodgings = [...rows].map(row => this.#rowToLodging(row));
   }
 
   #rowToLodging(row) {
-    const autoWeekly  = !!row.querySelector('[data-field="autoWeekly"]')?.checked;
+    const autoWeekly   = !!row.querySelector('[data-field="autoWeekly"]')?.checked;
     const pdCurrencyId = row.querySelector('[data-field="pricePerDayCurrencyId"]')?.value ?? "";
+    const avStr        = (row.querySelector('[data-field="availability"]')?.value ?? "").trim();
+    const avInt        = parseInt(avStr);
     return {
-      id:       row.dataset.lodgingId || foundry.utils.randomID(),
-      name:     (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-      beds:     Math.max(1, parseInt(row.querySelector('[data-field="beds"]')?.value) || 1),
-      infinite: !!row.querySelector('[data-field="infinite"]')?.checked,
+      id:           row.dataset.lodgingId || foundry.utils.randomID(),
+      name:         (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
+      beds:         Math.max(1, parseInt(row.querySelector('[data-field="beds"]')?.value) || 1),
+      availability: (avStr !== "" && Number.isFinite(avInt)) ? avInt : null,
       pricePerDay: {
         currencyId: pdCurrencyId,
         amount:     parseFloat(row.querySelector('[data-field="pricePerDayAmount"]')?.value) || 0
@@ -122,27 +180,16 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._subType.name = this.element.querySelector('[name="name"]')?.value ?? this._subType.name;
   }
 
-  static async #onConfigureMenu() {
-    this.#syncSubTypeName();
-    this.#syncLodgingsFromDOM();
-    await MenuConfigApp.open(
-      foundry.utils.deepClone(this._menu),
-      (updatedMenu) => { this._menu = updatedMenu; }
-    );
-    // Re-render to update the course count badge
-    this.render({ parts: ["form"] });
-  }
-
   static #onAddLodging() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const defaultCurrencyId = currencyConfig.currencies?.[0]?.id ?? "";
     this._lodgings.push({
-      id: foundry.utils.randomID(),
-      name: "",
-      beds: 1,
-      infinite: true,
+      id:           foundry.utils.randomID(),
+      name:         "",
+      beds:         1,
+      availability: null,
       pricePerDay:  { currencyId: defaultCurrencyId, amount: 0 },
       pricePerWeek: null
     });
@@ -157,18 +204,51 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static async #onAddCourse() {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const result = await CourseEditApp.open({});
+    if (!result) return;
+    this._menu.courses.push(result);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onEditCourse(event, target) {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const index    = parseInt(target.dataset.courseIndex);
+    const existing = this._menu.courses[index];
+    if (!existing) return;
+    const result = await CourseEditApp.open(existing);
+    if (!result) return;
+    this._menu.courses[index] = result;
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteCourse(event, target) {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const index = parseInt(target.dataset.courseIndex);
+    this._menu.courses.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim();
     if (!name) return;
 
+    const typeId = this._typeId ?? formData.object.templateType ?? null;
+    if (!typeId) return;
+
     const result = { ...this._subType, name };
-    if (this._typeId === RESOURCE_TYPE_IDS.INN) {
-      const rows = form.querySelectorAll('.lodging-inline-row');
+    if (typeId === RESOURCE_TYPE_IDS.INN) {
+      const rows = form.querySelectorAll('.lodging-table-row');
       const lodgings = [...rows]
         .map(row => this.#rowToLodging(row))
         .filter(l => l.name);
       result.typeData = { lodgings, menu: this._menu };
     }
+    result._templateTypeId = typeId;
 
     const resolve = this._resolve;
     this._resolve = null;

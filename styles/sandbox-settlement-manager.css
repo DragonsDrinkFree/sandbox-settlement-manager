@@ -520,6 +520,9 @@
 #sandbox-settlement-manager-city-manage .inn-lodging-table .col-beds,
 #sandbox-settlement-manager-resource-detail .inn-lodging-table .col-beds { width: 3rem; }
 
+#sandbox-settlement-manager-city-manage .inn-lodging-table .col-avail,
+#sandbox-settlement-manager-resource-detail .inn-lodging-table .col-avail { width: 3rem; }
+
 #sandbox-settlement-manager-city-manage .inn-lodging-table .col-day,
 #sandbox-settlement-manager-city-manage .inn-lodging-table .col-week,
 #sandbox-settlement-manager-resource-detail .inn-lodging-table .col-day,
@@ -544,6 +547,67 @@
   font-size: var(--font-size-11, 11px);
   padding: 0.15rem 0.4rem;
   white-space: nowrap;
+}
+
+#sandbox-settlement-manager-city-manage .inn-rent-btn:disabled,
+#sandbox-settlement-manager-resource-detail .inn-rent-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Override indicator — template items modified by GM */
+#sandbox-settlement-manager-city-manage .inn-lodging-row.is-overridden > td,
+#sandbox-settlement-manager-resource-detail .inn-lodging-row.is-overridden > td {
+  color: var(--color-text-success, #4a8);
+}
+
+#sandbox-settlement-manager-city-manage .inn-course-section.is-overridden .inn-course-name,
+#sandbox-settlement-manager-resource-detail .inn-course-section.is-overridden .inn-course-name {
+  color: var(--color-text-success, #4a8);
+}
+
+/* Template restore dialog */
+#sandbox-settlement-manager-template-restore .restore-section {
+  margin-bottom: 0.6rem;
+}
+
+#sandbox-settlement-manager-template-restore .restore-section-title {
+  font-size: var(--font-size-11, 11px);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dark-secondary, #555);
+  margin: 0 0 0.25rem;
+}
+
+#sandbox-settlement-manager-template-restore .restore-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.25rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#sandbox-settlement-manager-template-restore .restore-item:hover {
+  background: var(--color-bg-option, rgba(0,0,0,0.04));
+}
+
+#sandbox-settlement-manager-template-restore .restore-item-name {
+  flex: 1;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-template-restore .restore-item-note {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+}
+
+#sandbox-settlement-manager-template-restore .restore-empty {
+  font-size: var(--font-size-13, 13px);
+  color: var(--color-text-dark-inactive, #999);
+  padding: 0.5rem 0;
 }
 
 /* Inn ledger table — column widths */
@@ -1148,106 +1212,86 @@
   margin-left: 0.2rem;
 }
 
-/* Sub-type edit — inn menu template fieldset */
-#sandbox-settlement-manager-sub-type-edit .menu-template {
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-#sandbox-settlement-manager-sub-type-edit .menu-template-row {
+/* Sub-type edit — template name row */
+#sandbox-settlement-manager-sub-type-edit .template-name-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .menu-template-summary {
-  font-size: var(--font-size-13, 13px);
-  color: var(--color-text-dark-secondary, #555);
-}
-
-#sandbox-settlement-manager-sub-type-edit .menu-configure-btn {
-  font-size: var(--font-size-12, 12px);
-  padding: 0.2rem 0.5rem;
+#sandbox-settlement-manager-sub-type-edit .template-name-input {
+  width: 16rem;
   flex-shrink: 0;
 }
 
-/* Sub-type edit — inn inline lodging rows */
+/* Sub-type edit — compact lodging table */
 #sandbox-settlement-manager-sub-type-edit .lodging-templates {
   border: 1px solid var(--color-border-light-tertiary, #ccc);
   border-radius: 3px;
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem 0.5rem;
   margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-#sandbox-settlement-manager-sub-type-edit .lodging-inline-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.02));
-}
-
-#sandbox-settlement-manager-sub-type-edit .lodging-row-header {
-  display: flex;
-  align-items: center;
   gap: 0.3rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-name-input {
-  flex: 1;
-  min-width: 0;
-}
-
-#sandbox-settlement-manager-sub-type-edit .lodging-delete-btn {
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-#sandbox-settlement-manager-sub-type-edit .lodging-delete-btn:hover {
-  opacity: 1;
-}
-
-#sandbox-settlement-manager-sub-type-edit .lodging-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: var(--font-size-12, 12px);
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-beds-input {
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table th {
+  text-align: left;
+  font-size: var(--font-size-10, 10px);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary, #555);
+  padding: 0 0.2rem 0.2rem;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table td {
+  padding: 0.15rem 0.2rem;
+  vertical-align: middle;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-lname {
+  width: auto;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-num {
   width: 3.5rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-row-prices {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: var(--font-size-12, 12px);
-  flex-wrap: wrap;
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-price {
+  white-space: nowrap;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-price-group {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-auto {
+  width: 2rem;
+  text-align: center;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-field-label {
-  font-size: var(--font-size-11, 11px);
-  color: var(--color-text-dark-secondary, #555);
-  flex-shrink: 0;
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-del {
+  width: 1.8rem;
+  text-align: center;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-name-input {
+  width: 100%;
+  min-width: 7rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-num-input {
+  width: 2.85rem;
 }
 
 #sandbox-settlement-manager-sub-type-edit .lodging-price-input {
-  width: 4.5rem;
+  width: 3.6rem;
   flex-shrink: 0;
 }
 
@@ -1256,16 +1300,120 @@
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-template-empty {
+#sandbox-settlement-manager-sub-type-edit .lodging-table-empty {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
-  margin: 0;
+  padding: 0.3rem;
 }
 
 #sandbox-settlement-manager-sub-type-edit .lodging-add-btn {
   align-self: flex-start;
   font-size: var(--font-size-12, 12px);
-  margin-top: 0.1rem;
+  margin-top: 0.2rem;
+}
+
+/* Sub-type edit — inline course list */
+#sandbox-settlement-manager-sub-type-edit .menu-courses {
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  padding: 0.4rem 0.5rem 0.5rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.25rem;
+  border-radius: 3px;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-row:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.04));
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-row:hover .course-list-controls {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-name {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-badge {
+  font-size: var(--font-size-10, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--color-border-light-2, #aaa);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-badge.badge-random {
+  color: var(--color-text-hyperlink, #4472c4);
+  border-color: var(--color-text-hyperlink, #4472c4);
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-count {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-controls {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-list-empty {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-inactive, #999);
+  margin: 0.15rem 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .course-add-btn {
+  align-self: flex-start;
+  font-size: var(--font-size-12, 12px);
+  margin-top: 0.2rem;
+}
+
+/* Sub-type edit — type select row */
+#sandbox-settlement-manager-sub-type-edit .template-type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Sub-type edit — weekly link-toggle button */
+#sandbox-settlement-manager-sub-type-edit .link-toggle-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--color-text-dark-inactive, #999);
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  line-height: 1;
+  font-size: var(--font-size-14, 14px);
+}
+
+#sandbox-settlement-manager-sub-type-edit .link-toggle-btn.is-linked {
+  color: var(--color-text-hyperlink, #4472c4);
+  background: rgba(68, 114, 196, 0.12);
+  border-color: rgba(68, 114, 196, 0.3);
+}
+
+#sandbox-settlement-manager-sub-type-edit .link-toggle-btn:hover {
+  color: var(--color-text-hyperlink, #4472c4);
 }
 
 /* Lodging edit dialog — price row */
@@ -1548,6 +1696,49 @@
   flex: 1;
 }
 
+#sandbox-settlement-manager-resource-type-config .sub-type-controls {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+#sandbox-settlement-manager-resource-type-config .sub-type-row:hover .sub-type-controls {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-resource-type-config .add-template-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.1rem 0.25rem;
+}
+
+#sandbox-settlement-manager-resource-type-config .add-template-row button {
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-resource-type-config .template-flat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.4rem;
+}
+
+#sandbox-settlement-manager-resource-type-config .sub-type-type-icon {
+  font-size: var(--font-size-13, 13px);
+  width: 1em;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-resource-type-config .sub-type-type-label {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+  flex-shrink: 0;
+}
+
 /* -------------------------------------------- */
 /*  Menu Config App                             */
 /* -------------------------------------------- */
@@ -1628,7 +1819,19 @@
 }
 
 #sandbox-settlement-manager-course-edit .course-items-table .col-price {
-  width: 7rem;
+  width: 6rem;
+}
+
+#sandbox-settlement-manager-course-edit .course-items-table .ssm-col-controls {
+  width: 3.2rem;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-course-edit .course-items-table .lodging-ctrl-btn {
+  font-size: var(--font-size-10, 10px);
+  width: 1.25rem;
+  height: 1.25rem;
+  line-height: 1;
 }
 
 #sandbox-settlement-manager-course-edit .menu-item-linked-badge {
@@ -1640,66 +1843,214 @@
 /*  Menu Item Edit App                          */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-menu-item-edit .menu-item-linked-item {
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  padding: 0.4rem 0.5rem;
-  margin-bottom: 0.4rem;
+#sandbox-settlement-manager-menu-item-edit .menu-item-desc-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 0.5rem;
+  gap: 0.25rem;
 }
 
-#sandbox-settlement-manager-menu-item-edit .menu-item-linked-item legend {
-  font-size: var(--font-size-11, 11px);
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0 0.25rem;
+#sandbox-settlement-manager-menu-item-edit .menu-item-desc-group textarea {
+  width: 100%;
+  resize: vertical;
 }
 
-#sandbox-settlement-manager-menu-item-edit .hint {
-  font-size: var(--font-size-11, 11px);
-  color: var(--color-text-dark-inactive, #999);
-  margin: 0.1rem 0 0.4rem;
+#sandbox-settlement-manager-menu-item-edit .menu-item-divider {
+  margin: 0.5rem 0 0.4rem;
+  border: none;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
 }
 
-#sandbox-settlement-manager-menu-item-edit .item-drop-zone {
+#sandbox-settlement-manager-menu-item-edit .course-price-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
-  border: 2px dashed var(--color-border-light-2, #bbb);
-  border-radius: 4px;
-  color: var(--color-text-dark-inactive, #999);
-  font-size: var(--font-size-12, 12px);
-  cursor: default;
 }
 
-#sandbox-settlement-manager-menu-item-edit .linked-item-display {
+#sandbox-settlement-manager-menu-item-edit .course-price-check-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.25rem;
-  font-size: var(--font-size-13, 13px);
+  gap: 0.3rem;
+  flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-menu-item-edit .linked-item-name {
-  flex: 1;
+#sandbox-settlement-manager-menu-item-edit .price-fields-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 
-#sandbox-settlement-manager-menu-item-edit .price-fields-row,
+#sandbox-settlement-manager-menu-item-edit .course-price-amount {
+  width: 4.2rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-menu-item-edit .course-price-currency {
+  width: 4rem;
+  flex-shrink: 0;
+}
+
 #sandbox-settlement-manager-course-edit .price-fields-row {
   display: flex;
   gap: 0.4rem;
   align-items: center;
 }
 
-#sandbox-settlement-manager-menu-item-edit .price-fields-row select,
-#sandbox-settlement-manager-course-edit .price-fields-row select {
+#sandbox-settlement-manager-course-edit .course-price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#sandbox-settlement-manager-course-edit .course-price-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-course-edit .course-price-amount {
+  width: 4.2rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-course-edit .course-price-currency {
+  width: 4rem;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------- */
+/*  Cart Panel                                  */
+/* -------------------------------------------- */
+
+.ssm-cart-panel.application {
+  animation: ssm-cart-slide-in 0.18s ease-out;
+}
+
+@keyframes ssm-cart-slide-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.25rem 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
   flex: 1;
 }
 
-#sandbox-settlement-manager-menu-item-edit .price-fields-row input[type="number"],
-#sandbox-settlement-manager-course-edit .price-fields-row input[type="number"] {
-  width: 6rem;
+#sandbox-settlement-manager-cart .ssm-cart-item {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-item:last-child {
+  border-bottom: none;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-item-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-item-name {
+  font-weight: bold;
+  font-size: var(--font-size-13, 13px);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-item-source {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-secondary, #666);
   flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-remove-btn {
+  flex-shrink: 0;
+  font-size: var(--font-size-10, 10px);
+  width: 1.2rem;
+  height: 1.2rem;
+  line-height: 1;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-duration,
+#sandbox-settlement-manager-cart .ssm-cart-quantity {
+  width: 3.2rem;
+  text-align: center;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-unit {
+  flex: 1;
+  min-width: 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-qty-label {
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-line-total {
+  margin-left: auto;
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-primary, #333);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-footer {
+  border-top: 2px solid var(--color-border-light-secondary, #aaa);
+  padding: 0.5rem 0.6rem 0.4rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-grand-total {
+  font-weight: bold;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-checkout-btn {
+  background: var(--color-bg-btn-minor-header, #444);
+  color: var(--color-text-light-highlight, #fff);
 }
 

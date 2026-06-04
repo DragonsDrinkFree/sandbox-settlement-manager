@@ -6,11 +6,13 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class MenuConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _menu;
   _onSave;
+  _template;
 
-  constructor(menu, onSave, options = {}) {
+  constructor(menu, onSave, template, options = {}) {
     super(options);
-    this._menu   = foundry.utils.deepClone(menu);
-    this._onSave = onSave;
+    this._menu     = foundry.utils.deepClone(menu);
+    this._onSave   = onSave;
+    this._template = template ?? null;
   }
 
   get title() {
@@ -32,10 +34,10 @@ export class MenuConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     content: { template: `modules/${MODULE_ID}/templates/canvas/inn/menu-config.hbs` }
   };
 
-  static async open(menu, onSave) {
+  static async open(menu, onSave, template = null) {
     const existing = foundry.applications.instances.get(`${MODULE_ID}-menu-config`);
     if (existing) existing.close();
-    const app = new MenuConfigApp(menu, onSave);
+    const app = new MenuConfigApp(menu, onSave, template);
     app.render(true);
     return app;
   }
@@ -70,8 +72,14 @@ export class MenuConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!courseId) return;
     const index = (this._menu.courses ?? []).findIndex(c => c.id === courseId);
     if (index === -1) return;
-    const result = await CourseEditApp.open(this._menu.courses[index]);
+    const course = this._menu.courses[index];
+    const templateCourse = course.templateItemId
+      ? (this._template?.typeData?.menu?.courses ?? []).find(c => c.id === course.templateItemId) ?? null
+      : null;
+    const result = await CourseEditApp.open(course, templateCourse);
     if (!result) return;
+    if (result.templateItemId && !result._restored) result.overridden = true;
+    delete result._restored;
     this._menu.courses[index] = result;
     await this._onSave(foundry.utils.deepClone(this._menu));
     this.render();
