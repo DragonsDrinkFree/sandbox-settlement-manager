@@ -1,4 +1,5 @@
 import { MODULE_ID, SETTINGS, RESOURCE_TYPE_IDS } from "../constants.js";
+import { MenuConfigApp } from "../canvas/inn/menu-config-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -7,6 +8,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _subType;
   _typeId = null;
   _lodgings = [];
+  _menu = { courses: [] };
 
   constructor(subType, options = {}) {
     super(options);
@@ -26,8 +28,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     form: { handler: SubTypeEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 480 },
     actions: {
-      addLodging:    SubTypeEditApp.#onAddLodging,
-      deleteLodging: SubTypeEditApp.#onDeleteLodging
+      addLodging:      SubTypeEditApp.#onAddLodging,
+      deleteLodging:   SubTypeEditApp.#onDeleteLodging,
+      configureMenu:   SubTypeEditApp.#onConfigureMenu
     }
   };
 
@@ -41,7 +44,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const app = new SubTypeEditApp(foundry.utils.deepClone(subType));
       app._typeId = typeId;
       app._lodgings = foundry.utils.deepClone(subType.typeData?.lodgings ?? []);
-      app._resolve = resolve;
+      app._menu     = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
+      app._resolve  = resolve;
       app.render(true);
     });
   }
@@ -50,6 +54,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const isInn = this._typeId === RESOURCE_TYPE_IDS.INN;
     let lodgings = [];
     let currencies = [];
+    let menuCourseCount = 0;
     if (isInn) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
@@ -60,12 +65,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         pricePerDay:  l.pricePerDay  ?? { currencyId: defaultCurrencyId, amount: 0 },
         pricePerWeek: l.pricePerWeek ?? { currencyId: defaultCurrencyId, amount: 0 }
       }));
+      menuCourseCount = (this._menu.courses ?? []).length;
     }
     return {
       subType: this._subType,
       isInn,
       lodgings,
       currencies,
+      menuCourseCount,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -115,6 +122,17 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._subType.name = this.element.querySelector('[name="name"]')?.value ?? this._subType.name;
   }
 
+  static async #onConfigureMenu() {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    await MenuConfigApp.open(
+      foundry.utils.deepClone(this._menu),
+      (updatedMenu) => { this._menu = updatedMenu; }
+    );
+    // Re-render to update the course count badge
+    this.render({ parts: ["form"] });
+  }
+
   static #onAddLodging() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
@@ -149,7 +167,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const lodgings = [...rows]
         .map(row => this.#rowToLodging(row))
         .filter(l => l.name);
-      result.typeData = { lodgings };
+      result.typeData = { lodgings, menu: this._menu };
     }
 
     const resolve = this._resolve;

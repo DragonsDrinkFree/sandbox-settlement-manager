@@ -3,7 +3,7 @@ import { MODULE_ID, FLAGS } from "./constants.js";
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
 export const SOCKET_TYPES = {
-  ADD_LEDGER_ENTRY: "addLedgerEntry"
+  SAVE_RESOURCE: "saveResource"
 };
 
 export function registerSocketHandlers() {
@@ -14,21 +14,23 @@ export function registerSocketHandlers() {
     if (!game.user.isGM) return;
     if (game.users.activeGM?.id !== game.user.id) return;
 
-    if (data.type === SOCKET_TYPES.ADD_LEDGER_ENTRY) {
-      await _handleAddLedgerEntry(data);
+    if (data.type === SOCKET_TYPES.SAVE_RESOURCE) {
+      await _handleSaveResource(data);
     }
   });
 }
 
-async function _handleAddLedgerEntry({ sceneId, resourceId, entry }) {
+/**
+ * GM-side handler: replaces a single resource in the scene flag by ID.
+ * Players cannot write scene flags directly, so all resource mutations from
+ * non-GM clients are routed here via socket.
+ */
+async function _handleSaveResource({ sceneId, resource }) {
   const scene = game.scenes.get(sceneId);
   if (!scene) return;
   const resources = scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-  const resource = resources.find(r => r.id === resourceId);
-  if (!resource) return;
-  resource.typeData ??= {};
-  resource.typeData.inn ??= { lodgings: [], ledger: [] };
-  resource.typeData.inn.ledger ??= [];
-  resource.typeData.inn.ledger.push(entry);
+  const index = resources.findIndex(r => r.id === resource.id);
+  if (index === -1) return;
+  resources[index] = resource;
   await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
 }

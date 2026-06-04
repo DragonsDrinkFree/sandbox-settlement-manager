@@ -2,6 +2,7 @@ import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES, get
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { LodgingRentalDialog } from "./inn/lodging-rental-dialog.js";
+import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 
@@ -30,7 +31,10 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       editLodging:        ResourceDetailApp.#onEditLodging,
       deleteLodging:      ResourceDetailApp.#onDeleteLodging,
       rentLodging:        ResourceDetailApp.#onRentLodging,
-      dismissLedgerEntry: ResourceDetailApp.#onDismissLedgerEntry
+      dismissLedgerEntry: ResourceDetailApp.#onDismissLedgerEntry,
+      configureMenu:      ResourceDetailApp.#onConfigureMenu,
+      refreshCourse:      ResourceDetailApp.#onRefreshCourse,
+      buyMenuItem:        ResourceDetailApp.#onBuyMenuItem
     }
   };
 
@@ -108,7 +112,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   #buildInnData(currencies, isGM) {
     const innRaw = this._resource.typeData?.inn ?? { lodgings: [], ledger: [] };
-    const { daysPerWeek } = getWorldTimeConfig();
+    const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
     const worldTime = game.time.worldTime;
 
     const lodgings = (innRaw.lodgings ?? []).map(l => {
@@ -138,7 +142,66 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       return { ...e, isExpired, timeRemainingLabel };
     });
 
-    return { lodgings, ledger, isGM };
+    const menuData = this.#buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime);
+    if (menuData._needsSave && isGM) {
+      const updatedInn = foundry.utils.deepClone(innRaw);
+      updatedInn.menu = menuData._updatedMenu;
+      this.#saveInnData(updatedInn).catch(() => {});
+    }
+
+    return { lodgings, ledger, isGM, menuData };
+  }
+
+  #buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime) {
+    const rawMenu = innRaw.menu ?? { courses: [] };
+    const secondsPerDay  = (hoursPerDay ?? 24) * 3600;
+    const secondsPerWeek = secondsPerDay * (daysPerWeek ?? 7);
+
+    let _needsSave = false;
+    const updatedCourses = foundry.utils.deepClone(rawMenu.courses ?? []);
+
+    const courses = updatedCourses.map(course => {
+      const isRandom = course.mode === "random";
+
+      if (isRandom && isGM) {
+        const cadenceSecs = course.refreshCadence === "weekly" ? secondsPerWeek : secondsPerDay;
+        const due = (course.lastRefreshed ?? 0) + cadenceSecs;
+        if (worldTime >= due && (course.pool ?? []).length > 0) {
+          const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
+          course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
+          course.lastRefreshed = worldTime;
+          _needsSave = true;
+        }
+      }
+
+      const visibleItems = isRandom ? (course.drawnItems ?? []) : (course.items ?? []);
+      let priceLabel = null;
+      if (course.price) {
+        const curr = currencies.find(c => c.id === course.price.currencyId);
+        priceLabel = `${course.price.amount} ${curr?.abbreviation ?? "?"}`;
+      }
+      return {
+        ...course,
+        isRandom,
+        priceLabel,
+        visibleItems: visibleItems.map(item => {
+          const resolvedPrice = item.price ?? course.price;
+          let priceLabel = null;
+          if (resolvedPrice) {
+            const curr = currencies.find(c => c.id === resolvedPrice.currencyId);
+            priceLabel = `${resolvedPrice.amount} ${curr?.abbreviation ?? "?"}`;
+          }
+          return { ...item, priceLabel, hasPrice: !!resolvedPrice };
+        })
+      };
+    });
+
+    return {
+      courses,
+      hasCourses: courses.length > 0,
+      _needsSave,
+      _updatedMenu: { courses: updatedCourses }
+    };
   }
 
   async #saveInnData(innData) {
@@ -238,12 +301,16 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       innData.ledger.push(entry);
       await this.#saveInnData(innData);
     } else {
-      // Players lack scene-update permission — ask the active GM to write it.
+      // Players lack scene-update permission — send the full updated resource to the GM.
+      const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+      innData.ledger.push(entry);
+      const resource = foundry.utils.deepClone(this._resource);
+      resource.typeData ??= {};
+      resource.typeData.inn = innData;
       game.socket.emit(SOCKET_CHANNEL, {
-        type:       SOCKET_TYPES.ADD_LEDGER_ENTRY,
-        sceneId:    canvas.scene?.id,
-        resourceId: this._resource.id,
-        entry
+        type:    SOCKET_TYPES.SAVE_RESOURCE,
+        sceneId: canvas.scene?.id,
+        resource
       });
       // The updateScene hook (registered in _onRender) will refresh this view
       // once the GM processes the socket and saves the flag.
@@ -257,5 +324,60 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
     innData.ledger = innData.ledger.filter(e => e.id !== entryId);
     await this.#saveInnData(innData);
+  }
+
+  static async #onConfigureMenu() {
+    if (!game.user.isGM) return;
+    const inn = this._resource.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    await MenuConfigApp.open(
+      inn.menu ?? { courses: [] },
+      async (updatedMenu) => {
+        const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+        innData.menu = updatedMenu;
+        await this.#saveInnData(innData);
+      }
+    );
+  }
+
+  static async #onRefreshCourse(event, target) {
+    if (!game.user.isGM) return;
+    const courseId = target.dataset.courseId;
+    if (!courseId) return;
+    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
+    if (!course || course.mode !== "random") return;
+    const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
+    course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
+    course.lastRefreshed = game.time.worldTime;
+    await this.#saveInnData(innData);
+  }
+
+  static async #onBuyMenuItem(event, target) {
+    const { courseId, itemId } = target.dataset;
+    if (!courseId || !itemId) return;
+    const inn = this._resource.typeData?.inn;
+    if (!inn) return;
+    const course = (inn.menu?.courses ?? []).find(c => c.id === courseId);
+    if (!course) return;
+    const allItems = course.mode === "random" ? (course.drawnItems ?? []) : (course.items ?? []);
+    const item = allItems.find(i => i.id === itemId);
+    if (!item) return;
+    const resolvedPrice = item.price ?? course.price;
+    if (!resolvedPrice) return;
+
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const expense = { id: item.id, name: item.name, currencyId: resolvedPrice.currencyId, amount: resolvedPrice.amount };
+
+    const paid = await PurchaseDialog.open({ expense, currencies, mode: currencyConfig.mode ?? "loose" });
+    if (!paid) return;
+
+    // Grant the linked Foundry item to the actor if configured
+    // NOTE: This pattern (purchase + item grant) will be shared with future Merchant resource type
+    if (item.itemId) {
+      const actor  = game.actors.get(paid.actorId);
+      const source = await fromUuid(item.itemId).catch(() => null);
+      if (actor && source) await actor.createEmbeddedDocuments("Item", [source.toObject()]);
+    }
   }
 }

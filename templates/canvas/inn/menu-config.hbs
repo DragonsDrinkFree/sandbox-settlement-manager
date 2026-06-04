@@ -1,0 +1,53 @@
+<div class="menu-config-content">
+  {{#if courses.length}}
+  <table class="menu-courses-table ssm-table">
+    <thead>
+      <tr>
+        <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.name"}}</th>
+        <th class="col-mode">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.mode"}}</th>
+        <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.price"}}</th>
+        <th class="col-count ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.items"}}</th>
+        <th class="ssm-col-controls"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each courses}}
+      <tr>
+        <td class="col-name">{{this.name}}</td>
+        <td class="col-mode">
+          <span class="inn-course-mode-badge">
+            {{#if this.isRandom}}
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeRandom"}}
+            {{else}}
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeStatic"}}
+            {{/if}}
+          </span>
+        </td>
+        <td class="col-price ssm-col-right">
+          {{#if this.priceLabel}}{{this.priceLabel}}{{else}}<em>—</em>{{/if}}
+        </td>
+        <td class="col-count ssm-col-right">{{this.itemCount}}</td>
+        <td class="ssm-col-controls">
+          <button type="button" class="icon lodging-ctrl-btn" data-action="editCourse" data-course-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button type="button" class="icon lodging-ctrl-btn" data-action="deleteCourse" data-course-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="menu-config-empty ssm-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.noItems"}}</em></p>
+  {{/if}}
+
+  <div class="menu-config-footer">
+    <button type="button" data-action="addCourse" class="menu-add-course-btn">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.addTitle"}}
+    </button>
+  </div>
+</div>

@@ -1,6 +1,5 @@
-﻿import { MODULE_ID, FLAGS } from "../constants.js";
+import { MODULE_ID, FLAGS } from "../constants.js";
 import { CityManageApp } from "./city-manage-app.js";
-import { CityResourcesApp } from "./city-resources-app.js";
 
 export function registerCityControls() {
   Hooks.on("getSceneControlButtons", controls => {
@@ -24,25 +23,12 @@ export function registerCityControls() {
           name: "manage",
           order: 1,
           title: "SANDBOX_SETTLEMENT_MANAGER.controls.manage",
-          icon: "fa-solid fa-gears",
+          icon: "fa-solid fa-city",
           button: true,
-          visible: game.user.isGM,
           onChange: () => {
             const existing = foundry.applications.instances.get(`${MODULE_ID}-city-manage`);
             if (existing) existing.close();
             else new CityManageApp().render({ force: true });
-          }
-        },
-        cityResources: {
-          name: "cityResources",
-          order: 2,
-          title: "SANDBOX_SETTLEMENT_MANAGER.controls.cityResources",
-          icon: "fa-solid fa-warehouse",
-          button: true,
-          onChange: () => {
-            const existing = foundry.applications.instances.get(`${MODULE_ID}-city-resources`);
-            if (existing) existing.close();
-            else new CityResourcesApp().render({ force: true });
           }
         }
       }
@@ -50,7 +36,6 @@ export function registerCityControls() {
   });
 
   // Refresh controls when the IS_CITY flag changes on the active scene.
-  // Direct bracket navigation avoids hasProperty dot-notation issues with hyphenated module IDs.
   // render({ reset: true }) is required — it triggers #prepareControls() which re-fires
   // getSceneControlButtons. The deprecated initialize() omits reset and the hook never re-fires.
   Hooks.on("updateScene", (scene, changes) => {

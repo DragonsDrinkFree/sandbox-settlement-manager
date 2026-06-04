@@ -195,7 +195,8 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ...typeData,
         inn: {
           lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []),
-          ledger: []
+          ledger: [],
+          menu: foundry.utils.deepClone(subType?.typeData?.menu ?? { courses: [] })
         }
       };
     }

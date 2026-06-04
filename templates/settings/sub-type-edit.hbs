@@ -64,5 +64,21 @@
       <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.add"}}
     </button>
   </fieldset>
+
+  <fieldset class="menu-template">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.defaultMenuLegend"}}</legend>
+    <div class="menu-template-row">
+      <span class="menu-template-summary">
+        {{#if menuCourseCount}}
+          {{menuCourseCount}} {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.coursesLabel"}}
+        {{else}}
+          <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.notConfigured"}}</em>
+        {{/if}}
+      </span>
+      <button type="button" data-action="configureMenu" class="menu-configure-btn">
+        <i class="fa-solid fa-gear"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.configureTitle"}}
+      </button>
+    </div>
+  </fieldset>
   {{/if}}
 </div>

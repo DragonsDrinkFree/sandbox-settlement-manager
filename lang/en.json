@@ -9,8 +9,7 @@
     "controls": {
       "city": "City",
       "select": "Select",
-      "manage": "Manage City",
-      "cityResources": "City Resources"
+      "manage": "City"
     },
     "manage": {
       "title": "City Manager",
@@ -19,6 +18,7 @@
       "cityType": "City Type",
       "cityDescription": "Description",
       "selectResource": "Select a resource to view its details.",
+      "selectResourcePlayer": "Select a discovered resource to view details.",
       "sections": {
         "cityDetails": "City Details",
         "cityResources": "City Resources"
@@ -134,6 +134,10 @@
       }
     },
     "currencyTest": {
+      "table": {
+        "colItem": "Item",
+        "colCost": "Cost"
+      },
       "configTitle": "Configure Expenses",
       "configureExpenses": "Configure Expenses",
       "expensesHeader": "Expenses",
@@ -188,8 +192,6 @@
       "noBookings": "No active bookings.",
       "ledger": "Active Bookings",
       "lodgingSection": "Lodging",
-      "menu": "Menu",
-      "menuComingSoon": "Menu coming soon.",
       "expired": "Expired",
       "defaultLodgings": "Default Lodgings",
       "noDefaultLodgings": "No default lodgings.",
@@ -211,6 +213,56 @@
         "weeks": "Weeks",
         "totalCost": "Total Cost",
         "actor": "Character"
+      },
+      "table": {
+        "colName": "Name",
+        "colBeds": "Beds",
+        "colDay": "Per Day",
+        "colWeek": "Per Week",
+        "colCharacter": "Character",
+        "colLodging": "Lodging",
+        "colTimeRemaining": "Expires"
+      },
+      "menu": {
+        "sectionTitle": "Menu",
+        "configureTitle": "Configure Menu",
+        "notConfiguredGM": "No menu configured. Click the gear icon to set up the menu.",
+        "notConfigured": "No menu available.",
+        "defaultMenuLegend": "Default Menu",
+        "noItems": "No items available.",
+        "colItem": "Item",
+        "colDescription": "Description",
+        "colPrice": "Price"
+      },
+      "course": {
+        "addTitle": "Add Course",
+        "editTitle": "Edit Course",
+        "coursesLabel": "courses configured",
+        "name": "Course Name",
+        "mode": "Availability",
+        "modeStatic": "Static",
+        "modeRandom": "Random",
+        "price": "Course Default Price",
+        "priceNone": "No default price",
+        "drawCount": "Items Drawn",
+        "refreshCadence": "Refreshes",
+        "cadenceDaily": "Daily",
+        "cadenceWeekly": "Weekly",
+        "items": "Items",
+        "noItems": "No items. Click Add Item to begin.",
+        "addItem": "Add Item"
+      },
+      "menuItem": {
+        "addTitle": "Add Menu Item",
+        "editTitle": "Edit Menu Item",
+        "name": "Name",
+        "description": "Description",
+        "priceOverride": "Override course price",
+        "price": "Price",
+        "linkedItem": "Linked Foundry Item",
+        "linkedItemHint": "Drag an item from the Items sidebar to link it. The buyer receives a copy on purchase.",
+        "dropZoneLabel": "Drop item here to link it",
+        "clearLinkedItem": "Clear"
       }
     },
     "keybinding": {},

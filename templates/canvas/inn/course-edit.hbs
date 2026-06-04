@@ -1,0 +1,113 @@
+<div class="course-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.name"}}</label>
+    <input type="text" name="name" value="{{course.name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.course.name'}}">
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.mode"}}</label>
+    <div class="radio-group">
+      <label>
+        <input type="radio" name="mode" value="static" {{#if (eq course.mode "static")}}checked{{/if}}>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeStatic"}}
+      </label>
+      <label>
+        <input type="radio" name="mode" value="random" {{#if (eq course.mode "random")}}checked{{/if}}>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.modeRandom"}}
+      </label>
+    </div>
+  </div>
+
+  <div class="random-fields form-group-stack">
+    <div class="form-group">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.drawCount"}}</label>
+      <input type="number" name="drawCount" value="{{course.drawCount}}" min="1" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.refreshCadence"}}</label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="refreshCadence" value="daily"
+                 {{#if (eq course.refreshCadence "daily")}}checked{{/if}}>
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.cadenceDaily"}}
+        </label>
+        <label>
+          <input type="radio" name="refreshCadence" value="weekly"
+                 {{#if (eq course.refreshCadence "weekly")}}checked{{/if}}>
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.cadenceWeekly"}}
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>
+      <input type="checkbox" name="hasCoursePrice" {{#if hasCoursePrice}}checked{{/if}}>
+      {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.price"}}
+    </label>
+  </div>
+
+  <div class="course-price-fields form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.price"}}</label>
+    <div class="price-fields-row">
+      <select name="priceCurrencyId">
+        {{#each currencies}}
+        <option value="{{this.id}}"{{#if (eq this.id ../course.price.currencyId)}} selected{{/if}}>
+          {{this.name}} ({{this.abbreviation}})
+        </option>
+        {{/each}}
+      </select>
+      <input type="number" name="priceAmount" value="{{course.price.amount}}" min="0" step="0.01">
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="course-items-section">
+    <div class="course-items-header">
+      <span class="course-items-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.items"}}</span>
+      <button type="button" class="icon" data-action="addItem" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.course.addItem'}}">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+    {{#if items.length}}
+    <table class="course-items-table ssm-table">
+      <thead>
+        <tr>
+          <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.name"}}</th>
+          <th class="col-desc">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.description"}}</th>
+          <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.colPrice"}}</th>
+          <th class="ssm-col-controls"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each items}}
+        <tr>
+          <td class="col-name">
+            {{this.name}}
+            {{#if this.itemId}}<i class="fa-solid fa-box fa-xs menu-item-linked-badge" title="{{this.itemName}}"></i>{{/if}}
+          </td>
+          <td class="col-desc">{{this.description}}</td>
+          <td class="col-price ssm-col-right">
+            {{#if this.price}}{{this.price.amount}} (override){{else}}<em>course</em>{{/if}}
+          </td>
+          <td class="ssm-col-controls">
+            <button type="button" class="icon lodging-ctrl-btn" data-action="editItem" data-item-id="{{this.id}}"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button type="button" class="icon lodging-ctrl-btn" data-action="deleteItem" data-item-id="{{this.id}}"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="course-items-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.noItems"}}</em></p>
+    {{/if}}
+  </div>
+</div>
