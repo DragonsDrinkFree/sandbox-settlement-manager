@@ -2,6 +2,7 @@
 import { CityTypeConfigApp } from "./city-type-config.js";
 import { ResourceTypeConfigApp } from "./resource-type-config.js";
 import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
+import { ItemConfigApp } from "./item-config.js";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.CITY_TYPES, {
@@ -35,6 +36,13 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: { mode: "loose", currencies: DEFAULT_CURRENCIES.map(c => ({ ...c })) }
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.ITEM_CONFIG, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "" }
   });
 
   game.settings.register(MODULE_ID, SETTINGS.HOURS_PER_DAY, {
@@ -72,6 +80,15 @@ export function registerSettings() {
     hint: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.hint",
     icon: "fa-solid fa-warehouse",
     type: ResourceTypeConfigApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "itemConfig", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.hint",
+    icon: "fa-solid fa-box",
+    type: ItemConfigApp,
     restricted: true
   });
 

@@ -1,0 +1,39 @@
+<div class="ssm-item-config">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeLabel"}}</label>
+    <div class="form-fields">
+      <input type="text" name="nameAttribute" value="{{nameAttribute}}">
+    </div>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeHint"}}</p>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatLabel"}}</label>
+    <div class="form-fields">
+      <select name="priceFormat">
+        {{#each formats}}
+        <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatHint"}}</p>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeLabel"}}</label>
+    <div class="form-fields">
+      <input type="text" name="priceAttribute" value="{{priceAttribute}}"
+             placeholder="e.g. system.cost">
+    </div>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeHint"}}</p>
+  </div>
+
+  <div class="form-group denomination-attribute-row"{{#unless showDenominationField}} hidden{{/unless}}>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeLabel"}}</label>
+    <div class="form-fields">
+      <input type="text" name="priceDenominationAttribute" value="{{priceDenominationAttribute}}"
+             placeholder="e.g. system.costDenomination">
+    </div>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeHint"}}</p>
+  </div>
+</div>

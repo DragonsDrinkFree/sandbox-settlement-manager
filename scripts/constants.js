@@ -18,7 +18,8 @@ export const SETTINGS = {
   RESOURCE_TYPES: "resourceTypes",
   CURRENCY_CONFIG: "currencyConfig",
   HOURS_PER_DAY: "hoursPerDay",
-  DAYS_PER_WEEK:  "daysPerWeek"
+  DAYS_PER_WEEK:  "daysPerWeek",
+  ITEM_CONFIG:    "itemConfig"
 };
 
 export const RESOURCE_TYPE_IDS = {

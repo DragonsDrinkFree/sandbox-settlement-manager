@@ -51,6 +51,22 @@
         "add": "Add Resource Type",
         "reset": "Reset to Defaults"
       },
+      "itemConfig": {
+        "name": "Item Settings",
+        "label": "Configure Item Settings",
+        "hint": "Configure how the module reads data from Foundry item documents.",
+        "nameAttributeLabel": "Name Attribute",
+        "nameAttributeHint": "Dot-notation path to the item's display name. Defaults to 'name' (the standard Foundry item name property).",
+        "priceFormatLabel": "Price Format",
+        "priceFormatHint": "How this system stores item prices. Simple: a single number (standard currency assumed). Denomination Field: a number plus a separate denomination string. Denomination Object: an object whose keys are currency abbreviations.",
+        "formatSimple": "Simple (single value, standard currency)",
+        "formatDenominationField": "Denomination Field (value + denomination string)",
+        "formatDenominationObject": "Denomination Object (object with currency abbreviation keys)",
+        "priceAttributeLabel": "Price Attribute",
+        "priceAttributeHint": "Dot-notation path to the item's price value. Leave blank if items have no price. Examples: system.price, system.cost, system.price.value",
+        "priceDenominationAttributeLabel": "Price Denomination Attribute",
+        "priceDenominationAttributeHint": "Dot-notation path to the denomination string (e.g. system.costDenomination). The value must match a configured currency abbreviation. Only used with the Denomination Field format."
+      },
       "currencyConfig": {
         "name": "Currency Configuration",
         "label": "Configure Currency",
