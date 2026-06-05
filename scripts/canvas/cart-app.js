@@ -221,9 +221,14 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Grant linked Foundry items to the purchasing actor
     const actor = actorId ? game.actors.get(actorId) : null;
     if (actor) {
-      for (const item of items.filter(i => i.type === 'menuItem' && i.itemLinkedId)) {
+      for (const item of items.filter(i => (i.type === 'menuItem' || i.type === 'merchantItem') && i.itemLinkedId)) {
         const source = await fromUuid(item.itemLinkedId).catch(() => null);
-        if (source) await actor.createEmbeddedDocuments('Item', [source.toObject()]);
+        if (source) {
+          const itemData = source.toObject();
+          for (let q = 0; q < (item.quantity ?? 1); q++) {
+            await actor.createEmbeddedDocuments('Item', [itemData]);
+          }
+        }
       }
     }
   }

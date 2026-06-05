@@ -8,6 +8,7 @@ import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
+import { readItemName, readItemPrice } from "../utils/item-utils.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -37,7 +38,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       configureMenu:        CityManageApp.#onConfigureMenu,
       refreshCourse:        CityManageApp.#onRefreshCourse,
       buyMenuItem:          CityManageApp.#onBuyMenuItem,
-      restoreFromTemplate:  CityManageApp.#onRestoreFromTemplate
+      restoreFromTemplate:  CityManageApp.#onRestoreFromTemplate,
+      addMerchantItem:      CityManageApp.#onAddMerchantItem,
+      deleteMerchantItem:   CityManageApp.#onDeleteMerchantItem
     }
   };
 
@@ -117,7 +120,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const typeIds = [...new Set(rawEntries.map(e => e.typeId))];
     const sections = typeIds.map(id => {
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
-      const isInn = id === RESOURCE_TYPE_IDS.INN;
+      const isInn          = id === RESOURCE_TYPE_IDS.INN;
+      const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
       const expenses = isCurrencyTest
         ? (resource.typeData?.expenses ?? []).map(e => {
             const c = currencies.find(x => x.id === e.currencyId);
@@ -125,10 +129,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
           })
         : [];
       return {
-        typeId: id, isInn, isCurrencyTest,
-        isOther: !isInn && !isCurrencyTest,
+        typeId: id, isInn, isCurrencyTest, isMerchant,
+        isOther: !isInn && !isCurrencyTest && !isMerchant,
         expenses,
-        innData: isInn ? this.#buildInnData(resource, currencies, isGM) : null
+        innData:      isInn      ? this.#buildInnData(resource, currencies, isGM)      : null,
+        merchantData: isMerchant ? this.#buildMerchantData(resource, currencies, isGM) : null
       };
     });
 
@@ -280,6 +285,14 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render({ parts: ["content"] });
       });
     }
+
+    // Wire merchant drop zone
+    const dropZone = this.element.querySelector(".merchant-drop-zone");
+    if (dropZone) {
+      dropZone.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dropZone.classList.add("drag-over"); });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+      dropZone.addEventListener("drop",      e => { dropZone.classList.remove("drag-over"); this.#onMerchantDrop(e); });
+    }
   }
 
   async _onClose(options) {
@@ -362,6 +375,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
             }
           };
         }
+        if (typeId === RESOURCE_TYPE_IDS.MERCHANT && !resource.typeData?.merchant) {
+          resource.typeData ??= {};
+          resource.typeData.merchant = { inventory: [] };
+        }
         dropdown.classList.remove("is-open");
         await this.#saveResourceData(resource);
       }, { signal });
@@ -407,6 +424,48 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!resource) return;
     resource.typeData ??= {};
     resource.typeData.inn = innData;
+    await this.#saveResourceData(resource);
+  }
+
+  #buildMerchantData(resource, currencies, isGM = true) {
+    const inventory = (resource.typeData?.merchant?.inventory ?? []).map(item => {
+      let priceLabel = "—";
+      if (item.price) {
+        const curr = currencies.find(c => c.id === item.price.currencyId);
+        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
+      }
+      return { ...item, priceLabel };
+    });
+    return { inventory, isGM };
+  }
+
+  async #saveMerchantData(merchantData) {
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    resource.typeData ??= {};
+    resource.typeData.merchant = merchantData;
+    await this.#saveResourceData(resource);
+  }
+
+  async #onMerchantDrop(event) {
+    if (!game.user.isGM) return;
+    event.preventDefault();
+    let data;
+    try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+    if (data?.type !== "Item") return;
+    const item = await fromUuid(data.uuid).catch(() => null);
+    if (!item) return;
+
+    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const name  = readItemName(item);
+    const price = readItemPrice(item, currencies);
+
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null });
+    resource.typeData ??= {};
+    resource.typeData.merchant = merchant;
     await this.#saveResourceData(resource);
   }
 
@@ -603,5 +662,31 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       item
     });
     CartApp.open();
+  }
+
+  static async #onAddMerchantItem(event, target) {
+    const itemId = target.dataset.itemId;
+    if (!itemId) return;
+    const resource = this.#syncSelectedResource();
+    const item = (resource?.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    cartManager.addMerchantItem({
+      sceneId: canvas.scene?.id,
+      resourceId: resource.id,
+      resourceName: resource.name,
+      item
+    });
+    CartApp.open();
+  }
+
+  static async #onDeleteMerchantItem(event, target) {
+    if (!game.user.isGM) return;
+    const itemId = target.dataset.itemId;
+    if (!itemId) return;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
+    await this.#saveMerchantData(merchant);
   }
 }

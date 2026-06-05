@@ -5,6 +5,7 @@ import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
+import { readItemName, readItemPrice } from "../utils/item-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -34,7 +35,9 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       dismissLedgerEntry: ResourceDetailApp.#onDismissLedgerEntry,
       configureMenu:      ResourceDetailApp.#onConfigureMenu,
       refreshCourse:      ResourceDetailApp.#onRefreshCourse,
-      buyMenuItem:        ResourceDetailApp.#onBuyMenuItem
+      buyMenuItem:        ResourceDetailApp.#onBuyMenuItem,
+      buyInventoryItem:    ResourceDetailApp.#onBuyInventoryItem,
+      deleteMerchantItem:  ResourceDetailApp.#onDeleteMerchantItem
     }
   };
 
@@ -60,6 +63,16 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         this.render();
       });
     }
+
+    // Wire merchant drop zone (GM only)
+    if (game.user.isGM) {
+      const dropZone = this.element.querySelector(".merchant-drop-zone");
+      if (dropZone) {
+        dropZone.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dropZone.classList.add("drag-over"); });
+        dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+        dropZone.addEventListener("drop",      e => { dropZone.classList.remove("drag-over"); this.#onMerchantDrop(e); });
+      }
+    }
   }
 
   async _onClose(options) {
@@ -84,7 +97,8 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const tabs = typeIds.map(id => {
       const coreType = CORE_RESOURCE_TYPES.find(t => t.id === id);
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
-      const isInn = id === RESOURCE_TYPE_IDS.INN;
+      const isInn          = id === RESOURCE_TYPE_IDS.INN;
+      const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
 
       const expenses = isCurrencyTest
         ? (this._resource.typeData?.expenses ?? []).map(e => {
@@ -93,17 +107,18 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
           })
         : [];
 
-      const innData = isInn ? this.#buildInnData(currencies, isGM) : null;
+      const innData      = isInn      ? this.#buildInnData(currencies, isGM)      : null;
+      const merchantData = isMerchant ? this.#buildMerchantData(currencies, isGM) : null;
 
       return {
         id,
         name: coreType?.name ?? id,
         icon: coreType?.icon ?? "fa-solid fa-question",
         active: id === this._activeTab,
-        isCurrencyTest,
-        isInn,
+        isCurrencyTest, isInn, isMerchant,
         expenses,
-        innData
+        innData,
+        merchantData
       };
     });
 
@@ -220,6 +235,47 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     this._resource = r;
     await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
     this.render();
+  }
+
+  #buildMerchantData(currencies, isGM) {
+    const inventory = (this._resource.typeData?.merchant?.inventory ?? []).map(item => {
+      let priceLabel = "—";
+      if (item.price) {
+        const curr = currencies.find(c => c.id === item.price.currencyId);
+        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
+      }
+      return { ...item, priceLabel };
+    });
+    return { inventory, isGM };
+  }
+
+  async #saveMerchantData(merchantData) {
+    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
+    const r = resources.find(r => r.id === this._resource.id);
+    if (!r) return;
+    r.typeData ??= {};
+    r.typeData.merchant = merchantData;
+    this._resource = r;
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    this.render();
+  }
+
+  async #onMerchantDrop(event) {
+    if (!game.user.isGM) return;
+    event.preventDefault();
+    let data;
+    try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+    if (data?.type !== "Item") return;
+    const item = await fromUuid(data.uuid).catch(() => null);
+    if (!item) return;
+
+    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const name  = readItemName(item);
+    const price = readItemPrice(item, currencies);
+
+    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null });
+    await this.#saveMerchantData(merchant);
   }
 
   static #onSwitchTab(event, target) {
@@ -355,5 +411,28 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       item
     });
     CartApp.open();
+  }
+
+  static async #onBuyInventoryItem(event, target) {
+    const itemId = target.dataset.itemId;
+    if (!itemId) return;
+    const item = (this._resource.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    cartManager.addMerchantItem({
+      sceneId: canvas.scene?.id,
+      resourceId: this._resource.id,
+      resourceName: this._resource.name,
+      item
+    });
+    CartApp.open();
+  }
+
+  static async #onDeleteMerchantItem(event, target) {
+    if (!game.user.isGM) return;
+    const itemId = target.dataset.itemId;
+    if (!itemId) return;
+    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
+    await this.#saveMerchantData(merchant);
   }
 }

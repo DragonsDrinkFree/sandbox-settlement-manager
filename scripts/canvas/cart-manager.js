@@ -27,6 +27,23 @@ class CartManager {
     this.#notify();
   }
 
+  /** Add a merchant inventory item to the cart. */
+  addMerchantItem({ sceneId, resourceId, resourceName, item }) {
+    this.#items.push({
+      id: foundry.utils.randomID(),
+      type: 'merchantItem',
+      sceneId,
+      resourceId,
+      resourceName,
+      inventoryItemId: item.id,
+      itemName: item.name,
+      itemLinkedId: item.itemId ?? null,
+      price: item.price ?? null,
+      quantity: 1
+    });
+    this.#notify();
+  }
+
   /** Add a menu item to the cart. Price is resolved from item first, then course default. */
   addMenuItem({ sceneId, resourceId, resourceName, course, item }) {
     const resolvedPrice = item.price ?? course.price ?? null;
@@ -82,7 +99,7 @@ class CartManager {
         return null;
       }
     }
-    if (item.type === 'menuItem') {
+    if (item.type === 'menuItem' || item.type === 'merchantItem') {
       if (!item.price) return null;
       return { amount: Math.round(item.price.amount * item.quantity), currencyId: item.price.currencyId };
     }

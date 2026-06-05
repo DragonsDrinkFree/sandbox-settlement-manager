@@ -188,6 +188,11 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Auto-init inn typeData from sub-type defaults when an inn entry is added for the first time
     const innEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.INN);
     let typeData = this._resource.typeData ?? { expenses: [] };
+    const merchantEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+    if (merchantEntry && !typeData.merchant) {
+      typeData = { ...typeData, merchant: { inventory: [] } };
+    }
+
     if (innEntry && !typeData.inn) {
       const subTypeMap = this.#getSubTypeMap();
       const subType = (subTypeMap[RESOURCE_TYPE_IDS.INN] ?? []).find(s => s.id === innEntry.subTypeId);

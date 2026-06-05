@@ -283,6 +283,57 @@
         </div>
       </div>
 
+      {{else if this.isMerchant}}
+      <div class="merchant-detail">
+        <div class="inn-section">
+          <div class="inn-section-header">
+            <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.inventory"}}</span>
+          </div>
+          {{#if this.merchantData.isGM}}
+          <div class="merchant-drop-zone">
+            <i class="fa-solid fa-box-open"></i>
+            <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>
+          </div>
+          {{/if}}
+          <table class="merchant-inventory-table ssm-table">
+            <thead>
+              <tr>
+                {{#if this.merchantData.isGM}}<th class="ssm-col-controls"></th>{{/if}}
+                <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
+                <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colPrice"}}</th>
+                <th class="ssm-col-action"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each this.merchantData.inventory}}
+              <tr>
+                {{#if ../merchantData.isGM}}
+                <td class="ssm-col-controls">
+                  <button type="button" class="icon lodging-ctrl-btn" data-action="deleteMerchantItem"
+                          data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+                {{/if}}
+                <td class="col-name">{{this.name}}</td>
+                <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
+                <td class="ssm-col-action">
+                  {{#if this.price}}
+                  <button type="button" class="buy-button" data-action="addMerchantItem"
+                          data-item-id="{{this.id}}">
+                    {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
+                  </button>
+                  {{/if}}
+                </td>
+              </tr>
+              {{else}}
+              <tr><td class="ssm-empty" colspan="4"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.empty"}}</em></td></tr>
+              {{/each}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {{else if this.isCurrencyTest}}
       <table class="expense-table ssm-table">
         <thead>

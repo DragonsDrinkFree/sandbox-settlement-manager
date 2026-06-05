@@ -1921,6 +1921,33 @@
 }
 
 /* -------------------------------------------- */
+/*  Merchant Resource Section                   */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-manage .merchant-drop-zone,
+#sandbox-settlement-manager-resource-detail .merchant-drop-zone {
+  border: 2px dashed var(--color-border-light-secondary, #aaa);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  text-align: center;
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-12, 12px);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: copy;
+}
+
+#sandbox-settlement-manager-city-manage .merchant-drop-zone.drag-over,
+#sandbox-settlement-manager-resource-detail .merchant-drop-zone.drag-over {
+  border-color: var(--color-text-success, #4a8);
+  color: var(--color-text-dark-primary, #333);
+  background: rgba(68, 170, 136, 0.05);
+}
+
+/* -------------------------------------------- */
 /*  Cart Panel                                  */
 /* -------------------------------------------- */
 
