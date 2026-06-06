@@ -9,12 +9,14 @@ import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
+import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedResourceId = null;
+  _activeTab = null;
   _sceneUpdateHook = null;
   #pickerAbort = null;
   #pickerDropdown = null;
@@ -29,6 +31,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleDiscovered:   CityManageApp.#onToggleDiscovered,
       configureExpenses:  CityManageApp.#onConfigureExpenses,
       selectResource:     CityManageApp.#onSelectResource,
+      switchTab:          CityManageApp.#onSwitchTab,
+      deleteTypeEntry:    CityManageApp.#onDeleteTypeEntry,
       removeTypeEntry:    CityManageApp.#onRemoveTypeEntry,
       addLodging:         CityManageApp.#onAddLodging,
       editLodging:        CityManageApp.#onEditLodging,
@@ -39,8 +43,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       refreshCourse:        CityManageApp.#onRefreshCourse,
       buyMenuItem:          CityManageApp.#onBuyMenuItem,
       restoreFromTemplate:  CityManageApp.#onRestoreFromTemplate,
-      addMerchantItem:      CityManageApp.#onAddMerchantItem,
-      deleteMerchantItem:   CityManageApp.#onDeleteMerchantItem
+      addMerchantItem:        CityManageApp.#onAddMerchantItem,
+      deleteMerchantItem:     CityManageApp.#onDeleteMerchantItem,
+      editMerchantItem:       CityManageApp.#onEditMerchantItem,
+      addManualInventoryItem: CityManageApp.#onAddManualInventoryItem
     }
   };
 
@@ -118,10 +124,16 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).filter(g => g.typeItselfAvailable || g.subTypes.length > 0);
 
     const typeIds = [...new Set(rawEntries.map(e => e.typeId))];
-    const sections = typeIds.map(id => {
+    const activeTab = this._activeTab ?? typeIds[0] ?? null;
+    const tabs = typeIds.map(id => {
+      const coreType       = CORE_RESOURCE_TYPES.find(t => t.id === id);
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
       const isInn          = id === RESOURCE_TYPE_IDS.INN;
       const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
+      const firstEntry     = rawEntries.find(e => e.typeId === id);
+      const subType        = firstEntry?.subTypeId
+        ? (subTypeMap[id] ?? []).find(s => s.id === firstEntry.subTypeId) ?? null
+        : null;
       const expenses = isCurrencyTest
         ? (resource.typeData?.expenses ?? []).map(e => {
             const c = currencies.find(x => x.id === e.currencyId);
@@ -129,6 +141,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
           })
         : [];
       return {
+        id, active: id === activeTab,
+        name:        coreType?.name ?? id,
+        subTypeName: subType?.name ?? null,
+        icon:        coreType?.icon ?? "fa-solid fa-question",
         typeId: id, isInn, isCurrencyTest, isMerchant,
         isOther: !isInn && !isCurrencyTest && !isMerchant,
         expenses,
@@ -142,12 +158,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       id: resource.id,
       name: resource.name,
       isGM,
-      typeEntries,
       pickerGroups,
       hasAvailableTypes: isGM && pickerGroups.length > 0,
       hasInnTemplate:    !!innTemplate,
-      sections,
-      hasDetails: sections.length > 0
+      tabs,
+      hasTabs:         tabs.length > 0,
+      hasMultipleTabs: tabs.length > 1,
+      hasDetails:      tabs.length > 0
     };
   }
 
@@ -513,7 +530,32 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.closest("[data-resource-id]")?.dataset.resourceId;
     if (!id || id === this._selectedResourceId) return;
     this._selectedResourceId = id;
+    this._activeTab = null;
     this.render({ parts: ["content"] });
+  }
+
+  static #onSwitchTab(event, target) {
+    this._activeTab = target.dataset.tabId;
+    this.render({ parts: ["content"] });
+  }
+
+  static async #onDeleteTypeEntry(event, target) {
+    if (!game.user.isGM) return;
+    const typeId = target.dataset.typeId;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const coreType = CORE_RESOURCE_TYPES.find(t => t.id === typeId);
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.removeTypeTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.removeTypeConfirm", { type: coreType?.name ?? typeId, resource: resource.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
+    resource.typeEntries = getTypeEntries(resource).filter(e => e.typeId !== typeId);
+    if (resource.typeData?.[typeId]) delete resource.typeData[typeId];
+    if (this._activeTab === typeId) this._activeTab = null;
+    await this.#saveResourceData(resource);
   }
 
   static #onConfigureExpenses(event, target) {
@@ -688,5 +730,32 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
     merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
     await this.#saveMerchantData(merchant);
+  }
+
+  static async #onEditMerchantItem(event, target) {
+    if (!game.user.isGM) return;
+    const itemId = target.dataset.itemId;
+    const resource = this.#syncSelectedResource();
+    const merchant = foundry.utils.deepClone(resource?.typeData?.merchant ?? { inventory: [] });
+    const existing = merchant.inventory.find(i => i.id === itemId);
+    if (!existing) return;
+    const result = await MerchantItemEditApp.open(existing);
+    if (!result) return;
+    const idx = merchant.inventory.findIndex(i => i.id === itemId);
+    if (idx !== -1) merchant.inventory[idx] = result;
+    await this.#saveMerchantData(merchant);
+  }
+
+  static async #onAddManualInventoryItem() {
+    if (!game.user.isGM) return;
+    const result = await MerchantItemEditApp.open({});
+    if (!result) return;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory.push(result);
+    resource.typeData ??= {};
+    resource.typeData.merchant = merchant;
+    await this.#saveResourceData(resource);
   }
 }

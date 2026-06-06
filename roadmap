@@ -1,20 +1,3 @@
-# Resource types Rebuild
+In purchasing, If a user clicks the "add currency to cover this cost" button, do not add more currency than they have of the type they offer, even if the price requires more. IE if the price would be 150 SP, and they click + but only have 10 sp, only add 10 sp.
 
-Currently Inn/merchant/bank/etc are treated as a top level unit
-with sub units expecting to be refinements.
-
-Instead we should treat the configuration as an empty list With an "add Template".
-
-A template will be what we currently think of as a sub type, and  will have a type designation of one of the main types that exist now "inn, merchant, bank".
-
-Templates will be organized under headers for their type but will each be an editable line from the main Resource Type configuration window (rename to Resource Templates)
-
-So the "Sub Types" editable lists for each main type, will now be listed as templates, in the newly renamed "Resource Templates" List. The top level types will be organizational, and not editable. IE no more edit button next to "inn"
-
-Instead the edit button will be next to "common", "Fine", which will be of type Inn.
-
-For editing sub-type window (rename to Edit Template). Lets make it a bit wider, Make the name bar a little shorter. Letrs move the delete "x" as a centered delete button outside of the square for each Lodging, and try to realign everything so the lodging configuration is essentially on one line. Making it more table view than Blob view.
-
-Unlimited availability should be made a textbox that takes a value, blank by default, which will now mean unlimited. 
-
-Availability indicates the number of rooms of that lodging type a particular establishment has, each room has a number of beds. Unlimited availability is for situations where tracking this is not important, but when availability is set at a limited number then every time that lodging is purchased it should reduce the number available, and in the actual display we should show to the GM the availability number of each Lodging type.
+Additionally we should show a tally under Cost as they add funds showing remaining balance, with the total offered + change at the bottom, extending the pictured section

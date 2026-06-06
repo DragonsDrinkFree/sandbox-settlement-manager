@@ -1,0 +1,21 @@
+<div class="merchant-item-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.item.nameLabel"}}</label>
+    <input type="text" name="name" value="{{item.name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.item.namePlaceholder'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.item.priceLabel"}}</label>
+    <div class="price-row">
+      <input type="number" name="priceAmount" value="{{item.price.amount}}" min="0" step="0.01"
+             class="price-amount-input">
+      <select name="priceCurrencyId" class="price-currency-select">
+        {{#each currencies}}
+        <option value="{{this.id}}"{{#if (eq this.id ../item.price.currencyId)}} selected{{/if}}>
+          {{this.abbreviation}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+</div>

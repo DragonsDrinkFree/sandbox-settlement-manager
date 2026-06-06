@@ -177,6 +177,12 @@
       <div class="inn-section">
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.inventory"}}</span>
+          {{#if this.merchantData.isGM}}
+          <button type="button" class="icon" data-action="addManualInventoryItem"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.addItem'}}">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          {{/if}}
         </div>
         {{#if this.merchantData.isGM}}
         <div class="merchant-drop-zone">
@@ -198,6 +204,10 @@
             <tr>
               {{#if ../merchantData.isGM}}
               <td class="ssm-col-controls">
+                <button type="button" class="icon lodging-ctrl-btn" data-action="editMerchantItem"
+                        data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
                 <button type="button" class="icon lodging-ctrl-btn" data-action="deleteMerchantItem"
                         data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
                   <i class="fa-solid fa-trash"></i>

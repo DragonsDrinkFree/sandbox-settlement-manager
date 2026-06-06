@@ -190,7 +190,21 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     let typeData = this._resource.typeData ?? { expenses: [] };
     const merchantEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
     if (merchantEntry && !typeData.merchant) {
-      typeData = { ...typeData, merchant: { inventory: [] } };
+      const subTypeMap = this.#getSubTypeMap();
+      const merchantSubType = (subTypeMap[RESOURCE_TYPE_IDS.MERCHANT] ?? [])
+        .find(s => s.id === merchantEntry.subTypeId);
+      const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
+      typeData = {
+        ...typeData,
+        merchant: {
+          inventory: templateItems.map(item => ({
+            ...item,
+            templateItemId: item.id,
+            itemId: null,
+            quantity: null
+          }))
+        }
+      };
     }
 
     if (innEntry && !typeData.inn) {

@@ -6,6 +6,7 @@ import { CartApp } from "./cart-app.js";
 import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
+import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -36,8 +37,10 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       configureMenu:      ResourceDetailApp.#onConfigureMenu,
       refreshCourse:      ResourceDetailApp.#onRefreshCourse,
       buyMenuItem:        ResourceDetailApp.#onBuyMenuItem,
-      buyInventoryItem:    ResourceDetailApp.#onBuyInventoryItem,
-      deleteMerchantItem:  ResourceDetailApp.#onDeleteMerchantItem
+      buyInventoryItem:       ResourceDetailApp.#onBuyInventoryItem,
+      deleteMerchantItem:     ResourceDetailApp.#onDeleteMerchantItem,
+      editMerchantItem:       ResourceDetailApp.#onEditMerchantItem,
+      addManualInventoryItem: ResourceDetailApp.#onAddManualInventoryItem
     }
   };
 
@@ -433,6 +436,28 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!itemId) return;
     const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
     merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
+    await this.#saveMerchantData(merchant);
+  }
+
+  static async #onEditMerchantItem(event, target) {
+    if (!game.user.isGM) return;
+    const itemId = target.dataset.itemId;
+    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const existing = merchant.inventory.find(i => i.id === itemId);
+    if (!existing) return;
+    const result = await MerchantItemEditApp.open(existing);
+    if (!result) return;
+    const idx = merchant.inventory.findIndex(i => i.id === itemId);
+    if (idx !== -1) merchant.inventory[idx] = result;
+    await this.#saveMerchantData(merchant);
+  }
+
+  static async #onAddManualInventoryItem() {
+    if (!game.user.isGM) return;
+    const result = await MerchantItemEditApp.open({});
+    if (!result) return;
+    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    merchant.inventory.push(result);
     await this.#saveMerchantData(merchant);
   }
 }

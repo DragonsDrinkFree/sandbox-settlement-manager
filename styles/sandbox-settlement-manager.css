@@ -493,9 +493,9 @@
 }
 
 #sandbox-settlement-manager-city-manage .add-type-btn {
-  font-size: var(--font-size-11, 11px);
-  padding: 0.15rem 0.4rem;
-  align-self: flex-start;
+  font-size: var(--font-size-13, 13px);
+  padding: 0.2rem;
+  line-height: 1;
 }
 
 #sandbox-settlement-manager-city-manage .resource-type-chips {
@@ -1057,6 +1057,85 @@
 
 #sandbox-settlement-manager-currency-test-config .add-expense-form input[name="newExpenseName"] {
   flex: 2;
+}
+
+/* -------------------------------------------- */
+/*  Multi-type tabs (City Manager)              */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs {
+  display: flex;
+  gap: 0.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-top: 0.3rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .resource-detail-tab {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .resource-detail-tab.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--color-border-light-tertiary, #888);
+  border-bottom-color: transparent;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .tab-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-13, 13px);
+  color: var(--color-text-light-secondary, #aaa);
+  flex: 1;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .resource-detail-tab:hover .tab-switch-btn {
+  color: var(--color-text-light-primary, #ddd);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .resource-detail-tab.active .tab-switch-btn {
+  color: var(--color-text-light-primary, #eee);
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .tab-remove-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.1rem 0.3rem;
+  background: none;
+  border: none;
+  color: var(--color-text-light-secondary, #888);
+  cursor: pointer;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .resource-detail-tab:hover .tab-remove-btn {
+  opacity: 1;
+}
+
+#sandbox-settlement-manager-city-manage .city-manage-tabs .tab-remove-btn:hover {
+  color: var(--color-text-light-primary, #eee);
+}
+
+#sandbox-settlement-manager-city-manage .resource-detail-tab-pane {
+  display: none;
+}
+
+#sandbox-settlement-manager-city-manage .resource-detail-tab-pane.active {
+  display: block;
 }
 
 /* -------------------------------------------- */
@@ -1925,7 +2004,8 @@
 /* -------------------------------------------- */
 
 #sandbox-settlement-manager-city-manage .merchant-drop-zone,
-#sandbox-settlement-manager-resource-detail .merchant-drop-zone {
+#sandbox-settlement-manager-resource-detail .merchant-drop-zone,
+#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone {
   border: 2px dashed var(--color-border-light-secondary, #aaa);
   border-radius: 4px;
   padding: 0.4rem 0.5rem;
@@ -1941,7 +2021,8 @@
 }
 
 #sandbox-settlement-manager-city-manage .merchant-drop-zone.drag-over,
-#sandbox-settlement-manager-resource-detail .merchant-drop-zone.drag-over {
+#sandbox-settlement-manager-resource-detail .merchant-drop-zone.drag-over,
+#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone.drag-over {
   border-color: var(--color-text-success, #4a8);
   color: var(--color-text-dark-primary, #333);
   background: rgba(68, 170, 136, 0.05);

@@ -12,6 +12,7 @@ import { MODULE_ID, SETTINGS } from '../constants.js';
 export function readItemPrice(item, currencies) {
   const { priceFormat, priceAttribute, priceDenominationAttribute }
     = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+  if (priceFormat === 'manual') return null;
   if (!priceAttribute) return null;
 
   const standardCurrency = currencies.find(c => c.isStandard) ?? currencies[0] ?? null;

@@ -65,7 +65,8 @@
         "priceAttributeLabel": "Price Attribute",
         "priceAttributeHint": "Dot-notation path to the item's price value. Leave blank if items have no price. Examples: system.price, system.cost, system.price.value",
         "priceDenominationAttributeLabel": "Price Denomination Attribute",
-        "priceDenominationAttributeHint": "Dot-notation path to the denomination string (e.g. system.costDenomination). The value must match a configured currency abbreviation. Only used with the Denomination Field format."
+        "priceDenominationAttributeHint": "Dot-notation path to the denomination string (e.g. system.costDenomination). The value must match a configured currency abbreviation. Only used with the Denomination Field format.",
+        "formatManual": "Manual (GM sets prices when adding items)"
       },
       "currencyConfig": {
         "name": "Currency Configuration",
@@ -201,7 +202,9 @@
       "unknownType": "Unknown Type",
       "discovered": "Discovered",
       "undiscovered": "Not Discovered",
-      "noDetailView": "No additional details available for this resource type."
+      "noDetailView": "No additional details available for this resource type.",
+      "removeTypeTitle": "Remove Type",
+      "removeTypeConfirm": "Remove <strong>{type}</strong> from <strong>{resource}</strong>? All associated data will be deleted."
     },
     "inn": {
       "rent": "Rent",
@@ -313,10 +316,24 @@
       "colItem": "Item",
       "colPrice": "Price",
       "empty": "No items in stock.",
-      "noInventory": "Inventory not configured."
+      "noInventory": "Inventory not configured.",
+      "defaultInventory": "Default Inventory",
+      "noDefaultInventory": "No default inventory items.",
+      "addTemplateItem": "Add Item",
+      "itemNamePlaceholder": "e.g. Iron Sword",
+      "addItem": "Add Item",
+      "item": {
+        "addTitle": "Add Merchant Item",
+        "editTitle": "Edit Merchant Item",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Iron Sword",
+        "priceLabel": "Price"
+      }
     },
     "keybinding": {},
-    "dialog": {},
+    "dialog": {
+      "cancel": "Cancel"
+    },
     "error": {}
   }
 }

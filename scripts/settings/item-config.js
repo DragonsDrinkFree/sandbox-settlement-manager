@@ -23,7 +23,8 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const formats = [
       { value: "simple",              label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.formatSimple"),             selected: selectedFormat === "simple" },
       { value: "denomination-field",  label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.formatDenominationField"),  selected: selectedFormat === "denomination-field" },
-      { value: "denomination-object", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.formatDenominationObject"), selected: selectedFormat === "denomination-object" }
+      { value: "denomination-object", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.formatDenominationObject"), selected: selectedFormat === "denomination-object" },
+      { value: "manual",              label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.formatManual"),             selected: selectedFormat === "manual" }
     ];
     return {
       ...context,
