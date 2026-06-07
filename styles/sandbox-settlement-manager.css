@@ -2371,3 +2371,257 @@
   color: var(--color-text-light-highlight, #fff);
 }
 
+#sandbox-settlement-manager-cart .ssm-cart-section {
+  border-top: 1px solid var(--color-border-light-secondary, #aaa);
+  padding-top: 0.2rem;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-section-title {
+  font-size: var(--font-size-11, 11px);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dark-secondary, #666);
+  margin: 0.2rem 0.6rem 0;
+}
+
+#sandbox-settlement-manager-cart .ssm-sell-credit {
+  color: var(--color-text-success, #3a8);
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-subtotal {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #666);
+  margin-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-cart .ssm-cart-net-row {
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-top: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+#sandbox-settlement-manager-cart .ssm-item-link {
+  cursor: pointer;
+  text-decoration: underline;
+  color: var(--color-text-hyperlink, #6699cc);
+}
+
+/* -------------------------------------------- */
+/*  Merchant Tabs (Sub-type edit)               */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .ssm-merchant-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light-secondary, #ccc);
+  padding-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-merchant-tabs button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px 3px 0 0;
+  padding: 0.25rem 0.6rem;
+  font-size: var(--font-size-12, 12px);
+  cursor: pointer;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-merchant-tabs button.active {
+  background: var(--color-bg-option, #f0f0f0);
+  border-color: var(--color-border-light-secondary, #ccc);
+  color: var(--color-text-dark-primary, #222);
+  font-weight: bold;
+}
+
+/* -------------------------------------------- */
+/*  Purchasing Profile Table                    */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-12, 12px);
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table th,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table th,
+#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table td,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table td {
+  padding: 0.2rem 0.35rem;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #e4e4e4);
+  vertical-align: middle;
+}
+
+.ssm-conflict-row td {
+  color: var(--color-text-warning, #c80);
+}
+
+.ssm-conflict-badge,
+.ssm-override-badge {
+  font-size: var(--font-size-10, 10px);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+.ssm-conflict-badge {
+  color: var(--color-text-warning, #c80);
+}
+
+.ssm-override-badge {
+  background: var(--color-bg-option, #e8e8e8);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+.ssm-col-source {
+  width: 4rem;
+  text-align: center;
+}
+
+/* -------------------------------------------- */
+/*  Purchasing Add-Override Row                 */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .purchasing-add-row,
+#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .purchasing-add-row input,
+#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row input,
+#sandbox-settlement-manager-sub-type-edit .purchasing-add-row select,
+#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row select {
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-type-select,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-type-select {
+  width: 7rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-buyback-select,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-buyback-select {
+  width: 7rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-rate-label,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-rate-label {
+  font-size: var(--font-size-12, 12px);
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: help;
+  flex-shrink: 0;
+  border-bottom: 1px dotted var(--color-text-dark-secondary, #888);
+}
+
+#sandbox-settlement-manager-sub-type-edit .ssm-markup-input,
+#sandbox-settlement-manager-purchasing-profile-edit .ssm-markup-input {
+  width: 3.5rem;
+}
+
+/* -------------------------------------------- */
+/*  Conflict Warning Banner                     */
+/* -------------------------------------------- */
+
+.ssm-conflict-warning {
+  background: rgba(200, 136, 0, 0.1);
+  border: 1px solid rgba(200, 136, 0, 0.4);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-primary, #333);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ssm-conflict-warning i {
+  color: var(--color-text-warning, #c80);
+}
+
+/* -------------------------------------------- */
+/*  Sell Tab                                    */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-manage .ssm-sell-tab,
+#sandbox-settlement-manager-resource-detail .ssm-sell-tab {
+  padding: 0.3rem 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-sell-tab-header,
+#sandbox-settlement-manager-resource-detail .ssm-sell-tab-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-edit-profile-btn,
+#sandbox-settlement-manager-resource-detail .ssm-edit-profile-btn {
+  font-size: var(--font-size-12, 12px);
+  padding: 0.2rem 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-sell-actor-row,
+#sandbox-settlement-manager-resource-detail .ssm-sell-actor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-sell-actor-row label,
+#sandbox-settlement-manager-resource-detail .ssm-sell-actor-row label {
+  flex-shrink: 0;
+  font-size: var(--font-size-13, 13px);
+  font-weight: bold;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-sell-table,
+#sandbox-settlement-manager-resource-detail .ssm-sell-table {
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-item-type-label,
+#sandbox-settlement-manager-resource-detail .ssm-item-type-label {
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-buyback-section,
+#sandbox-settlement-manager-resource-detail .ssm-buyback-section {
+  margin-top: 0.75rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-section-heading,
+#sandbox-settlement-manager-resource-detail .ssm-section-heading {
+  font-size: var(--font-size-12, 12px);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary, #555);
+  margin: 0 0 0.25rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-buyback-table,
+#sandbox-settlement-manager-resource-detail .ssm-buyback-table {
+  width: 100%;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-sell-qty,
+#sandbox-settlement-manager-resource-detail .ssm-sell-qty {
+  width: 3.2rem;
+  text-align: center;
+}
+

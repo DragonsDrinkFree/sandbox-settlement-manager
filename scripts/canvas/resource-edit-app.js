@@ -194,17 +194,27 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const merchantSubType = (subTypeMap[RESOURCE_TYPE_IDS.MERCHANT] ?? [])
         .find(s => s.id === merchantEntry.subTypeId);
       const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
+      const tpl = merchantSubType?.typeData?.merchant ?? {};
       typeData = {
         ...typeData,
         merchant: {
-          stockType:        merchantSubType?.typeData?.merchant?.stockType        ?? "percent",
-          restockFrequency: merchantSubType?.typeData?.merchant?.restockFrequency ?? "weekly",
-          lastRestocked:    0,
+          stockType:            tpl.stockType        ?? "percent",
+          restockFrequency:     tpl.restockFrequency ?? "weekly",
+          _tplStockType:        tpl.stockType        ?? "percent",
+          _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
+          lastRestocked:        null,
           inventory: templateItems.map(item => ({
             ...item,
             templateItemId: item.id,
-            itemId:         null,
-            quantity:       null
+            quantity:       null,
+            _templateValues: {
+              name:              item.name,
+              itemId:            item.itemId            ?? null,
+              minCitySize:       item.minCitySize       ?? "",
+              stockAvailability: item.stockAvailability ?? 100,
+              stockFormula:      item.stockFormula      ?? "",
+              price:             { ...(item.price ?? {}) }
+            }
           }))
         }
       };

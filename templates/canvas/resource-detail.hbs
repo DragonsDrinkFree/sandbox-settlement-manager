@@ -3,10 +3,16 @@
   <nav class="resource-detail-tabs">
     {{#each tabs}}
     <button type="button" class="resource-detail-tab{{#if this.active}} active{{/if}}"
-            data-action="switchTab" data-tab-id="{{this.id}}">
+            data-action="switchFromSellTab" data-tab-id="{{this.id}}">
       <i class="{{this.icon}}" inert></i> {{this.name}}
     </button>
     {{/each}}
+    {{#if hasSellTab}}
+    <button type="button" class="resource-detail-tab{{#if sellTabActive}} active{{/if}}"
+            data-action="switchToSellTab">
+      <i class="fa-solid fa-hand-holding-dollar" inert></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellItems"}}
+    </button>
+    {{/if}}
   </nav>
   {{/if}}
   {{#each tabs}}
@@ -319,4 +325,90 @@
     {{/if}}
   </div>
   {{/each}}
+
+  {{#if hasSellTab}}
+  <div class="resource-detail-tab-pane{{#if sellTabActive}} active{{/if}}">
+    <div class="ssm-sell-tab">
+      <div class="ssm-sell-tab-header">
+        {{#if isGM}}
+        <button type="button" data-action="editPurchasingProfile" class="ssm-edit-profile-btn">
+          <i class="fa-solid fa-pen-to-square"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.editProfile"}}
+        </button>
+        {{/if}}
+        {{#if sellData.hasConflicts}}
+        <div class="ssm-conflict-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.conflictWarning"}}
+        </div>
+        {{/if}}
+      </div>
+
+      {{#if sellData.actors.length}}
+      <div class="form-group ssm-sell-actor-row">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellCharacter"}}</label>
+        <select class="ssm-sell-actor-select">
+          {{#each sellData.actors}}
+          <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+          {{/each}}
+        </select>
+      </div>
+      {{/if}}
+
+      {{#if sellData.sellableItems.length}}
+      <table class="ssm-sell-table ssm-table">
+        <thead>
+          <tr>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colSellPrice"}}</th>
+            <th class="col-num">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.qty"}}</th>
+            <th class="ssm-col-action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each sellData.sellableItems}}
+          <tr>
+            <td>{{this.name}}<br><small class="ssm-item-type-label">{{this.typeLabel}}</small></td>
+            <td>{{this.salePriceLabel}}</td>
+            <td class="col-num">
+              <input type="number" class="ssm-sell-qty" value="1" min="1"
+                     data-actor-item-id="{{this.actorItemId}}">
+            </td>
+            <td class="ssm-col-action">
+              <button type="button" class="buy-button"
+                      data-action="addToSellCart" data-actor-item-id="{{this.actorItemId}}">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellButton"}}
+              </button>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      {{else}}
+      <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noSellableItems"}}</p>
+      {{/if}}
+
+      {{#if sellData.buybackItems.length}}
+      <div class="ssm-buyback-section">
+        <h4 class="ssm-section-heading">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackSection"}}</h4>
+        <table class="ssm-buyback-table ssm-table">
+          <tbody>
+            {{#each sellData.buybackItems}}
+            <tr>
+              <td>{{this.itemName}}</td>
+              <td>{{this.buybackPriceLabel}}</td>
+              <td class="ssm-col-action">
+                <button type="button" class="buy-button"
+                        data-action="buyBackItem" data-buyback-id="{{this.id}}">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buyBackButton"}}
+                </button>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  {{/if}}
 </div>

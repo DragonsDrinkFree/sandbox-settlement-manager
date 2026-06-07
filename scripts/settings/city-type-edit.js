@@ -1,4 +1,4 @@
-﻿import { MODULE_ID } from "../constants.js";
+﻿import { MODULE_ID, SETTINGS } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -46,8 +46,11 @@ export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
+    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const currencyOptions = currencies.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation, isStandard: c.isStandard }));
     return {
       cityType: this._cityType,
+      currencyOptions,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -59,11 +62,12 @@ export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onSubmit(event, form, formData) {
-    const name = (formData.object.name ?? "").trim();
+    const name          = (formData.object.name ?? "").trim();
+    const maxCurrencyId = (formData.object.maxCurrencyId ?? "").trim();
     if (!name) return; // block empty submission
     const resolve = this._resolve;
     this._resolve = null; // prevent _onClose from resolving again
-    resolve?.({ ...this._cityType, name });
+    resolve?.({ ...this._cityType, name, maxCurrencyId });
   }
 
   async _onClose(options) {

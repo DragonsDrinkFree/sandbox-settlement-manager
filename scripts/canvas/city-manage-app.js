@@ -9,15 +9,21 @@ import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
+import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
+import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
+import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedResourceId = null;
   _activeTab = null;
+  _sellTabActive = false;
+  _sellActorId   = null;
   _sceneUpdateHook = null;
+  _worldTimeHook   = null;
   #pickerAbort = null;
   #pickerDropdown = null;
 
@@ -46,7 +52,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addMerchantItem:        CityManageApp.#onAddMerchantItem,
       deleteMerchantItem:     CityManageApp.#onDeleteMerchantItem,
       editMerchantItem:       CityManageApp.#onEditMerchantItem,
-      addManualInventoryItem: CityManageApp.#onAddManualInventoryItem
+      addManualInventoryItem: CityManageApp.#onAddManualInventoryItem,
+      switchToSellTab:        CityManageApp.#onSwitchToSellTab,
+      addToSellCart:          CityManageApp.#onAddToSellCart,
+      buyBackItem:            CityManageApp.#onBuyBackItem,
+      editPurchasingProfile:  CityManageApp.#onEditPurchasingProfile
     }
   };
 
@@ -159,6 +169,18 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
 
     const innTemplate = isGM ? this.#getTemplateForResource(resource) : null;
+
+    const effectiveProfile = mergePurchasingProfiles(resource);
+    const hasSellTab = effectiveProfile.length > 0;
+    let sellData = null;
+    if (hasSellTab) {
+      sellData = await this.#buildSellData(resource, currencies, isGM, effectiveProfile);
+    }
+    const sellTabActive = this._sellTabActive && hasSellTab;
+    if (sellTabActive) {
+      tabs.forEach(t => { t.active = false; });
+    }
+
     return {
       id: resource.id,
       name: resource.name,
@@ -166,10 +188,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pickerGroups,
       hasAvailableTypes: isGM && pickerGroups.length > 0,
       hasInnTemplate:    !!innTemplate,
+      hasSellTab, sellTabActive, sellData,
       tabs,
-      hasTabs:         tabs.length > 0,
-      hasMultipleTabs: tabs.length > 1,
-      hasDetails:      tabs.length > 0
+      hasTabs:         tabs.length > 0 || hasSellTab,
+      hasMultipleTabs: tabs.length > 1 || hasSellTab,
+      hasDetails:      tabs.length > 0 || hasSellTab
     };
   }
 
@@ -303,7 +326,22 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._sceneUpdateHook) {
       this._sceneUpdateHook = Hooks.on("updateScene", (scene, changes) => {
         if (scene.id !== canvas.scene?.id) return;
-        if (!foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.RESOURCES}`)) return;
+        const resourcesChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.RESOURCES}`);
+        const cityTypeChanged  = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.CITY_TYPE}`);
+        if (!resourcesChanged && !cityTypeChanged) return;
+        this.render({ parts: ["content"] });
+      });
+    }
+
+    if (!this._worldTimeHook && game.user.isGM) {
+      this._worldTimeHook = Hooks.on("updateWorldTime", () => this.render({ parts: ["content"] }));
+    }
+
+    // Wire sell actor select
+    const sellActorSelect = this.element.querySelector('.ssm-sell-actor-select');
+    if (sellActorSelect) {
+      sellActorSelect.addEventListener('change', () => {
+        this._sellActorId = sellActorSelect.value || null;
         this.render({ parts: ["content"] });
       });
     }
@@ -325,6 +363,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._sceneUpdateHook) {
       Hooks.off("updateScene", this._sceneUpdateHook);
       this._sceneUpdateHook = null;
+    }
+    if (this._worldTimeHook) {
+      Hooks.off("updateWorldTime", this._worldTimeHook);
+      this._worldTimeHook = null;
     }
   }
 
@@ -466,7 +508,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const spd         = hoursPerDay * 3600;
     const cadenceSecs = { daily: spd, weekly: spd * daysPerWeek, monthly: spd * daysPerWeek * 4 }[restockFrequency] ?? spd;
-    const restockDue  = isGM && game.time.worldTime >= (merchant.lastRestocked ?? 0) + cadenceSecs;
+    const restockDue  = isGM && (merchant.lastRestocked == null || game.time.worldTime >= merchant.lastRestocked + cadenceSecs);
 
     let _needsSave = false;
     const workingInventory = foundry.utils.deepClone(rawInventory);
@@ -500,6 +542,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const item of displayInventory) {
       const typeKey = item.itemType ?? null;
       const typeCfg = typeKey ? (typeMap[typeKey] ?? null) : null;
+      const groupKey = typeCfg ? typeKey : null;
 
       let priceLabel = "—";
       if (item.price) {
@@ -523,15 +566,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ? (item.quantity == null ? "∞" : String(item.quantity))
         : "∞";
 
-      if (!groupMap.has(typeKey)) {
-        groupMap.set(typeKey, {
-          typeKey,
-          label:      typeCfg?.label ?? (typeKey ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.otherGroup")),
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, {
+          typeKey: groupKey,
+          label:      typeCfg?.label ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.otherGroup"),
           attributes: typeCfg?.attributes ?? [],
           items:      []
         });
       }
-      groupMap.get(typeKey).items.push({ ...item, priceLabel, attrCells, stockLabel, isSoldOut });
+      groupMap.get(groupKey).items.push({ ...item, priceLabel, attrCells, stockLabel, isSoldOut });
     }
 
     const groups = [
@@ -553,11 +596,72 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return { ...item, priceLabel, attrCells: [], stockLabel, isSoldOut };
     });
 
+    const updatedMerchant = { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime };
+    if (_needsSave) updatedMerchant.buybackItems = [];
+
     return {
       groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,
       _needsSave,
-      _updatedMerchant: { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime }
+      _updatedMerchant: updatedMerchant
     };
+  }
+
+  async #buildSellData(resource, currencies, isGM, effectiveProfile) {
+    const hasConflicts = effectiveProfile.some(r => r._conflicted || r._buybackConflicted);
+
+    const ownedActors = game.actors.filter(a => a.testUserPermission(game.user, "OWNER"));
+    const defaultActor = (this._sellActorId ? game.actors.get(this._sellActorId) : null)
+      ?? game.user.character
+      ?? ownedActors[0]
+      ?? null;
+    if (defaultActor && !this._sellActorId) this._sellActorId = defaultActor.id;
+
+    const actorOptions = ownedActors.map(a => ({
+      id: a.id, name: a.name, selected: a.id === defaultActor?.id
+    }));
+
+    const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+    const typeConfigs = itemConfig.itemTypes ?? [];
+
+    const cityMaxDenomValue = getCityMaxDenomValue(currencies);
+
+    const sellableItems = [];
+    if (defaultActor) {
+      for (const actorItem of defaultActor.items) {
+        const rule = findEffectiveRule(effectiveProfile, actorItem.type ?? "");
+        if (!rule || rule.buyRate === null) continue;
+        const salePrice = computeSalePrice(actorItem, rule, currencies);
+        if (!salePrice) continue;
+        const curr = currencies.find(c => c.id === salePrice.currencyId);
+        const typeCfg  = typeConfigs.find(t => t.systemType === actorItem.type) ?? null;
+        const saleStd  = costInStandard(salePrice, currencies);
+        const breakdown = calculateChange(saleStd, currencies, cityMaxDenomValue);
+        const salePriceLabel = (breakdown && Object.values(breakdown).some(v => v > 0))
+          ? formatAmounts(breakdown, currencies)
+          : `${salePrice.amount} ${curr?.abbreviation ?? "?"}`;
+        sellableItems.push({
+          actorItemId:    actorItem.id,
+          name:           actorItem.name,
+          typeLabel:      typeCfg?.label ?? (actorItem.type ?? ""),
+          itemLinkedUuid: actorItem.uuid,
+          salePrice,
+          salePriceLabel
+        });
+      }
+    }
+
+    const rawBuyback = resource.typeData?.merchant?.buybackItems ?? [];
+    const buybackItems = rawBuyback.map(entry => {
+      const curr = currencies.find(c => c.id === entry.buybackPrice?.currencyId);
+      return {
+        ...entry,
+        buybackPriceLabel: entry.buybackPrice
+          ? `${entry.buybackPrice.amount} ${curr?.abbreviation ?? "?"}`
+          : "—"
+      };
+    });
+
+    return { effectiveProfile, hasConflicts, actors: actorOptions, selectedActorId: defaultActor?.id ?? null, sellableItems, buybackItems };
   }
 
   async #saveMerchantData(merchantData) {
@@ -634,12 +738,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.closest("[data-resource-id]")?.dataset.resourceId;
     if (!id || id === this._selectedResourceId) return;
     this._selectedResourceId = id;
-    this._activeTab = null;
+    this._activeTab    = null;
+    this._sellTabActive = false;
+    this._sellActorId   = null;
     this.render({ parts: ["content"] });
   }
 
   static #onSwitchTab(event, target) {
-    this._activeTab = target.dataset.tabId;
+    this._activeTab     = target.dataset.tabId;
+    this._sellTabActive = false;
     this.render({ parts: ["content"] });
   }
 
@@ -861,5 +968,72 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     resource.typeData ??= {};
     resource.typeData.merchant = merchant;
     await this.#saveResourceData(resource);
+  }
+
+  static #onSwitchToSellTab() {
+    this._sellTabActive = true;
+    this.render({ parts: ["content"] });
+  }
+
+  static async #onAddToSellCart(event, target) {
+    const actorItemId = target.dataset.actorItemId;
+    if (!actorItemId) return;
+    const actor = this._sellActorId ? game.actors.get(this._sellActorId) : null;
+    if (!actor) return;
+    const actorItem = actor.items.get(actorItemId);
+    if (!actorItem) return;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+
+    const currencies       = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const effectiveProfile = mergePurchasingProfiles(resource);
+    const rule = findEffectiveRule(effectiveProfile, actorItem.type ?? "");
+    if (!rule) return;
+    const salePrice = computeSalePrice(actorItem, rule, currencies);
+    if (!salePrice) return;
+
+    const qtyInput = this.element.querySelector(`.ssm-sell-qty[data-actor-item-id="${actorItemId}"]`);
+    const qty = Math.max(1, parseInt(qtyInput?.value) || 1);
+
+    cartManager.addSellItem({
+      sceneId:        canvas.scene?.id,
+      resourceId:     resource.id,
+      resourceName:   resource.name,
+      actorId:        actor.id,
+      actorName:      actor.name,
+      actorItemId,
+      itemName:       actorItem.name,
+      itemLinkedUuid: actorItem.uuid,
+      salePrice:      { amount: salePrice.amount * qty, currencyId: salePrice.currencyId }
+    });
+    CartApp.open();
+  }
+
+  static async #onBuyBackItem(event, target) {
+    const buybackId = target.dataset.buybackId;
+    if (!buybackId) return;
+    const resource = this.#syncSelectedResource();
+    const buybackItems = resource?.typeData?.merchant?.buybackItems ?? [];
+    const entry = buybackItems.find(b => b.id === buybackId);
+    if (!entry || !entry.buybackPrice) return;
+    cartManager.addMerchantItem({
+      sceneId:      canvas.scene?.id,
+      resourceId:   resource.id,
+      resourceName: resource.name,
+      item: {
+        id:     entry.id,
+        name:   entry.itemName,
+        itemId: entry.itemLinkedUuid,
+        price:  entry.buybackPrice
+      }
+    });
+    CartApp.open();
+  }
+
+  static async #onEditPurchasingProfile() {
+    if (!game.user.isGM) return;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    await PurchasingProfileEditApp.open(resource);
   }
 }

@@ -1,5 +1,23 @@
-﻿<div class="form-group">
-  <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.nameLabel"}}</label>
-  <input type="text" name="name" value="{{cityType.name}}"
-         placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cityType.namePlaceholder'}}">
+<div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.nameLabel"}}</label>
+    <input type="text" name="name" value="{{cityType.name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cityType.namePlaceholder'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.maxDenomLabel"}}</label>
+    <select name="maxCurrencyId">
+      <option value="" {{#if (eq cityType.maxCurrencyId "")}}selected{{/if}}>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.maxDenomDefault"}}
+      </option>
+      {{#each currencyOptions}}
+      <option value="{{this.id}}" {{#if (eq ../cityType.maxCurrencyId this.id)}}selected{{/if}}>
+        {{this.name}} ({{this.abbreviation}})
+      </option>
+      {{/each}}
+      <option value="*" {{#if (eq cityType.maxCurrencyId "*")}}selected{{/if}}>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.maxDenomNoLimit"}}
+      </option>
+    </select>
+  </div>
 </div>

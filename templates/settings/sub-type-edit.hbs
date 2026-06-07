@@ -124,6 +124,18 @@
   </div>
   {{#if showMerchantSection}}
   <div class="merchant-only"{{#unless isMerchant}} hidden{{/unless}}>
+    <nav class="ssm-merchant-tabs">
+      <button type="button" data-action="switchMerchantTab" data-tab="inventory"
+              class="ssm-merchant-tab-btn{{#if (eq merchantTab 'inventory')}} active{{/if}}">
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.defaultInventoryTab"}}
+      </button>
+      <button type="button" data-action="switchMerchantTab" data-tab="purchasing"
+              class="ssm-merchant-tab-btn{{#if (eq merchantTab 'purchasing')}} active{{/if}}">
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.purchasingProfile"}}
+      </button>
+    </nav>
+
+    {{#if (eq merchantTab "inventory")}}
     <fieldset class="merchant-inventory-templates">
       <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.defaultInventory"}}</legend>
       <div class="merchant-stock-config">
@@ -212,6 +224,69 @@
         <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addTemplateItem"}}
       </button>
     </fieldset>
+    {{/if}}
+
+    {{#if (eq merchantTab "purchasing")}}
+    <fieldset class="purchasing-profile-fieldset">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.purchasingProfile"}}</legend>
+
+      <div class="purchasing-add-row">
+        <select data-field="ruleItemType" class="ssm-rule-type-select">
+          <option value="">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+          {{#each systemItemTypes}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+        <label class="ssm-rule-rate-label"
+               title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPrice"}}
+        </label>
+        <input type="number" data-field="ruleBuyRate" value="50" min="0" max="100" step="1"
+               class="lodging-num-input">
+        <span>%</span>
+        <select data-field="ruleBuybackType" class="ssm-rule-buyback-select">
+          {{#each buybackTypeOptions}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+        <button type="button" data-action="addPurchasingRule" class="lodging-add-btn">
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}
+        </button>
+      </div>
+
+      <table class="ssm-purchasing-profile-table">
+        <thead>
+          <tr>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
+            <th class="col-num">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPrice"}}</th>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackType"}}</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each purchasingProfile}}
+          <tr>
+            <td>{{#if this.itemType}}{{this.itemType}}{{else}}<em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</em>{{/if}}</td>
+            <td class="col-num ssm-col-right">{{this.buyRate}}%</td>
+            <td>{{#if (eq this.buybackType "full")}}{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackFull"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackPlayer"}}{{/if}}</td>
+            <td class="col-del">
+              <button type="button" class="icon" data-action="removePurchasingRule"
+                      data-index="{{@index}}" aria-label="Remove">
+                <i class="fa-solid fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="4" class="lodging-table-empty">
+              <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noRules"}}</em>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </fieldset>
+    {{/if}}
   </div>
   {{/if}}
   {{/if}}

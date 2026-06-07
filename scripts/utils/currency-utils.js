@@ -1,3 +1,5 @@
+import { MODULE_ID, SETTINGS, FLAGS } from "../constants.js";
+
 /**
  * Exchange rate "A:B" means A standard currency = B of this currency.
  * Returns A/B — the value of one coin of this currency in standard units.
@@ -74,4 +76,25 @@ export function formatAmounts(amounts, currencies) {
     return `0 ${std?.abbreviation ?? ""}`;
   }
   return parts.join(", ");
+}
+
+/**
+ * Returns the exchange rate (in standard units) of the highest denomination
+ * a merchant in the current scene's city type can pay.
+ * Falls back to the global max rate if no constraint is configured.
+ */
+export function getCityMaxDenomValue(currencies) {
+  const cityTypes    = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+  const cityTypeName = canvas.scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
+  const cityType     = cityTypes.find(t => t.name === cityTypeName);
+  const globalMax    = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+  const maxId        = cityType?.maxCurrencyId ?? "";
+  if (maxId === "*") return globalMax;
+  if (maxId === "") {
+    // Default: cap at the standard (1:1) currency
+    const std = currencies.find(c => c.isStandard);
+    return std ? parseExchangeRate(std.exchangeRate) : globalMax;
+  }
+  const maxCurr = currencies.find(c => c.id === maxId);
+  return maxCurr ? parseExchangeRate(maxCurr.exchangeRate) : globalMax;
 }

@@ -10,7 +10,8 @@ export function registerSettings() {
     config: false,
     type: new foundry.data.fields.ArrayField(
       new foundry.data.fields.SchemaField({
-        name: new foundry.data.fields.StringField({ blank: false, trim: true })
+        name:          new foundry.data.fields.StringField({ blank: false, trim: true }),
+        maxCurrencyId: new foundry.data.fields.StringField({ initial: "" })
       })
     ),
     default: [

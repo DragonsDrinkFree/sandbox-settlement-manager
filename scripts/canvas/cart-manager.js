@@ -44,6 +44,25 @@ class CartManager {
     this.#notify();
   }
 
+  /** Add an item being sold by the player to the cart. */
+  addSellItem({ sceneId, resourceId, resourceName, actorId, actorName, actorItemId, itemName, itemLinkedUuid, salePrice }) {
+    this.#items.push({
+      id: foundry.utils.randomID(),
+      type: 'sellItem',
+      sceneId,
+      resourceId,
+      resourceName,
+      actorId,
+      actorName,
+      actorItemId,
+      itemName,
+      itemLinkedUuid: itemLinkedUuid ?? null,
+      salePrice,
+      quantity: 1
+    });
+    this.#notify();
+  }
+
   /** Add a menu item to the cart. Price is resolved from item first, then course default. */
   addMenuItem({ sceneId, resourceId, resourceName, course, item }) {
     const resolvedPrice = item.price ?? course.price ?? null;
@@ -103,13 +122,18 @@ class CartManager {
       if (!item.price) return null;
       return { amount: Math.round(item.price.amount * item.quantity), currencyId: item.price.currencyId };
     }
+    if (item.type === 'sellItem') {
+      if (!item.salePrice) return null;
+      return { amount: Math.round(item.salePrice.amount * item.quantity), currencyId: item.salePrice.currencyId };
+    }
     return null;
   }
 
-  /** Sum all cart line totals into standard currency units (float). Returns 0 if cart has no priced items. */
-  computeTotalInStandard(currencies) {
+  /** Sum purchase-side items only (excludes sellItems). */
+  computePurchaseTotalInStandard(currencies) {
     let total = 0;
     for (const item of this.#items) {
+      if (item.type === 'sellItem') continue;
       const lineTotal = this.computeLineTotal(item, currencies);
       if (!lineTotal) continue;
       total += costInStandard(lineTotal, currencies);
@@ -117,29 +141,72 @@ class CartManager {
     return total;
   }
 
+  /** Sum sell-side items only. */
+  computeSellTotalInStandard(currencies) {
+    let total = 0;
+    for (const item of this.#items) {
+      if (item.type !== 'sellItem') continue;
+      const lineTotal = this.computeLineTotal(item, currencies);
+      if (!lineTotal) continue;
+      total += costInStandard(lineTotal, currencies);
+    }
+    return total;
+  }
+
+  /** Net = purchases − sales. May be negative (player is owed money). */
+  computeNetTotalInStandard(currencies) {
+    return this.computePurchaseTotalInStandard(currencies) - this.computeSellTotalInStandard(currencies);
+  }
+
+  /** Sum all cart line totals into standard currency units (float). Returns 0 if cart has no priced items. */
+  computeTotalInStandard(currencies) {
+    return this.computePurchaseTotalInStandard(currencies);
+  }
+
   /**
-   * Returns a single { amount, currencyId } expense for PurchaseDialog — picks the smallest
-   * denomination that expresses the total as a whole number. Used for checkout math, not display.
+   * Returns a single { amount, currencyId } for the NET amount owed by the player.
+   * Returns null if net ≤ 0 (no payment needed — player is owed money or balanced).
+   * Used for PurchaseDialog checkout math.
    */
   computeCartTotal(currencies) {
     const standardCurrency = currencies.find(c => c.isStandard);
     if (!standardCurrency) return null;
 
-    const totalStandard = this.computeTotalInStandard(currencies);
-    if (totalStandard <= 0) return null;
+    const netStandard = this.computeNetTotalInStandard(currencies);
+    if (netStandard <= 0) return null;
 
     const EPSILON = 1e-9;
     const sorted = [...currencies].sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
     for (const c of sorted) {
       const rate = parseExchangeRate(c.exchangeRate);
       if (rate < EPSILON) continue;
-      const amount = totalStandard / rate;
+      const amount = netStandard / rate;
       if (Math.abs(amount - Math.round(amount)) < EPSILON) {
         return { amount: Math.round(amount), currencyId: c.id };
       }
     }
 
-    return { amount: Math.ceil(totalStandard), currencyId: standardCurrency.id };
+    return { amount: Math.ceil(netStandard), currencyId: standardCurrency.id };
+  }
+
+  /** Returns { amount, currencyId } for the amount the player is owed (net < 0). Null if not owed. */
+  computeCreditTotal(currencies) {
+    const standardCurrency = currencies.find(c => c.isStandard);
+    if (!standardCurrency) return null;
+    const netStandard = this.computeNetTotalInStandard(currencies);
+    if (netStandard >= 0) return null;
+    const credit = Math.abs(netStandard);
+    const EPSILON = 1e-9;
+    const sorted = [...currencies].sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
+    for (const c of sorted) {
+      const rate = parseExchangeRate(c.exchangeRate);
+      if (rate < EPSILON) continue;
+      const amount = credit / rate;
+      if (Math.abs(amount - Math.round(amount)) < EPSILON) {
+        return { amount: Math.round(amount), currencyId: c.id };
+      }
+    }
+    return { amount: Math.ceil(credit), currencyId: standardCurrency.id };
   }
 
   #notify() {

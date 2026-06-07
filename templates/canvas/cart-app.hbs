@@ -2,8 +2,10 @@
   {{#if isEmpty}}
   <p class="ssm-cart-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.empty"}}</p>
   {{else}}
+
+  {{#if hasPurchaseItems}}
   <ul class="ssm-cart-list">
-    {{#each items}}
+    {{#each purchaseItems}}
     <li class="ssm-cart-item" data-cart-id="{{this.id}}">
       <div class="ssm-cart-item-header">
         <span class="ssm-cart-item-name">{{#if this.isLodging}}{{this.lodgingName}}{{else}}{{this.itemName}}{{/if}}</span>
@@ -31,11 +33,63 @@
     </li>
     {{/each}}
   </ul>
+  {{/if}}
+
+  {{#if hasSellItems}}
+  <div class="ssm-cart-section ssm-cart-selling">
+    <h4 class="ssm-cart-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.sellingSection"}}</h4>
+    <ul class="ssm-cart-list">
+      {{#each sellItems}}
+      <li class="ssm-cart-item ssm-cart-sell-item" data-cart-id="{{this.id}}">
+        <div class="ssm-cart-item-header">
+          {{#if this.itemLinkedUuid}}
+          <a class="ssm-item-link ssm-cart-item-name" data-uuid="{{this.itemLinkedUuid}}">{{this.itemName}}</a>
+          {{else}}
+          <span class="ssm-cart-item-name">{{this.itemName}}</span>
+          {{/if}}
+          <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+          <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+        <div class="ssm-cart-item-controls">
+          <label class="ssm-cart-qty-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.qty"}}:</label>
+          <input type="number" class="ssm-cart-quantity" min="1" value="{{this.quantity}}"
+                 data-cart-id="{{this.id}}">
+          <span class="ssm-cart-line-total ssm-sell-credit">−{{this.lineTotalLabel}}</span>
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+
   <div class="ssm-cart-footer">
+    {{#if hasSellItems}}
+    <div class="ssm-cart-total-row ssm-cart-subtotal">
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.total"}}:</span>
+      <span>{{purchaseTotalLabel}}</span>
+    </div>
+    <div class="ssm-cart-total-row ssm-cart-subtotal ssm-cart-credit-row">
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.sellCredit"}}:</span>
+      <span class="ssm-sell-credit">−{{sellTotalLabel}}</span>
+    </div>
+    <div class="ssm-cart-total-row ssm-cart-net-row">
+      {{#if isNetCredit}}
+      <span class="ssm-cart-total-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.youReceive"}}:</span>
+      <span class="ssm-cart-grand-total ssm-sell-credit">{{youReceiveLabel}}</span>
+      {{else}}
+      <span class="ssm-cart-total-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.netTotal"}}:</span>
+      <span class="ssm-cart-grand-total">{{netTotalLabel}}</span>
+      {{/if}}
+    </div>
+    {{else}}
     <div class="ssm-cart-total-row">
       <span class="ssm-cart-total-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.total"}}:</span>
-      <span class="ssm-cart-grand-total">{{cartTotalLabel}}</span>
+      <span class="ssm-cart-grand-total">{{purchaseTotalLabel}}</span>
     </div>
+    {{/if}}
     <div class="ssm-cart-actions">
       <button type="button" data-action="clearCart">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.clear"}}</button>
       <button type="button" class="ssm-cart-checkout-btn" data-action="checkout">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.checkout"}}</button>

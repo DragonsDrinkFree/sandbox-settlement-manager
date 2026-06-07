@@ -1,7 +1,7 @@
 import { MODULE_ID, SETTINGS, FLAGS } from '../constants.js';
 import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
-import { calculateChange, formatAmounts, parseExchangeRate } from '../utils/currency-utils.js';
+import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getCityMaxDenomValue } from '../utils/currency-utils.js';
 import { getWorldTimeConfig } from '../time/world-time.js';
 import { SOCKET_CHANNEL, SOCKET_TYPES } from '../socket.js';
 
@@ -41,30 +41,69 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
     const rawItems = cartManager.items;
 
-    const items = rawItems.map(item => {
+    const cityMaxDenomValue = getCityMaxDenomValue(currencies);
+
+    const formatStandard = (std) => {
+      if (std <= 0) return '—';
+      const maxRate = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+      const breakdown = calculateChange(std, currencies, maxRate);
+      if (breakdown && Object.values(breakdown).some(v => v > 0)) return formatAmounts(breakdown, currencies);
+      const sc = currencies.find(c => c.isStandard);
+      return sc ? `${Math.ceil(std)} ${sc.abbreviation}` : '—';
+    };
+
+    const formatConstrained = (std) => {
+      if (std <= 0) return '—';
+      const breakdown = calculateChange(std, currencies, cityMaxDenomValue);
+      if (breakdown && Object.values(breakdown).some(v => v > 0)) return formatAmounts(breakdown, currencies);
+      const eligible = [...currencies]
+        .filter(c => parseExchangeRate(c.exchangeRate) <= cityMaxDenomValue + 1e-9)
+        .sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
+      const sc = eligible[0] ?? currencies.find(c => c.isStandard);
+      return sc ? `${Math.ceil(std / parseExchangeRate(sc.exchangeRate))} ${sc.abbreviation}` : '—';
+    };
+
+    const purchaseItems = [];
+    const sellItems     = [];
+
+    for (const item of rawItems) {
       const lineTotal = cartManager.computeLineTotal(item, currencies);
       let lineTotalLabel = '—';
       if (lineTotal) {
-        const curr = currencies.find(c => c.id === lineTotal.currencyId);
-        lineTotalLabel = `${lineTotal.amount} ${curr?.abbreviation ?? '?'}`;
+        if (item.type === 'sellItem') {
+          lineTotalLabel = formatConstrained(costInStandard(lineTotal, currencies));
+        } else {
+          const curr = currencies.find(c => c.id === lineTotal.currencyId);
+          lineTotalLabel = `${lineTotal.amount} ${curr?.abbreviation ?? '?'}`;
+        }
       }
-      return { ...item, isLodging: item.type === 'lodging', lineTotalLabel };
-    });
-
-    const totalStandard = cartManager.computeTotalInStandard(currencies);
-    let cartTotalLabel = '—';
-    if (totalStandard > 0) {
-      const maxRate = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
-      const breakdown = calculateChange(totalStandard, currencies, maxRate);
-      if (breakdown && Object.values(breakdown).some(v => v > 0)) {
-        cartTotalLabel = formatAmounts(breakdown, currencies);
-      } else {
-        const std = currencies.find(c => c.isStandard);
-        cartTotalLabel = std ? `${Math.ceil(totalStandard)} ${std.abbreviation}` : '—';
-      }
+      const mapped = { ...item, isLodging: item.type === 'lodging', isSellItem: item.type === 'sellItem', lineTotalLabel };
+      if (item.type === 'sellItem') sellItems.push(mapped);
+      else purchaseItems.push(mapped);
     }
 
-    return { ...context, items, cartTotalLabel, isEmpty: items.length === 0 };
+    const purchaseStd = cartManager.computePurchaseTotalInStandard(currencies);
+    const sellStd     = cartManager.computeSellTotalInStandard(currencies);
+    const netStd      = purchaseStd - sellStd;
+
+    const purchaseTotalLabel = formatStandard(purchaseStd);
+    const sellTotalLabel     = formatConstrained(sellStd);
+    const netTotalLabel      = netStd >= -1e-9 ? formatStandard(Math.abs(netStd)) : formatConstrained(Math.abs(netStd));
+    const isNetCredit        = netStd < -1e-9;
+    const isBalanced         = Math.abs(netStd) < 1e-9 && (purchaseItems.length || sellItems.length);
+
+    const youReceiveLabel = isNetCredit ? formatConstrained(Math.abs(netStd)) : null;
+    const isEmpty = rawItems.length === 0;
+
+    return {
+      ...context,
+      purchaseItems, sellItems,
+      hasSellItems:     sellItems.length > 0,
+      hasPurchaseItems: purchaseItems.length > 0,
+      purchaseTotalLabel, sellTotalLabel, netTotalLabel,
+      isNetCredit, isBalanced, youReceiveLabel,
+      isEmpty
+    };
   }
 
   async _onRender(context, options) {
@@ -107,6 +146,14 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         cartManager.updateItem(input.dataset.cartId, { quantity: val });
       });
     });
+
+    // Wire item sheet links for sell items
+    this.element.querySelectorAll('.ssm-item-link[data-uuid]').forEach(link => {
+      link.addEventListener('click', async () => {
+        const item = await fromUuid(link.dataset.uuid).catch(() => null);
+        item?.sheet?.render(true);
+      });
+    });
   }
 
   async _onClose(options) {
@@ -130,25 +177,85 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onCheckout() {
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
-    const total = cartManager.computeCartTotal(currencies);
-    if (!total || total.amount <= 0) return;
+    const currencies     = currencyConfig.currencies ?? [];
+    const mode           = currencyConfig.mode ?? 'loose';
+    const items          = cartManager.items;
 
-    const expense = {
-      id:   'cart-total',
-      name: game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.cart.title'),
-      ...total
-    };
+    const netStd    = cartManager.computeNetTotalInStandard(currencies);
+    const sellItems = items.filter(i => i.type === 'sellItem');
+    const actorId   = sellItems[0]?.actorId ?? null;
+    const maxDenomValue = getCityMaxDenomValue(currencies);
 
-    const result = await PurchaseDialog.open({ expense, currencies, mode: currencyConfig.mode ?? 'loose' });
-    if (!result) return;
+    if (netStd > 1e-9) {
+      // Player owes money — open PurchaseDialog with net amount
+      const total = cartManager.computeCartTotal(currencies);
+      if (!total || total.amount <= 0) return;
+      const expense = { id: 'cart-total', name: game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.cart.title'), ...total };
+      const result = await PurchaseDialog.open({ expense, currencies, mode });
+      if (!result) return;
+      await CartApp.#processFulfillments(items, result.actorId, currencies, mode);
+    } else if (netStd < -1e-9) {
+      // Merchant owes player — grant currency constrained to city denomination
+      await CartApp.#grantCurrency(actorId, Math.abs(netStd), currencies, mode, maxDenomValue);
+      await CartApp.#processFulfillments(items, actorId, currencies, mode);
+    } else {
+      // Balanced — just fulfill both sides
+      if (!items.length) return;
+      await CartApp.#processFulfillments(items, actorId, currencies, mode);
+    }
 
-    await CartApp.#processFulfillments(cartManager.items, result.actorId);
     cartManager.clear();
   }
 
-  /** After a successful payment, create ledger entries and grant linked items. */
-  static async #processFulfillments(items, actorId) {
+  /** Grant amountInStandard worth of currency to the actor, constrained to maxDenomValue. */
+  static async #grantCurrency(actorId, amountInStandard, currencies, mode, maxDenomValue = null) {
+    if (!actorId || amountInStandard < 1e-9 || mode === 'loose') return;
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+
+    const EPSILON      = 1e-9;
+    const effectiveMax = maxDenomValue ?? currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+
+    // Break the amount into denominations within the city's constraint
+    let breakdown = calculateChange(amountInStandard, currencies, effectiveMax);
+    if (!breakdown) {
+      // Can't make exact change — ceil in the smallest eligible denomination
+      const eligible = [...currencies]
+        .filter(c => parseExchangeRate(c.exchangeRate) <= effectiveMax + EPSILON)
+        .sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
+      const sc = eligible[0] ?? currencies.find(c => c.isStandard);
+      if (!sc) return;
+      breakdown = { [sc.id]: Math.ceil(amountInStandard / parseExchangeRate(sc.exchangeRate)) };
+    }
+
+    for (const [currencyId, amount] of Object.entries(breakdown)) {
+      if (!amount || amount <= 0) continue;
+      const currency = currencies.find(c => c.id === currencyId);
+      if (!currency) continue;
+
+      if (mode === 'attribute' && currency.attributePath) {
+        const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
+        await actor.update({ [currency.attributePath]: current + amount });
+      } else if (mode === 'item' && currency.itemName) {
+        const existing = actor.items.find(i => i.name === currency.itemName);
+        if (existing) {
+          const qty = foundry.utils.getProperty(existing, 'system.quantity') ?? 0;
+          await existing.update({ 'system.quantity': qty + amount });
+        } else {
+          const source = game.items.find(i => i.name === currency.itemName)
+            ?? (currency.itemId ? await fromUuid(currency.itemId).catch(() => null) : null);
+          if (source) {
+            const data = source.toObject();
+            foundry.utils.setProperty(data, 'system.quantity', amount);
+            await actor.createEmbeddedDocuments('Item', [data]);
+          }
+        }
+      }
+    }
+  }
+
+  /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */
+  static async #processFulfillments(items, actorId, currencies = [], mode = 'loose') {
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const secondsPerDay  = hoursPerDay * 3600;
     const secondsPerWeek = secondsPerDay * daysPerWeek;
@@ -229,6 +336,60 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
             await actor.createEmbeddedDocuments('Item', [itemData]);
           }
         }
+      }
+    }
+
+    // Fulfill sell items: remove from actor and cache in merchant buyback list
+    const sellItems = items.filter(i => i.type === 'sellItem');
+    if (!sellItems.length) return;
+
+    // Group buyback entries by sceneId + resourceId
+    const buybackByResource = new Map(); // key: `${sceneId}:${resourceId}`
+
+    for (const sellItem of sellItems) {
+      const sellerActor = game.actors.get(sellItem.actorId);
+      if (!sellerActor) continue;
+      const actorItem = sellerActor.items.get(sellItem.actorItemId);
+      if (!actorItem) continue;
+
+      const qty        = sellItem.quantity ?? 1;
+      const currentQty = foundry.utils.getProperty(actorItem, 'system.quantity') ?? 1;
+      if (currentQty <= qty) {
+        await actorItem.delete();
+      } else {
+        await actorItem.update({ 'system.quantity': currentQty - qty });
+      }
+
+      const key = `${sellItem.sceneId}:${sellItem.resourceId}`;
+      if (!buybackByResource.has(key)) buybackByResource.set(key, { sceneId: sellItem.sceneId, resourceId: sellItem.resourceId, entries: [] });
+      buybackByResource.get(key).entries.push({
+        id:             foundry.utils.randomID(),
+        itemName:       sellItem.itemName,
+        itemLinkedUuid: sellItem.itemLinkedUuid ?? null,
+        itemData:       actorItem.toObject(),
+        salePrice:      sellItem.salePrice,
+        buybackPrice:   sellItem.salePrice, // default player-price; profile edit can adjust
+        soldAt:         game.time.worldTime
+      });
+    }
+
+    // Save buyback entries to merchant data on the appropriate scenes
+    for (const { sceneId, resourceId, entries } of buybackByResource.values()) {
+      const scene = game.scenes.get(sceneId);
+      if (!scene) continue;
+      const resources = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []);
+      const resource  = resources.find(r => r.id === resourceId);
+      if (!resource) continue;
+      resource.typeData ??= {};
+      resource.typeData.merchant ??= {};
+      resource.typeData.merchant.buybackItems = [
+        ...(resource.typeData.merchant.buybackItems ?? []),
+        ...entries
+      ];
+      if (game.user.isGM) {
+        await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+      } else {
+        game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_RESOURCE, sceneId: scene.id, resource });
       }
     }
   }

@@ -12,6 +12,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lodgings = [];
   _menu = { courses: [] };
   _templateInventory = [];
+  _merchantTab = "inventory";
+  _purchasingProfile = [];
 
   constructor(subType, options = {}) {
     super(options);
@@ -37,7 +39,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       editCourse:                 SubTypeEditApp.#onEditCourse,
       deleteCourse:               SubTypeEditApp.#onDeleteCourse,
       addTemplateInventoryItem:   SubTypeEditApp.#onAddTemplateInventoryItem,
-      deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem
+      deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
+      switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
+      addPurchasingRule:          SubTypeEditApp.#onAddPurchasingRule,
+      removePurchasingRule:       SubTypeEditApp.#onRemovePurchasingRule
     }
   };
 
@@ -53,6 +58,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._lodgings           = foundry.utils.deepClone(subType.typeData?.lodgings ?? []);
       app._menu               = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
+      app._purchasingProfile  = foundry.utils.deepClone(subType.typeData?.merchant?.purchasingProfile ?? []);
       app._resolve  = resolve;
       app.render(true);
     });
@@ -100,6 +106,17 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const merchantData = this._subType.typeData?.merchant ?? {};
     const stockType       = merchantData.stockType        ?? "percent";
     const restockFrequency = merchantData.restockFrequency ?? "weekly";
+
+    const rawTypes = game.system.documentTypes?.Item ?? [];
+    const systemItemTypes = (Array.isArray(rawTypes) ? rawTypes : Object.keys(rawTypes))
+      .filter(t => t !== "base")
+      .map(t => ({ value: t, label: CONFIG.Item?.typeLabels?.[t] ?? t }));
+
+    const buybackTypeOptions = [
+      { value: "player", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.buybackPlayer") },
+      { value: "full",   label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.buybackFull") }
+    ];
+
     return {
       subType: this._subType,
       isInn,
@@ -116,6 +133,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cityTypes,
       stockType,
       restockFrequency,
+      merchantTab: this._merchantTab,
+      purchasingProfile: this._purchasingProfile,
+      systemItemTypes,
+      buybackTypeOptions,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -344,6 +365,36 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static #onSwitchMerchantTab(event, target) {
+    this.#syncSubTypeName();
+    this._merchantTab = target.dataset.tab ?? "inventory";
+    this.render({ parts: ["form"] });
+  }
+
+  static #onAddPurchasingRule() {
+    this.#syncSubTypeName();
+    const addRow = this.element.querySelector('.purchasing-add-row');
+    if (!addRow) return;
+    const itemType    = addRow.querySelector('[data-field="ruleItemType"]')?.value ?? "";
+    const buyRate     = parseFloat(addRow.querySelector('[data-field="ruleBuyRate"]')?.value) || 0;
+    const buybackType = addRow.querySelector('[data-field="ruleBuybackType"]')?.value ?? "player";
+    if (this._purchasingProfile.some(r => r.itemType === itemType)) return;
+    this._purchasingProfile.push({
+      id: foundry.utils.randomID(),
+      itemType,
+      buyRate: Math.max(0, Math.min(100, buyRate)),
+      buybackType
+    });
+    this.render({ parts: ["form"] });
+  }
+
+  static #onRemovePurchasingRule(event, target) {
+    this.#syncSubTypeName();
+    const index = parseInt(target.dataset.index);
+    this._purchasingProfile.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim();
     if (!name) return;
@@ -378,7 +429,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           }
         }))
         .filter(item => item.name);
-      result.typeData = { merchant: { stockType, restockFrequency, inventory } };
+      result.typeData = { merchant: { stockType, restockFrequency, inventory, purchasingProfile: this._purchasingProfile } };
     }
     result._templateTypeId = typeId;
 
