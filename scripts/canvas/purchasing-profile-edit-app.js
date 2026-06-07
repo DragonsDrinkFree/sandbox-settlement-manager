@@ -79,8 +79,18 @@ export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(Applica
     };
   }
 
-  static #onDeleteRule(event, target) {
+  static async #onDeleteRule(event, target) {
     const itemType = target.dataset.itemType ?? "";
+    const typeLabel = itemType
+      ? (CONFIG.Item?.typeLabels?.[itemType] ?? itemType)
+      : game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll");
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.disableRuleTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.disableRuleConfirm", { type: typeLabel })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.disableRuleTitle"), icon: "fa-solid fa-ban" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     // Add a disable override (buyRate: null) for this item type
     const existing = this._overrides.find(o => o.itemType === itemType);
     if (existing) {

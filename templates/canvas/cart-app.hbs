@@ -6,6 +6,26 @@
   {{#if hasPurchaseItems}}
   <ul class="ssm-cart-list">
     {{#each purchaseItems}}
+    {{#if this.isExchange}}
+    <li class="ssm-cart-item ssm-cart-exchange-item" data-cart-id="{{this.id}}">
+      <div class="ssm-cart-item-header">
+        <span class="ssm-cart-item-name">
+          {{this.fromAmount}} {{this.fromAbbreviation}}
+          <i class="fa-solid fa-arrow-right" inert></i>
+          {{this.toAmount}} {{this.toAbbreviation}}
+        </span>
+        <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+        <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="ssm-cart-item-controls">
+        <span class="ssm-exchange-fee-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.feeLabel"}}:</span>
+        <span class="ssm-cart-line-total">{{this.lineTotalLabel}}</span>
+      </div>
+    </li>
+    {{else}}
     <li class="ssm-cart-item" data-cart-id="{{this.id}}">
       <div class="ssm-cart-item-header">
         <span class="ssm-cart-item-name">{{#if this.isLodging}}{{this.lodgingName}}{{else}}{{this.itemName}}{{/if}}</span>
@@ -31,6 +51,7 @@
         <span class="ssm-cart-line-total">{{this.lineTotalLabel}}</span>
       </div>
     </li>
+    {{/if}}
     {{/each}}
   </ul>
   {{/if}}

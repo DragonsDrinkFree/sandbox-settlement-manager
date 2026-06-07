@@ -79,6 +79,58 @@ export function formatAmounts(amounts, currencies) {
 }
 
 /**
+ * Grant a coins map { [currencyId]: amount } to an actor.
+ * Grants each denomination directly without recalculating denominations.
+ */
+export async function grantCoinsToActor(actor, coins, currencies, mode) {
+  for (const [currencyId, amount] of Object.entries(coins)) {
+    if (!amount || amount <= 0) continue;
+    const currency = currencies.find(c => c.id === currencyId);
+    if (!currency) continue;
+    if (mode === 'attribute' && currency.attributePath) {
+      const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
+      await actor.update({ [currency.attributePath]: current + amount });
+    } else if (mode === 'item' && currency.itemName) {
+      const existing = actor.items.find(i => i.name === currency.itemName);
+      if (existing) {
+        const qty = foundry.utils.getProperty(existing, 'system.quantity') ?? 0;
+        await existing.update({ 'system.quantity': qty + amount });
+      } else {
+        const source = game.items.find(i => i.name === currency.itemName)
+          ?? (currency.itemId ? await fromUuid(currency.itemId).catch(() => null) : null);
+        if (source) {
+          const data = source.toObject();
+          foundry.utils.setProperty(data, 'system.quantity', amount);
+          await actor.createEmbeddedDocuments('Item', [data]);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Remove a coins map { [currencyId]: amount } from an actor.
+ * Decrements each denomination directly.
+ */
+export async function removeCoinsFromActor(actor, coins, currencies, mode) {
+  for (const [currencyId, amount] of Object.entries(coins)) {
+    if (!amount || amount <= 0) continue;
+    const currency = currencies.find(c => c.id === currencyId);
+    if (!currency) continue;
+    if (mode === 'attribute' && currency.attributePath) {
+      const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
+      await actor.update({ [currency.attributePath]: Math.max(0, current - amount) });
+    } else if (mode === 'item' && currency.itemName) {
+      const item = actor.items.find(i => i.name === currency.itemName);
+      if (!item) continue;
+      const qty = foundry.utils.getProperty(item, 'system.quantity') ?? 0;
+      if (qty <= amount) await item.delete();
+      else await item.update({ 'system.quantity': qty - amount });
+    }
+  }
+}
+
+/**
  * Returns the exchange rate (in standard units) of the highest denomination
  * a merchant in the current scene's city type can pay.
  * Falls back to the global max rate if no constraint is configured.

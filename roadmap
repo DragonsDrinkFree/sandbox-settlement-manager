@@ -1,5 +1,3 @@
-Lets also add a section below puerchasing profile, for what denominations of currency the merchant has available. This should have a list of each Settlement type, with a second dropdown for each to pick what denomenations of coins merchants have GM should pick from a dropdown the highest level Denomentation available. The merchant will then give the users the highest level of coin they are able for the sale.
-
-IE if they have GP available, and the selling price is 6gp and 2sp, they will get 6gp and 2 sp, but if the Denomination available is only sp, they will get everything converted to sp.
-
-Denomination should be able to be overridden
+# Long term
+## Currency exchange:
+Limited currency by settlement.

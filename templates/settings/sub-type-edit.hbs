@@ -122,6 +122,48 @@
       </button>
     </fieldset>
   </div>
+  {{#if showBankSection}}
+  <div class="bank-only"{{#unless isBank}} hidden{{/unless}}>
+    <fieldset class="bank-exchange-config">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeSettingsTitle"}}</legend>
+      <div class="form-group bank-checkbox-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.doesExchangeLabel"}}</label>
+        <input type="checkbox" name="bankDoesExchange"{{#if bankData.doesExchange}} checked{{/if}}>
+      </div>
+      <div class="form-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeFeeLabel"}}</label>
+        <input type="number" name="bankExchangeFee" value="{{bankData.exchangeFee}}" min="0" max="100" step="0.1"
+               class="bank-fee-input">
+        <span>%</span>
+      </div>
+    </fieldset>
+    <fieldset class="bank-deposit-config">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.settingsTitle"}}</legend>
+      <div class="form-group bank-checkbox-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.globalLabel"}}</label>
+        <input type="checkbox" name="bankDepositGlobal"{{#if bankData.depositSettings.global}} checked{{/if}}>
+      </div>
+      <div class="form-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositFeeLabel"}}</label>
+        <input type="number" name="bankDepositFee" value="{{bankData.depositSettings.depositFee}}" min="0" max="100" step="0.1"
+               class="bank-fee-input">
+        <span>%</span>
+      </div>
+      <div class="form-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.minDepositDaysLabel"}}</label>
+        <input type="number" name="bankMinDepositDays" value="{{bankData.depositSettings.minDepositDays}}" min="0" step="1"
+               class="bank-fee-input">
+        <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysUnit"}}</span>
+      </div>
+      <div class="form-group">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.earlyWithdrawalFeeLabel"}}</label>
+        <input type="number" name="bankEarlyWithdrawalFee" value="{{bankData.depositSettings.earlyWithdrawalFee}}" min="0" max="100" step="0.1"
+               class="bank-fee-input">
+        <span>%</span>
+      </div>
+    </fieldset>
+  </div>
+  {{/if}}
   {{#if showMerchantSection}}
   <div class="merchant-only"{{#unless isMerchant}} hidden{{/unless}}>
     <nav class="ssm-merchant-tabs">

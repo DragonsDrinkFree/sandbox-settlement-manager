@@ -445,6 +445,118 @@
         </tbody>
       </table>
 
+      {{else if this.isBank}}
+      <div class="ssm-bank-detail">
+        <div class="ssm-bank-actor-row">
+          <label class="ssm-bank-actor-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.characterLabel"}}:</label>
+          <select class="ssm-bank-actor-select">
+            <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —</option>
+            {{#each this.bankData.ownedActors}}
+            <option value="{{this.id}}"{{#if (eq this.id ../bankData.selectedActorId)}} selected{{/if}}>{{this.name}}</option>
+            {{/each}}
+          </select>
+          {{#if this.bankData.isGM}}
+          <div class="ssm-bank-settings-bar">
+            {{#if this.bankData.isOverridden}}
+            <span class="ssm-bank-settings-badge is-overridden" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.settingsOverridden'}}">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </span>
+            <button type="button" data-action="overrideBankSettings" class="ssm-settings-btn">
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.editOverride"}}
+            </button>
+            {{#if this.bankData.hasTemplate}}
+            <button type="button" data-action="resetBankSettings" class="ssm-settings-reset-btn ssm-settings-btn">
+              <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.resetToTemplate"}}
+            </button>
+            {{/if}}
+            {{else}}
+            <button type="button" data-action="overrideBankSettings" class="ssm-settings-btn">
+              <i class="fa-solid fa-unlock"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.override"}}
+            </button>
+            {{/if}}
+          </div>
+          {{/if}}
+        </div>
+
+        {{#if this.bankData.selectedActorId}}
+        <div class="ssm-bank-balances">
+          {{#each this.bankData.balances}}
+          {{#if this.amount}}
+          <span class="ssm-bank-balance-item">{{this.amount}} {{this.abbreviation}}</span>
+          {{/if}}
+          {{/each}}
+        </div>
+        {{/if}}
+        {{#if this.bankData.doesExchange}}
+        <fieldset class="ssm-bank-exchange" data-fee-rate="{{this.bankData.exchangeFee}}">
+          <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeTitle"}}{{#if this.bankData.exchangeFee}} ({{this.bankData.exchangeFee}}% {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.feeLabel"}}){{/if}}</legend>
+          <div class="ssm-exchange-row">
+            <input type="number" data-field="fromAmount" class="ssm-exchange-amount" min="1" step="1" placeholder="0">
+            <select data-field="fromCurrency" class="ssm-exchange-currency-select">
+              {{#each this.bankData.currencies}}<option value="{{this.id}}" data-rate="{{this.exchangeRate}}" data-balance="{{this.balance}}"{{#if (eq this.id ../bankData.defaultFromCurrencyId)}} selected{{/if}}>{{this.abbreviation}}</option>{{/each}}
+            </select>
+            <div class="ssm-exchange-middle">
+              <span class="ssm-exchange-fee-preview"></span>
+              <i class="fa-solid fa-arrow-right ssm-exchange-arrow" inert></i>
+            </div>
+            <input type="text" data-field="toAmountPreview" class="ssm-exchange-amount ssm-exchange-preview" readonly placeholder="0">
+            <select data-field="toCurrency" class="ssm-exchange-currency-select">
+              {{#each this.bankData.currencies}}<option value="{{this.id}}" data-rate="{{this.exchangeRate}}" data-balance="{{this.balance}}"{{#if (eq this.id ../bankData.defaultToCurrencyId)}} selected{{/if}}>{{this.abbreviation}}</option>{{/each}}
+            </select>
+            <button type="button" data-action="addExchangeToCart" class="ssm-exchange-btn">
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeButton"}}
+            </button>
+          </div>
+        </fieldset>
+        {{/if}}
+
+        <fieldset class="ssm-bank-section ssm-bank-deposits">
+          <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.depositsTitle"}}</legend>
+          {{#if this.bankData.selectedActorId}}
+          <div class="ssm-deposit-info-bar">
+            {{#if this.bankData.depositSettings.depositFee}}<span>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositFeeLabel"}}: {{this.bankData.depositSettings.depositFee}}%</span>{{/if}}
+            {{#if this.bankData.depositSettings.minDepositDays}}<span>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.minDepositDaysLabel"}}: {{this.bankData.depositSettings.minDepositDays}}d</span>{{/if}}
+            {{#if this.bankData.depositSettings.earlyWithdrawalFee}}<span>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.earlyWithdrawalFeeLabel"}}: {{this.bankData.depositSettings.earlyWithdrawalFee}}%</span>{{/if}}
+          </div>
+          <div class="ssm-deposit-form">
+            {{#each this.bankData.currencies}}
+            <div class="ssm-deposit-currency-row">
+              <label class="ssm-deposit-currency-label">{{this.abbreviation}}</label>
+              <input type="number" class="ssm-deposit-amount-input"
+                     data-currency-id="{{this.id}}"
+                     min="0" max="{{this.balance}}" step="1" placeholder="0">
+            </div>
+            {{/each}}
+            <button type="button" data-action="depositCoins" class="ssm-deposit-btn">
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositButton"}}
+            </button>
+          </div>
+          {{#if this.bankData.processedDeposits.length}}
+          <hr class="ssm-deposit-separator">
+          <ul class="ssm-deposits-list">
+            {{#each this.bankData.processedDeposits}}
+            <li class="ssm-deposit-entry{{#if this.matured}} ssm-deposit-matured{{/if}}">
+              <span class="ssm-deposit-coins">{{this.coinsLabel}}</span>
+              <span class="ssm-deposit-time">{{this.timeRemainingLabel}}</span>
+              <button type="button" data-action="withdrawDeposit"
+                      data-deposit-ids="{{this.idsJson}}" class="ssm-withdraw-btn">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.withdrawButton"}}
+              </button>
+            </li>
+            {{/each}}
+          </ul>
+          <div class="ssm-deposits-total">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.total"}}: {{this.bankData.depositsTotal}}</div>
+          {{else}}
+          <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.noDeposits"}}</em></p>
+          {{/if}}
+          {{/if}}
+        </fieldset>
+
+        <fieldset class="ssm-bank-section">
+          <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loansTitle"}}</legend>
+          <p class="ssm-bank-placeholder">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.comingSoon"}}</p>
+        </fieldset>
+      </div>
       {{else}}
       <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.noDetailView"}}</p>
       {{/if}}

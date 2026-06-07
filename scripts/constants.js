@@ -9,7 +9,8 @@ export const FLAGS = {
   IS_CITY: "isCity",
   CITY_NAME: "cityName",
   CITY_TYPE: "cityType",
-  RESOURCES: "resources"
+  RESOURCES: "resources",
+  GLOBAL_DEPOSITS: "globalDeposits"
 };
 
 /** Setting keys registered via game.settings.register. Usage: game.settings.get(MODULE_ID, SETTINGS.KEY) */

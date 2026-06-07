@@ -81,6 +81,14 @@ export class CurrencyTestConfigApp extends HandlebarsApplicationMixin(Applicatio
     const expenses = this._resource.typeData?.expenses ?? [];
     const idx = expenses.findIndex(e => e.id === id);
     if (idx === -1) return;
+    const expense = expenses[idx];
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.currencyTest.deleteExpenseTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.currencyTest.deleteExpenseConfirm", { name: expense.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     expenses.splice(idx, 1);
     await this.#saveExpenses();
     this.render({ parts: ["content"] });

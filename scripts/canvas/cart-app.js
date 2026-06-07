@@ -66,9 +66,31 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const purchaseItems = [];
     const sellItems     = [];
 
+    const globalMaxDenom = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+
     for (const item of rawItems) {
       const lineTotal = cartManager.computeLineTotal(item, currencies);
       let lineTotalLabel = '—';
+      const mapped = { ...item, isLodging: item.type === 'lodging', isSellItem: item.type === 'sellItem', isExchange: item.type === 'exchange', lineTotalLabel };
+
+      if (item.type === 'exchange') {
+        const fromCurr = currencies.find(c => c.id === item.fromCurrencyId);
+        const toCurr   = currencies.find(c => c.id === item.toCurrencyId);
+        const fromRate = fromCurr ? parseExchangeRate(fromCurr.exchangeRate) : 0;
+        const toRate   = toCurr   ? parseExchangeRate(toCurr.exchangeRate)   : 0;
+        const toAmount = (fromRate > 0 && toRate > 0) ? Math.floor(item.fromAmount * fromRate / toRate) : 0;
+        const feeStd   = lineTotal ? costInStandard(lineTotal, currencies) : 0;
+        lineTotalLabel = feeStd > 1e-9
+          ? formatAmounts(calculateChange(feeStd, currencies, globalMaxDenom) ?? {}, currencies)
+          : '—';
+        mapped.lineTotalLabel   = lineTotalLabel;
+        mapped.fromAbbreviation = fromCurr?.abbreviation ?? '?';
+        mapped.toAmount         = toAmount;
+        mapped.toAbbreviation   = toCurr?.abbreviation   ?? '?';
+        purchaseItems.push(mapped);
+        continue;
+      }
+
       if (lineTotal) {
         if (item.type === 'sellItem') {
           lineTotalLabel = formatConstrained(costInStandard(lineTotal, currencies));
@@ -76,8 +98,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const curr = currencies.find(c => c.id === lineTotal.currencyId);
           lineTotalLabel = `${lineTotal.amount} ${curr?.abbreviation ?? '?'}`;
         }
+        mapped.lineTotalLabel = lineTotalLabel;
       }
-      const mapped = { ...item, isLodging: item.type === 'lodging', isSellItem: item.type === 'sellItem', lineTotalLabel };
       if (item.type === 'sellItem') sellItems.push(mapped);
       else purchaseItems.push(mapped);
     }
@@ -341,12 +363,11 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Fulfill sell items: remove from actor and cache in merchant buyback list
     const sellItems = items.filter(i => i.type === 'sellItem');
-    if (!sellItems.length) return;
 
     // Group buyback entries by sceneId + resourceId
     const buybackByResource = new Map(); // key: `${sceneId}:${resourceId}`
 
-    for (const sellItem of sellItems) {
+    if (sellItems.length) for (const sellItem of sellItems) {
       const sellerActor = game.actors.get(sellItem.actorId);
       if (!sellerActor) continue;
       const actorItem = sellerActor.items.get(sellItem.actorItemId);
@@ -390,6 +411,68 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
       } else {
         game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_RESOURCE, sceneId: scene.id, resource });
+      }
+    }
+
+    // Fulfill exchange items: take fromCurrency, grant toCurrency (fee already paid via PurchaseDialog)
+    const exchangeItems = items.filter(i => i.type === 'exchange');
+    for (const exItem of exchangeItems) {
+      const exActor = game.actors.get(exItem.actorId);
+      if (!exActor || mode === 'loose') continue;
+
+      const fromCurr = currencies.find(c => c.id === exItem.fromCurrencyId);
+      const toCurr   = currencies.find(c => c.id === exItem.toCurrencyId);
+      if (!fromCurr || !toCurr) continue;
+
+      // Trick-prevention: check how much fromCurrency remains after fee payment
+      const actualBalance = CartApp.#getCurrencyBalance(exActor, fromCurr, mode);
+      const actualFromAmt = Math.min(exItem.fromAmount, actualBalance);
+      if (actualFromAmt <= 0) continue;
+
+      const actualFromStd = actualFromAmt * parseExchangeRate(fromCurr.exchangeRate);
+      const toRate        = parseExchangeRate(toCurr.exchangeRate);
+
+      // Grant the to-currency, capped at toCurrency denomination (no higher-value coins)
+      await CartApp.#grantCurrency(exItem.actorId, actualFromStd, currencies, mode, toRate);
+      // Remove the from-currency
+      await CartApp.#removeCurrency(exActor, fromCurr, actualFromAmt, mode);
+    }
+
+    // Refresh any open bank resource windows so displayed balances stay current
+    if (exchangeItems.length > 0 && mode !== 'loose') {
+      for (const app of foundry.applications.instances.values()) {
+        if (app.id === 'sandbox-settlement-manager-resource-detail') app.render();
+        else if (app.id === 'sandbox-settlement-manager-city-manage') app.render({ parts: ['content'] });
+      }
+    }
+  }
+
+  /** Returns the actor's current balance of a specific currency (as a coin count). */
+  static #getCurrencyBalance(actor, currency, mode) {
+    if (mode === 'attribute' && currency.attributePath) {
+      return foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
+    }
+    if (mode === 'item' && currency.itemName) {
+      const item = actor.items.find(i => i.name === currency.itemName);
+      return item ? (foundry.utils.getProperty(item, 'system.quantity') ?? 0) : 0;
+    }
+    return 0;
+  }
+
+  /** Remove a specific amount of a currency from an actor. */
+  static async #removeCurrency(actor, currency, amount, mode) {
+    if (!amount || amount <= 0) return;
+    if (mode === 'attribute' && currency.attributePath) {
+      const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
+      await actor.update({ [currency.attributePath]: Math.max(0, current - amount) });
+    } else if (mode === 'item' && currency.itemName) {
+      const item = actor.items.find(i => i.name === currency.itemName);
+      if (!item) return;
+      const qty = foundry.utils.getProperty(item, 'system.quantity') ?? 0;
+      if (qty <= amount) {
+        await item.delete();
+      } else {
+        await item.update({ 'system.quantity': qty - amount });
       }
     }
   }

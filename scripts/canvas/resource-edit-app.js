@@ -239,6 +239,25 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
 
+    const bankEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    if (bankEntry && !typeData.bank) {
+      const subTypeMap = this.#getSubTypeMap();
+      const bankSubType = (subTypeMap[RESOURCE_TYPE_IDS.BANK] ?? [])
+        .find(s => s.id === bankEntry.subTypeId);
+      const tpl = bankSubType?.typeData?.bank ?? {};
+      typeData = {
+        ...typeData,
+        bank: {
+          _settingsOverridden: false,
+          doesExchange:        tpl.doesExchange ?? true,
+          exchangeFee:         tpl.exchangeFee  ?? 0,
+          depositSettings:     tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 },
+          deposits: [],
+          loans: []
+        }
+      };
+    }
+
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({

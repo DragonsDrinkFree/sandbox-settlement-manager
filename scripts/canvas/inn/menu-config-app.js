@@ -88,6 +88,15 @@ export class MenuConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onDeleteCourse(event, target) {
     const courseId = target.dataset.courseId;
     if (!courseId) return;
+    const course = (this._menu.courses ?? []).find(c => c.id === courseId);
+    if (!course) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.menu.deleteCourseTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.menu.deleteCourseConfirm", { name: course.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     this._menu.courses = (this._menu.courses ?? []).filter(c => c.id !== courseId);
     await this._onSave(foundry.utils.deepClone(this._menu));
     this.render();

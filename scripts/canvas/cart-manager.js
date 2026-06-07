@@ -82,6 +82,24 @@ class CartManager {
     this.#notify();
   }
 
+  /** Add a currency exchange transaction to the cart. Line total = fee only. */
+  addExchange({ sceneId, resourceId, resourceName, actorId, actorName, fromCurrencyId, fromAmount, toCurrencyId, feeRatePercent }) {
+    this.#items.push({
+      id: foundry.utils.randomID(),
+      type: 'exchange',
+      sceneId,
+      resourceId,
+      resourceName,
+      actorId,
+      actorName,
+      fromCurrencyId,
+      fromAmount,
+      toCurrencyId,
+      feeRatePercent
+    });
+    this.#notify();
+  }
+
   updateItem(cartId, updates) {
     const item = this.#items.find(i => i.id === cartId);
     if (!item) return;
@@ -125,6 +143,15 @@ class CartManager {
     if (item.type === 'sellItem') {
       if (!item.salePrice) return null;
       return { amount: Math.round(item.salePrice.amount * item.quantity), currencyId: item.salePrice.currencyId };
+    }
+    if (item.type === 'exchange') {
+      const fromCurrency     = currencies.find(c => c.id === item.fromCurrencyId);
+      const standardCurrency = currencies.find(c => c.isStandard);
+      if (!fromCurrency || !standardCurrency || !item.feeRatePercent) return null;
+      const fromStandard = item.fromAmount * parseExchangeRate(fromCurrency.exchangeRate);
+      const feeStandard  = fromStandard * item.feeRatePercent / 100;
+      if (feeStandard < 1e-9) return null;
+      return { amount: feeStandard, currencyId: standardCurrency.id };
     }
     return null;
   }

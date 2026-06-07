@@ -2625,3 +2625,373 @@
   text-align: center;
 }
 
+/* -------------------------------------------- */
+/*  Bank Resource Type                           */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-city-manage .ssm-bank-detail,
+#sandbox-settlement-manager-resource-detail .ssm-bank-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.25rem 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-actor-row,
+#sandbox-settlement-manager-resource-detail .ssm-bank-actor-row {
+  flex-wrap: wrap;
+  row-gap: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-actor-label,
+#sandbox-settlement-manager-resource-detail .ssm-bank-actor-label {
+  flex-shrink: 0;
+  font-weight: bold;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-actor-select,
+#sandbox-settlement-manager-resource-detail .ssm-bank-actor-select {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-exchange,
+#sandbox-settlement-manager-resource-detail .ssm-bank-exchange {
+  margin: 0;
+  padding: 0.4rem 0.6rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-row,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-amount,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-amount {
+  width: 5rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-currency-select,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-currency-select {
+  width: auto;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-arrow,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-arrow {
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-btn,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-btn {
+  margin-left: auto;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-section,
+#sandbox-settlement-manager-resource-detail .ssm-bank-section {
+  margin: 0;
+  padding: 0.4rem 0.6rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-placeholder,
+#sandbox-settlement-manager-resource-detail .ssm-bank-placeholder {
+  color: var(--color-text-dark-secondary, #888);
+  font-style: italic;
+  margin: 0.25rem 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-balances,
+#sandbox-settlement-manager-resource-detail .ssm-bank-balances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(0,0,0,0.15);
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-balance-item,
+#sandbox-settlement-manager-resource-detail .ssm-bank-balance-item {
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-middle,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-fee-preview,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-fee-preview {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary, #999);
+  white-space: nowrap;
+  min-height: 1em;
+  line-height: 1;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-exchange-preview,
+#sandbox-settlement-manager-resource-detail .ssm-exchange-preview {
+  background: rgba(0,0,0,0.2);
+  color: var(--color-text-dark-secondary, #aaa);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Bank settings override bar */
+#sandbox-settlement-manager-city-manage .ssm-bank-settings-bar,
+#sandbox-settlement-manager-resource-detail .ssm-bank-settings-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-settings-badge,
+#sandbox-settlement-manager-resource-detail .ssm-bank-settings-badge {
+  font-size: 0.75em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.15);
+  color: var(--color-text-dark-secondary, #888);
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-bank-settings-badge.is-overridden,
+#sandbox-settlement-manager-resource-detail .ssm-bank-settings-badge.is-overridden {
+  background: rgba(180,120,0,0.15);
+  color: var(--color-text-dark-warning, #a87000);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-settings-btn,
+#sandbox-settlement-manager-resource-detail .ssm-settings-btn {
+  font-size: 0.78em;
+  padding: 0.15rem 0.5rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-settings-reset-btn,
+#sandbox-settlement-manager-resource-detail .ssm-settings-reset-btn {
+  color: var(--color-text-dark-secondary, #888);
+}
+
+/* Deposit UI */
+#sandbox-settlement-manager-city-manage .ssm-deposit-info-bar,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #666);
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-form,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-currency-row,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-currency-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-currency-label,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-currency-label {
+  font-size: 0.85em;
+  min-width: 2rem;
+  text-align: right;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-amount-input,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-amount-input {
+  width: 4rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-btn,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-btn {
+  margin-left: auto;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-separator,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-separator {
+  border: none;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  margin: 0.4rem 0;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposits-list,
+#sandbox-settlement-manager-resource-detail .ssm-deposits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-entry,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.05);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-entry.ssm-deposit-matured,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-entry.ssm-deposit-matured {
+  background: rgba(0,120,0,0.1);
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-coins,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-coins {
+  flex: 1;
+  font-weight: 500;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposit-time,
+#sandbox-settlement-manager-resource-detail .ssm-deposit-time {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #666);
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-withdraw-btn,
+#sandbox-settlement-manager-resource-detail .ssm-withdraw-btn {
+  flex-shrink: 0;
+  font-size: 0.8em;
+  padding: 0.1rem 0.5rem;
+}
+
+#sandbox-settlement-manager-city-manage .ssm-deposits-total,
+#sandbox-settlement-manager-resource-detail .ssm-deposits-total {
+  margin-top: 0.4rem;
+  font-size: 0.85em;
+  font-weight: 600;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-top: 0.3rem;
+  color: var(--color-text-dark-primary, #333);
+}
+
+/* Withdrawal dialog */
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-label {
+  min-width: 3rem;
+  text-align: right;
+  font-size: 0.9em;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-amount-input {
+  width: 5rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-max {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #888);
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-early-warning {
+  color: var(--color-text-dark-warning, #a55);
+  font-size: 0.85em;
+  margin: 0.4rem 0 0.2rem;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-fee-row,
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-receive-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9em;
+  margin-bottom: 0.2rem;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-fee-label,
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-receive-label {
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-fee-preview,
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-receive-preview {
+  font-weight: 500;
+}
+
+#sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+/* Bank sub-type settings (template editor) */
+#sandbox-settlement-manager-sub-type-edit .bank-fee-input {
+  width: 7rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .bank-deposit-config .form-group,
+#sandbox-settlement-manager-sub-type-edit .bank-exchange-config .form-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .bank-deposit-config .form-group label {
+  min-width: 11rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .bank-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Cart exchange item */
+#sandbox-settlement-manager-cart .ssm-cart-exchange-item .ssm-cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-cart .ssm-exchange-fee-label {
+  color: var(--color-text-dark-secondary, #555);
+  font-style: italic;
+  font-size: var(--font-size-12, 12px);
+}
+

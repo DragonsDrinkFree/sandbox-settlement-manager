@@ -1,0 +1,44 @@
+<div class="ssm-withdrawal-dialog">
+  {{#each coinRows}}
+  <div class="ssm-withdraw-row">
+    <label class="ssm-withdraw-label">{{this.abbreviation}}</label>
+    <input type="number" class="ssm-withdraw-amount-input"
+           data-currency-id="{{this.id}}"
+           min="0" max="{{this.maxAmount}}" step="1"
+           value="{{this.maxAmount}}"
+           placeholder="0">
+    <span class="ssm-withdraw-max">/ {{this.maxAmount}}</span>
+  </div>
+  {{/each}}
+
+  {{#if isEarly}}
+  <div class="ssm-withdraw-early-warning">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.earlyWarning"}}
+    ({{earlyFeeRate}}%)
+  </div>
+  <div class="ssm-withdraw-fee-row">
+    <span class="ssm-withdraw-fee-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.feeLabel"}}:</span>
+    <span class="ssm-withdraw-fee-preview"></span>
+  </div>
+  {{/if}}
+
+  <div class="ssm-withdraw-receive-row">
+    <span class="ssm-withdraw-receive-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.youWillReceive"}}:</span>
+    <span class="ssm-withdraw-receive-preview"></span>
+  </div>
+
+  <div class="ssm-withdraw-actions">
+    {{#each buttons}}
+    {{#if (eq this.type "submit")}}
+    <button type="submit" class="ssm-withdraw-confirm-btn">
+      <i class="{{this.icon}}"></i> {{this.label}}
+    </button>
+    {{else}}
+    <button type="button" data-action="close" class="ssm-withdraw-cancel-btn">
+      <i class="{{this.icon}}"></i> {{this.label}}
+    </button>
+    {{/if}}
+    {{/each}}
+  </div>
+</div>

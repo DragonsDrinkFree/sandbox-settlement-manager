@@ -166,6 +166,8 @@
       "noExpenses": "No expenses configured.",
       "addExpense": "Add Expense",
       "deleteExpense": "Delete Expense",
+      "deleteExpenseTitle": "Delete Expense",
+      "deleteExpenseConfirm": "Delete expense <strong>{name}</strong>?",
       "expenseNamePlaceholder": "e.g. Room for the Night"
     },
     "purchase": {
@@ -209,10 +211,18 @@
       "undiscovered": "Not Discovered",
       "noDetailView": "No additional details available for this resource type.",
       "removeTypeTitle": "Remove Type",
-      "removeTypeConfirm": "Remove <strong>{type}</strong> from <strong>{resource}</strong>? All associated data will be deleted."
+      "removeTypeConfirm": "Remove <strong>{type}</strong> from <strong>{resource}</strong>? All associated data will be deleted.",
+      "deleteResourceTitle": "Delete Resource",
+      "deleteResourceConfirm": "Delete <strong>{name}</strong>? All resource data will be permanently lost.",
+      "removeEntryTitle": "Remove Type Entry",
+      "removeEntryConfirm": "Remove this type entry from <strong>{name}</strong>?"
     },
     "inn": {
       "rent": "Rent",
+      "deleteLodgingTitle": "Delete Lodging",
+      "deleteLodgingConfirm": "Delete lodging <strong>{name}</strong>? This cannot be undone.",
+      "dismissEntryTitle": "Dismiss Booking",
+      "dismissEntryConfirm": "Dismiss the booking for <strong>{actor}</strong> ({lodging})?",
       "noLodgings": "No lodgings configured.",
       "noBookings": "No active bookings.",
       "ledger": "Active Bookings",
@@ -253,6 +263,8 @@
       },
       "menu": {
         "sectionTitle": "Menu",
+        "deleteCourseTitle": "Delete Course",
+        "deleteCourseConfirm": "Delete course <strong>{name}</strong>? All items will be removed.",
         "configureTitle": "Configure Menu",
         "notConfiguredGM": "No menu configured. Click the gear icon to set up the menu.",
         "notConfigured": "No menu available.",
@@ -278,7 +290,9 @@
         "cadenceWeekly": "Weekly",
         "items": "Items",
         "noItems": "No items. Click Add Item to begin.",
-        "addItem": "Add Item"
+        "addItem": "Add Item",
+        "removeItemTitle": "Remove Item",
+        "removeItemConfirm": "Remove <strong>{name}</strong> from this course?"
       },
       "restore": {
         "title": "Restore from Template",
@@ -318,6 +332,49 @@
       "sellCredit": "Sale credit",
       "netTotal": "Net Total",
       "youReceive": "You receive"
+    },
+    "bank": {
+      "characterLabel": "Character",
+      "selectCharacter": "Select a character",
+      "exchangeSettingsTitle": "Currency Exchange Settings",
+      "doesExchangeLabel": "Does Currency Exchange",
+      "exchangeFeeLabel": "Exchange Fee",
+      "exchangeTitle": "Currency Exchange",
+      "feeLabel": "Fee",
+      "exchangeButton": "Add to Cart",
+      "depositsTitle": "Deposits",
+      "loansTitle": "Loans",
+      "comingSoon": "Coming soon.",
+      "overrideTitle": "Override Bank Settings",
+      "overrideSave": "Save Override",
+      "settingsOverridden": "Custom Settings (overrides template)",
+      "settingsFromTemplate": "Template Settings",
+      "override": "Override Settings",
+      "editOverride": "Edit Override",
+      "resetToTemplate": "Reset to Template",
+      "deposits": {
+        "settingsTitle": "Deposit Settings",
+        "daysUnit": "days",
+        "globalLabel": "Global Bank",
+        "depositFeeLabel": "Deposit Fee",
+        "minDepositDaysLabel": "Min. Deposit",
+        "earlyWithdrawalFeeLabel": "Early Withdrawal Fee",
+        "depositButton": "Deposit",
+        "withdrawButton": "Withdraw",
+        "cancelButton": "Cancel",
+        "matured": "Matured",
+        "daysRemaining": "{days} days remaining",
+        "total": "Total",
+        "noDeposits": "No deposits.",
+        "confirmTitle": "Confirm Deposit",
+        "confirmBody": "Deposit {coins}?",
+        "feeConfirmTitle": "Confirm Deposit (Fee Applies)",
+        "feeConfirmBody": "A deposit fee of {fee} will be charged. Proceed?",
+        "earlyWarning": "Early withdrawal penalty applies",
+        "feeLabel": "Fee",
+        "youWillReceive": "You will receive",
+        "withdrawTitle": "Withdraw Funds"
+      }
     },
     "merchant": {
       "inventory": "Inventory",
@@ -393,7 +450,11 @@
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Iron Sword",
         "priceLabel": "Price"
-      }
+      },
+      "removeItemTitle": "Remove Item",
+      "removeItemConfirm": "Remove <strong>{name}</strong> from the inventory?",
+      "disableRuleTitle": "Disable Rule",
+      "disableRuleConfirm": "Disable the buy rule for <strong>{type}</strong>?"
     },
     "itemType": {
       "addTitle": "Add Item Type",
@@ -406,7 +467,9 @@
     },
     "keybinding": {},
     "dialog": {
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "deleteTitle": "Delete",
+      "deleteConfirm": "Delete <strong>{name}</strong>? This cannot be undone."
     },
     "error": {}
   }

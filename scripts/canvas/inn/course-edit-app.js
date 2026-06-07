@@ -162,11 +162,21 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  static #onDeleteItem(event, target) {
+  static async #onDeleteItem(event, target) {
     this.#syncCourseFromDOM();
     const itemId = target.dataset.itemId;
     if (!itemId) return;
     const isRandom = this._course.mode === "random";
+    const list = isRandom ? (this._course.pool ?? []) : (this._course.items ?? []);
+    const item = list.find(i => i.id === itemId);
+    if (!item) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.removeItemTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.course.removeItemConfirm", { name: item.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     if (isRandom) {
       this._course.pool = (this._course.pool ?? []).filter(i => i.id !== itemId);
     } else {

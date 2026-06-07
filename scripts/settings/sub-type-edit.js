@@ -67,14 +67,16 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const isInn             = this._typeId === RESOURCE_TYPE_IDS.INN;
     const isMerchant        = this._typeId === RESOURCE_TYPE_IDS.MERCHANT;
+    const isBank            = this._typeId === RESOURCE_TYPE_IDS.BANK;
     const showTypeSelect    = !this._typeId;
     const showInnSections     = isInn || showTypeSelect;
     const showMerchantSection = isMerchant || showTypeSelect;
+    const showBankSection     = isBank || showTypeSelect;
     let lodgings = [];
     let currencies = [];
     let courses = [];
     let templateInventory = [];
-    if (showInnSections || showMerchantSection) {
+    if (showInnSections || showMerchantSection || showBankSection) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
       const defaultCurrencyId = currencies[0]?.id ?? "";
@@ -103,6 +105,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
     const cityTypes = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+    const bankData     = this._subType.typeData?.bank ?? {};
     const merchantData = this._subType.typeData?.merchant ?? {};
     const stockType       = merchantData.stockType        ?? "percent";
     const restockFrequency = merchantData.restockFrequency ?? "weekly";
@@ -121,10 +124,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       subType: this._subType,
       isInn,
       isMerchant,
+      isBank,
       showTypeSelect,
       showInnSections,
       showMerchantSection,
-      showTypeSpecificSections: showInnSections || showMerchantSection,
+      showBankSection,
+      bankData,
+      showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection,
       coreTypes: CORE_RESOURCE_TYPES,
       lodgings,
       currencies,
@@ -154,9 +160,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!sel) return;
     const innSection      = this.element.querySelector('.inn-only');
     const merchantSection = this.element.querySelector('.merchant-only');
+    const bankSection     = this.element.querySelector('.bank-only');
     const toggle = () => {
       if (innSection)      innSection.hidden      = (sel.value !== RESOURCE_TYPE_IDS.INN);
       if (merchantSection) merchantSection.hidden = (sel.value !== RESOURCE_TYPE_IDS.MERCHANT);
+      if (bankSection)     bankSection.hidden     = (sel.value !== RESOURCE_TYPE_IDS.BANK);
     };
     sel.addEventListener('change', toggle);
     toggle();
@@ -409,6 +417,21 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .map(row => this.#rowToLodging(row))
         .filter(l => l.name);
       result.typeData = { lodgings, menu: this._menu };
+    }
+    if (typeId === RESOURCE_TYPE_IDS.BANK) {
+      const doesExchange       = !!form.querySelector('[name="bankDoesExchange"]')?.checked;
+      const exchangeFee        = Math.max(0, Math.min(100, parseFloat(formData.object.bankExchangeFee) || 0));
+      const depositGlobal      = !!form.querySelector('[name="bankDepositGlobal"]')?.checked;
+      const depositFee         = Math.max(0, Math.min(100, parseFloat(formData.object.bankDepositFee) || 0));
+      const minDepositDays     = Math.max(0, parseInt(formData.object.bankMinDepositDays) || 0);
+      const earlyWithdrawalFee = Math.max(0, Math.min(100, parseFloat(formData.object.bankEarlyWithdrawalFee) || 0));
+      result.typeData = {
+        bank: {
+          doesExchange,
+          exchangeFee,
+          depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee }
+        }
+      };
     }
     if (typeId === RESOURCE_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");

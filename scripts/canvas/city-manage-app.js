@@ -9,20 +9,57 @@ import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
-import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue } from "../utils/currency-utils.js";
+import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
-import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal } from "../socket.js";
+import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
+function buildDepositDisplayList(deposits, now, secondsPerDay, currencies) {
+  const matured   = deposits.filter(d => now >= d.depositedAt + d.minDepositSeconds);
+  const unmatured = deposits.filter(d => now <  d.depositedAt + d.minDepositSeconds);
+  const result = [];
+  if (matured.length > 0) {
+    const mergedCoins = {};
+    for (const d of matured) for (const [cId, amt] of Object.entries(d.coins)) mergedCoins[cId] = (mergedCoins[cId] ?? 0) + amt;
+    result.push({
+      id:                matured[0].id,
+      idsJson:           JSON.stringify(matured.map(d => d.id)),
+      coins:             mergedCoins,
+      coinsLabel:        formatAmounts(mergedCoins, currencies),
+      matured:           true,
+      timeRemainingLabel: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.matured"),
+      depositedAt:       matured[0].depositedAt,
+      minDepositSeconds: 0
+    });
+  }
+  const sortedUnmatured = [...unmatured].sort((a, b) => (a.depositedAt + a.minDepositSeconds) - (b.depositedAt + b.minDepositSeconds));
+  for (const dep of sortedUnmatured) {
+    const remainingDays = Math.ceil((dep.depositedAt + dep.minDepositSeconds - now) / secondsPerDay);
+    result.push({
+      id:                dep.id,
+      idsJson:           JSON.stringify([dep.id]),
+      coins:             dep.coins,
+      coinsLabel:        formatAmounts(dep.coins, currencies),
+      matured:           false,
+      timeRemainingLabel: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysRemaining", { days: remainingDays }),
+      depositedAt:       dep.depositedAt,
+      minDepositSeconds: dep.minDepositSeconds
+    });
+  }
+  return result;
+}
+
 export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedResourceId = null;
   _activeTab = null;
   _sellTabActive = false;
   _sellActorId   = null;
+  _bankActorId   = null;
   _sceneUpdateHook = null;
   _worldTimeHook   = null;
   #pickerAbort = null;
@@ -58,7 +95,12 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       switchToSellTab:        CityManageApp.#onSwitchToSellTab,
       addToSellCart:          CityManageApp.#onAddToSellCart,
       buyBackItem:            CityManageApp.#onBuyBackItem,
-      editPurchasingProfile:  CityManageApp.#onEditPurchasingProfile
+      editPurchasingProfile:  CityManageApp.#onEditPurchasingProfile,
+      addExchangeToCart:      CityManageApp.#onAddExchangeToCart,
+      depositCoins:           CityManageApp.#onDepositCoins,
+      withdrawDeposit:        CityManageApp.#onWithdrawDeposit,
+      overrideBankSettings:   CityManageApp.#onOverrideBankSettings,
+      resetBankSettings:      CityManageApp.#onResetBankSettings
     }
   };
 
@@ -142,6 +184,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
       const isInn          = id === RESOURCE_TYPE_IDS.INN;
       const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
+      const isBank         = id === RESOURCE_TYPE_IDS.BANK;
       const firstEntry     = rawEntries.find(e => e.typeId === id);
       const subType        = firstEntry?.subTypeId
         ? (subTypeMap[id] ?? []).find(s => s.id === firstEntry.subTypeId) ?? null
@@ -157,10 +200,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         name:        coreType?.name ?? id,
         subTypeName: subType?.name ?? null,
         icon:        coreType?.icon ?? "fa-solid fa-question",
-        typeId: id, isInn, isCurrencyTest, isMerchant,
-        isOther: !isInn && !isCurrencyTest && !isMerchant,
+        typeId: id, isInn, isCurrencyTest, isMerchant, isBank,
+        isOther: !isInn && !isCurrencyTest && !isMerchant && !isBank,
         expenses,
         innData:      isInn ? this.#buildInnData(resource, currencies, isGM) : null,
+        bankData:     isBank ? this.#buildBankData(resource, currencies) : null,
         merchantData: await (async () => {
           if (!isMerchant) return null;
           const merchantResult = await this.#buildMerchantData(resource, currencies, isGM);
@@ -212,6 +256,122 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!entry?.subTypeId) return null;
     const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
     return (subTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+  }
+
+  #buildBankData(resource, currencies) {
+    const bankRaw    = resource.typeData?.bank ?? {};
+    const ownedActors = game.actors
+      .filter(a => a.isOwner && a.hasPlayerOwner)
+      .map(a => ({ id: a.id, name: a.name }));
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const mode = currencyConfig.mode ?? 'loose';
+    const actor = this._bankActorId ? game.actors.get(this._bankActorId) : null;
+    const balances = actor ? currencies.map(c => {
+      let amount = 0;
+      if (mode === 'attribute' && c.attributePath)
+        amount = foundry.utils.getProperty(actor, c.attributePath) ?? 0;
+      else if (mode === 'item' && c.itemName) {
+        const item = actor.items.find(i => i.name === c.itemName);
+        amount = item ? (foundry.utils.getProperty(item, 'system.quantity') ?? 0) : 0;
+      }
+      return { id: c.id, abbreviation: c.abbreviation, amount };
+    }) : [];
+    const lowestCurrency   = currencies.length ? currencies.reduce((min, c) => parseExchangeRate(c.exchangeRate) < parseExchangeRate(min.exchangeRate) ? c : min) : null;
+    const standardCurrency = currencies.find(c => c.isStandard) ?? null;
+
+    // Resolve effective settings: template when not overridden, stored values when overridden
+    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const bankEntry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const subType = bankEntry?.subTypeId
+      ? (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      : null;
+    const hasTemplate = !!subType;
+    const src = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const doesExchange    = src.doesExchange ?? false;
+    const exchangeFee     = src.exchangeFee  ?? 0;
+    const depositSettings = src.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
+
+    const rawDeposits = depositSettings.global
+      ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
+      : (bankRaw.deposits ?? []);
+    const actorDeposits = this._bankActorId ? rawDeposits.filter(d => d.actorId === this._bankActorId) : [];
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay   = hoursPerDay * 3600;
+    const now             = game.time.worldTime;
+    const processedDeposits = buildDepositDisplayList(actorDeposits, now, secondsPerDay, currencies);
+    const allCoins = {};
+    for (const dep of actorDeposits) {
+      for (const [cId, amt] of Object.entries(dep.coins)) {
+        allCoins[cId] = (allCoins[cId] ?? 0) + amt;
+      }
+    }
+    const depositsTotal = actorDeposits.length ? formatAmounts(allCoins, currencies) : null;
+
+    return {
+      doesExchange,
+      exchangeFee,
+      currencies:           currencies.map(c => {
+        const bal = balances.find(b => b.id === c.id);
+        return { id: c.id, name: c.name, abbreviation: c.abbreviation, exchangeRate: c.exchangeRate, balance: bal?.amount ?? 0 };
+      }),
+      ownedActors,
+      selectedActorId:      this._bankActorId ?? null,
+      balances,
+      defaultFromCurrencyId: lowestCurrency?.id ?? null,
+      defaultToCurrencyId:   standardCurrency?.id ?? null,
+      depositSettings,
+      processedDeposits,
+      depositsTotal,
+      isOverridden,
+      hasTemplate,
+      isGM: game.user.isGM
+    };
+  }
+
+  #wireExchangePreview(section) {
+    const feeRate      = parseFloat(section.dataset.feeRate) || 0;
+    const fromAmtInput = section.querySelector('[data-field="fromAmount"]');
+    const fromSel      = section.querySelector('[data-field="fromCurrency"]');
+    const toSel        = section.querySelector('[data-field="toCurrency"]');
+    const toPreview    = section.querySelector('[data-field="toAmountPreview"]');
+    const feeEl        = section.querySelector('.ssm-exchange-fee-preview');
+    const addBtn       = section.querySelector('[data-action="addExchangeToCart"]');
+
+    const update = () => {
+      const fromAmount = parseInt(fromAmtInput?.value) || 0;
+      const fromOpt    = fromSel?.selectedOptions[0];
+      const toOpt      = toSel?.selectedOptions[0];
+      const balance    = parseFloat(fromOpt?.dataset.balance ?? '0');
+      const sameCurr   = fromOpt?.value && fromOpt.value === toOpt?.value;
+      const invalid    = !fromAmount || !fromOpt || !toOpt || sameCurr || fromAmount > balance;
+      if (addBtn) addBtn.disabled = invalid;
+      if (!fromAmount || !fromOpt || !toOpt || sameCurr) {
+        if (toPreview) toPreview.value = '';
+        if (feeEl) feeEl.textContent = '';
+        return;
+      }
+      const fromRate = parseExchangeRate(fromOpt.dataset.rate);
+      const toRate   = parseExchangeRate(toOpt.dataset.rate);
+      const fromStd  = fromAmount * fromRate;
+      if (toPreview) toPreview.value = toRate > 0 ? Math.floor(fromStd / toRate) : 0;
+      if (feeEl) {
+        if (feeRate > 0) {
+          const feeStd     = fromStd * feeRate / 100;
+          const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+          const maxDenom   = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+          const feeChange  = calculateChange(feeStd, currencies, maxDenom);
+          feeEl.textContent = feeChange ? `Fee: ${formatAmounts(feeChange, currencies)}` : '';
+        } else {
+          feeEl.textContent = '';
+        }
+      }
+    };
+
+    // Set initial state (button disabled until user enters a valid amount)
+    if (addBtn) addBtn.disabled = true;
+    fromAmtInput?.addEventListener('input', update);
+    fromSel?.addEventListener('change', update);
+    toSel?.addEventListener('change', update);
   }
 
   #buildInnData(resource, currencies, isGM = true) {
@@ -356,6 +516,19 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render({ parts: ["content"] });
       });
     }
+
+    // Wire bank actor select
+    const bankActorSelect = this.element.querySelector('.ssm-bank-actor-select');
+    if (bankActorSelect) {
+      bankActorSelect.addEventListener('change', () => {
+        this._bankActorId = bankActorSelect.value || null;
+        this.render({ parts: ["content"] });
+      });
+    }
+
+    // Wire bank exchange live preview
+    const exchangeSection = this.element.querySelector('.ssm-bank-exchange');
+    if (exchangeSection) this.#wireExchangePreview(exchangeSection);
 
     // Wire merchant drop zone
     const dropZone = this.element.querySelector(".merchant-drop-zone");
@@ -725,6 +898,14 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
     const index = resources.findIndex(r => r.id === id);
     if (index === -1) return;
+    const resource = resources[index];
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.deleteResourceTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.deleteResourceConfirm", { name: resource.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     resources.splice(index, 1);
     await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
     if (this._selectedResourceId === id) this._selectedResourceId = null;
@@ -796,6 +977,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const index = parseInt(target.dataset.entryIndex);
     const resource = this.#syncSelectedResource();
     if (!resource) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.removeEntryTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.removeEntryConfirm", { name: resource.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     const entries = getTypeEntries(resource);
     entries.splice(index, 1);
     resource.typeEntries = entries;
@@ -838,6 +1026,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
     const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const lodging = innData.lodgings.find(l => l.id === lodgingId);
+    if (!lodging) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingConfirm", { name: lodging.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     innData.lodgings = innData.lodgings.filter(l => l.id !== lodgingId);
     await this.#saveInnData(innData);
   }
@@ -862,6 +1059,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const entryId = target.dataset.entryId;
     if (!entryId) return;
     const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const entry = innData.ledger.find(e => e.id === entryId);
+    if (!entry) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: entry.actorName ?? "?", lodging: entry.lodgingName ?? "?" })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle"), icon: "fa-solid fa-times" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     innData.ledger = innData.ledger.filter(e => e.id !== entryId);
     await this.#saveInnData(innData);
   }
@@ -961,6 +1167,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resource = this.#syncSelectedResource();
     if (!resource) return;
     const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    const item = merchant.inventory.find(i => i.id === itemId);
+    if (!item) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemConfirm", { name: item.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
     merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
     await this.#saveMerchantData(merchant);
   }
@@ -1057,5 +1272,259 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resource = this.#syncSelectedResource();
     if (!resource) return;
     await PurchasingProfileEditApp.open(resource);
+  }
+
+  static async #onAddExchangeToCart(event, target) {
+    if (!this._bankActorId) return;
+    const section = this.element.querySelector('.ssm-bank-exchange');
+    if (!section) return;
+    const fromAmount     = parseInt(section.querySelector('[data-field="fromAmount"]')?.value) || 0;
+    const fromCurrencyId = section.querySelector('[data-field="fromCurrency"]')?.value ?? "";
+    const toCurrencyId   = section.querySelector('[data-field="toCurrency"]')?.value ?? "";
+    if (!fromAmount || !fromCurrencyId || !toCurrencyId || fromCurrencyId === toCurrencyId) return;
+
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const currencies   = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const bankData     = resource.typeData?.bank ?? {};
+    const actor        = game.actors.get(this._bankActorId);
+    if (!actor) return;
+
+    cartManager.addExchange({
+      sceneId:        canvas.scene?.id,
+      resourceId:     resource.id,
+      resourceName:   resource.name,
+      actorId:        actor.id,
+      actorName:      actor.name,
+      fromCurrencyId,
+      fromAmount,
+      toCurrencyId,
+      feeRatePercent: bankData.exchangeFee ?? 0
+    });
+    CartApp.open();
+    const amtInput = section.querySelector('[data-field="fromAmount"]');
+    if (amtInput) amtInput.value = '';
+  }
+
+  static async #onDepositCoins() {
+    if (!this._bankActorId) return;
+    const actor = game.actors.get(this._bankActorId);
+    if (!actor) return;
+    const form = this.element.querySelector('.ssm-deposit-form');
+    if (!form) return;
+
+    const coins = {};
+    for (const input of form.querySelectorAll('.ssm-deposit-amount-input')) {
+      const amt = parseInt(input.value) || 0;
+      if (amt > 0) coins[input.dataset.currencyId] = amt;
+    }
+    if (!Object.keys(coins).length) return;
+
+    const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies      = currencyConfig.currencies ?? [];
+    const resource        = this.#syncSelectedResource();
+    if (!resource) return;
+    const bankRaw         = resource.typeData?.bank ?? {};
+    const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
+    const feeRate         = depositSettings.depositFee ?? 0;
+
+    if (feeRate > 0) {
+      const totalStd = totalOfferedInStandard(coins, currencies);
+      const feeStd   = totalStd * feeRate / 100;
+      const maxDenom = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+      const feeCoins = calculateChange(feeStd, currencies, maxDenom) ?? {};
+      const feeLabel = formatAmounts(feeCoins, currencies);
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.feeConfirmTitle"),
+        content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.feeConfirmBody", { fee: feeLabel }),
+        yes:     { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositButton") },
+        no:      { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.cancelButton") }
+      });
+      if (!confirmed) return;
+      await removeCoinsFromActor(actor, feeCoins, currencies, currencyConfig.mode ?? 'loose');
+    } else {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.confirmTitle"),
+        content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.confirmBody", { coins: formatAmounts(coins, currencies) }),
+        yes:     { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositButton") },
+        no:      { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.cancelButton") }
+      });
+      if (!confirmed) return;
+    }
+
+    await removeCoinsFromActor(actor, coins, currencies, currencyConfig.mode ?? 'loose');
+
+    const { hoursPerDay } = getWorldTimeConfig();
+    const deposit = {
+      id:                foundry.utils.randomID(),
+      actorId:           actor.id,
+      actorName:         actor.name,
+      coins,
+      depositedAt:       game.time.worldTime,
+      minDepositSeconds: (depositSettings.minDepositDays ?? 0) * hoursPerDay * 3600
+    };
+
+    const payload = {
+      deposit,
+      resourceId: resource.id,
+      sceneId:    canvas.scene?.id,
+      isGlobal:   depositSettings.global ?? false
+    };
+
+    if (game.user.isGM) {
+      await _handleRecordDeposit(payload);
+    } else {
+      game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.RECORD_DEPOSIT, payload });
+    }
+
+    for (const input of form.querySelectorAll('.ssm-deposit-amount-input')) input.value = '';
+    this.render({ parts: ["content"] });
+  }
+
+  static async #onOverrideBankSettings() {
+    if (!game.user.isGM) return;
+    const resource     = this.#syncSelectedResource();
+    if (!resource) return;
+    const bankRaw      = resource.typeData?.bank ?? {};
+    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const bankEntry    = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const subType      = bankEntry?.subTypeId
+      ? (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      : null;
+    const src  = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const dSrc = src.depositSettings ?? {};
+
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.overrideTitle") },
+      content: `
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.doesExchangeLabel")}</label>
+          <input type="checkbox" name="doesExchange"${src.doesExchange ? ' checked' : ''}>
+        </div>
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.exchangeFeeLabel")}</label>
+          <input type="number" name="exchangeFee" value="${src.exchangeFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
+          <span>%</span>
+        </div>
+        <hr>
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.globalLabel")}</label>
+          <input type="checkbox" name="depositGlobal"${dSrc.global ? ' checked' : ''}>
+        </div>
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositFeeLabel")}</label>
+          <input type="number" name="depositFee" value="${dSrc.depositFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
+          <span>%</span>
+        </div>
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.minDepositDaysLabel")}</label>
+          <input type="number" name="minDepositDays" value="${dSrc.minDepositDays ?? 0}" min="0" step="1" style="width:6rem">
+          <span>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysUnit")}</span>
+        </div>
+        <div class="form-group">
+          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.earlyWithdrawalFeeLabel")}</label>
+          <input type="number" name="earlyWithdrawalFee" value="${dSrc.earlyWithdrawalFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
+          <span>%</span>
+        </div>
+      `,
+      ok: {
+        label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.overrideSave"),
+        callback: (_event, button) => ({
+          doesExchange:       button.form.elements.doesExchange.checked,
+          exchangeFee:        parseFloat(button.form.elements.exchangeFee.value) || 0,
+          depositGlobal:      button.form.elements.depositGlobal.checked,
+          depositFee:         parseFloat(button.form.elements.depositFee.value) || 0,
+          minDepositDays:     parseInt(button.form.elements.minDepositDays.value) || 0,
+          earlyWithdrawalFee: parseFloat(button.form.elements.earlyWithdrawalFee.value) || 0
+        })
+      },
+      rejectClose: false
+    });
+    if (!result) return;
+
+    const bankData = foundry.utils.deepClone(resource.typeData?.bank ?? {});
+    bankData.doesExchange        = result.doesExchange;
+    bankData.exchangeFee         = result.exchangeFee;
+    bankData.depositSettings     = {
+      global:             result.depositGlobal,
+      depositFee:         result.depositFee,
+      minDepositDays:     result.minDepositDays,
+      earlyWithdrawalFee: result.earlyWithdrawalFee
+    };
+    bankData._settingsOverridden = true;
+    resource.typeData ??= {};
+    resource.typeData.bank = bankData;
+    await this.#saveResourceData(resource);
+  }
+
+  static async #onResetBankSettings() {
+    if (!game.user.isGM) return;
+    const resource = this.#syncSelectedResource();
+    if (!resource) return;
+    const bankData = foundry.utils.deepClone(resource.typeData?.bank ?? {});
+    bankData._settingsOverridden = false;
+    resource.typeData ??= {};
+    resource.typeData.bank = bankData;
+    await this.#saveResourceData(resource);
+  }
+
+  static async #onWithdrawDeposit(event, target) {
+    if (!this._bankActorId) return;
+    const actor = game.actors.get(this._bankActorId);
+    if (!actor) return;
+
+    let depositIds;
+    try { depositIds = JSON.parse(target.dataset.depositIds); } catch { return; }
+    if (!depositIds?.length) return;
+
+    const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies      = currencyConfig.currencies ?? [];
+    const resource        = this.#syncSelectedResource();
+    if (!resource) return;
+    const bankRaw         = resource.typeData?.bank ?? {};
+    const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
+    const allDeposits     = depositSettings.global
+      ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
+      : (bankRaw.deposits ?? []);
+
+    const matching = allDeposits.filter(d => depositIds.includes(d.id));
+    if (!matching.length) return;
+
+    const mergedCoins = {};
+    for (const d of matching) for (const [cId, amt] of Object.entries(d.coins)) mergedCoins[cId] = (mergedCoins[cId] ?? 0) + amt;
+    const now = game.time.worldTime;
+    const isMergedMatured = matching.every(d => now >= d.depositedAt + d.minDepositSeconds);
+    const representativeDeposit = {
+      id:                matching[0].id,
+      coins:             mergedCoins,
+      depositedAt:       isMergedMatured ? 0 : matching[0].depositedAt,
+      minDepositSeconds: isMergedMatured ? 0 : matching[0].minDepositSeconds
+    };
+
+    const result = await WithdrawalDialog.open({
+      deposit:         representativeDeposit,
+      depositSettings,
+      currencies,
+      worldTime:       now
+    });
+    if (!result?.withdrawCoins) return;
+
+    const payload = {
+      depositIds,
+      withdrawCoins:  result.withdrawCoins,
+      actorId:        actor.id,
+      earlyFeeRate:   depositSettings.earlyWithdrawalFee ?? 0,
+      resourceId:     resource.id,
+      sceneId:        canvas.scene?.id,
+      isGlobal:       depositSettings.global ?? false
+    };
+
+    if (game.user.isGM) {
+      await _handleProcessWithdrawal(payload);
+    } else {
+      game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PROCESS_WITHDRAWAL, payload });
+    }
+
+    this.render({ parts: ["content"] });
   }
 }
