@@ -1,0 +1,33 @@
+<div class="template-restore-form">
+  {{#if changedItems.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restore.modifiedItems"}}</h4>
+    {{#each changedItems}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="changed" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.modified"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if missingItems.length}}
+  <div class="restore-section">
+    <h4 class="restore-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restore.missingItems"}}</h4>
+    {{#each missingItems}}
+    <label class="restore-item">
+      <input type="checkbox" checked
+             data-restore-kind="missing" data-restore-id="{{this.id}}">
+      <span class="restore-item-name">{{this.name}}</span>
+      <span class="restore-item-note">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.removed"}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#unless hasAnyItems}}
+  <p class="restore-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.restore.nothingToRestore"}}</em></p>
+  {{/unless}}
+</div>

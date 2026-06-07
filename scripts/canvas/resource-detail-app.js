@@ -10,6 +10,7 @@ import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue } 
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice, computeBuybackPrice } from "./purchasing-utils.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
+import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -46,8 +47,9 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       buyInventoryItem:         ResourceDetailApp.#onBuyInventoryItem,
       deleteMerchantItem:       ResourceDetailApp.#onDeleteMerchantItem,
       editMerchantItem:         ResourceDetailApp.#onEditMerchantItem,
-      addManualInventoryItem:   ResourceDetailApp.#onAddManualInventoryItem,
-      switchToSellTab:          ResourceDetailApp.#onSwitchToSellTab,
+      addManualInventoryItem:         ResourceDetailApp.#onAddManualInventoryItem,
+      restoreFromMerchantTemplate:    ResourceDetailApp.#onRestoreFromMerchantTemplate,
+      switchToSellTab:                ResourceDetailApp.#onSwitchToSellTab,
       switchFromSellTab:        ResourceDetailApp.#onSwitchFromSellTab,
       selectSellActor:          ResourceDetailApp.#onSelectSellActor,
       addToSellCart:            ResourceDetailApp.#onAddToSellCart,
@@ -148,6 +150,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       if (isMerchant) {
         const merchantResult = await this.#buildMerchantData(currencies, isGM);
         if (merchantResult._needsSave && isGM) this.#saveMerchantData(merchantResult._updatedMerchant).catch(() => {});
+        if (isGM) merchantResult.canRestore = !!this.#getMerchantTemplateForResource();
         merchantData = merchantResult;
       }
 
@@ -551,6 +554,13 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     return (subTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
+  #getMerchantTemplateForResource() {
+    const entry = getTypeEntries(this._resource).find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+    if (!entry?.subTypeId) return null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+    return (subTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+  }
+
   static async #onDeleteLodging(event, target) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
@@ -674,6 +684,16 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
     merchant.inventory.push(result);
     await this.#saveMerchantData(merchant);
+  }
+
+  static async #onRestoreFromMerchantTemplate() {
+    if (!game.user.isGM) return;
+    const template = this.#getMerchantTemplateForResource();
+    if (!template) return;
+    const merchantData = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
+      await this.#saveMerchantData(updated);
+    });
   }
 
   static #onSwitchToSellTab() {

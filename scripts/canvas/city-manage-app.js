@@ -14,6 +14,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
+import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -48,8 +49,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       configureMenu:        CityManageApp.#onConfigureMenu,
       refreshCourse:        CityManageApp.#onRefreshCourse,
       buyMenuItem:          CityManageApp.#onBuyMenuItem,
-      restoreFromTemplate:  CityManageApp.#onRestoreFromTemplate,
-      addMerchantItem:        CityManageApp.#onAddMerchantItem,
+      restoreFromTemplate:         CityManageApp.#onRestoreFromTemplate,
+      restoreFromMerchantTemplate: CityManageApp.#onRestoreFromMerchantTemplate,
+      addMerchantItem:             CityManageApp.#onAddMerchantItem,
       deleteMerchantItem:     CityManageApp.#onDeleteMerchantItem,
       editMerchantItem:       CityManageApp.#onEditMerchantItem,
       addManualInventoryItem: CityManageApp.#onAddManualInventoryItem,
@@ -168,7 +170,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }));
 
-    const innTemplate = isGM ? this.#getTemplateForResource(resource) : null;
+    const innTemplate      = isGM ? this.#getTemplateForResource(resource)         : null;
+    const merchantTemplate = isGM ? this.#getMerchantTemplateForResource(resource) : null;
 
     const effectiveProfile = mergePurchasingProfiles(resource);
     const hasSellTab = effectiveProfile.length > 0;
@@ -187,7 +190,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isGM,
       pickerGroups,
       hasAvailableTypes: isGM && pickerGroups.length > 0,
-      hasInnTemplate:    !!innTemplate,
+      hasInnTemplate:      !!innTemplate,
+      hasMerchantTemplate: !!merchantTemplate,
       hasSellTab, sellTabActive, sellData,
       tabs,
       hasTabs:         tabs.length > 0 || hasSellTab,
@@ -201,6 +205,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!entry?.subTypeId) return null;
     const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
     return (subTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+  }
+
+  #getMerchantTemplateForResource(resource) {
+    const entry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+    if (!entry?.subTypeId) return null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+    return (subTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
   #buildInnData(resource, currencies, isGM = true) {
@@ -880,6 +891,17 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const innData = foundry.utils.deepClone(resource.typeData?.inn ?? { lodgings: [], ledger: [] });
     await TemplateRestoreDialog.open(innData, template, async (updatedInn) => {
       await this.#saveInnData(updatedInn);
+    });
+  }
+
+  static async #onRestoreFromMerchantTemplate() {
+    if (!game.user.isGM) return;
+    const resource = this.#syncSelectedResource();
+    const template = this.#getMerchantTemplateForResource(resource);
+    if (!resource || !template) return;
+    const merchantData = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
+      await this.#saveMerchantData(updated);
     });
   }
 

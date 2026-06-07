@@ -98,12 +98,14 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       id:               this._item.id || foundry.utils.randomID(),
       name,
       price,
-      itemId:           this._item.itemId   ?? null,
-      quantity:         this._item.quantity ?? null,
+      itemId:           this._item.itemId        ?? null,
+      quantity:         this._item.quantity      ?? null,
       itemType,
       minCitySize,
       stockAvailability,
-      stockFormula
+      stockFormula,
+      templateItemId:   this._item.templateItemId  ?? null,
+      _templateValues:  this._item._templateValues ?? null
     });
   }
 

@@ -381,6 +381,12 @@
       "buybackSection": "Buyback Available",
       "profileEditHint": "Edit the purchasing profile for this resource. Overrides take precedence over template rules.",
       "colSource": "Source",
+      "restore": {
+        "title": "Restore from Template",
+        "buttonLabel": "Restore from Template",
+        "modifiedItems": "Modified Items",
+        "missingItems": "Removed Items"
+      },
       "item": {
         "addTitle": "Add Merchant Item",
         "editTitle": "Edit Merchant Item",

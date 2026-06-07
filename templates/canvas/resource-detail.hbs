@@ -184,6 +184,12 @@
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.inventory"}}</span>
           {{#if this.merchantData.isGM}}
+          {{#if this.merchantData.canRestore}}
+          <button type="button" class="icon" data-action="restoreFromMerchantTemplate"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.restore.buttonLabel'}}">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+          {{/if}}
           <button type="button" class="icon" data-action="addManualInventoryItem"
                   aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.addItem'}}">
             <i class="fa-solid fa-plus"></i>
