@@ -23,7 +23,7 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
     id: `${MODULE_ID}-merchant-item-edit`,
     tag: "form",
     form: { handler: MerchantItemEditApp.#onSubmit, closeOnSubmit: true },
-    position: { width: 360 }
+    position: { width: 400 }
   };
 
   static PARTS = {
@@ -53,10 +53,15 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       selected: (this._item.itemType ?? "") === t.systemType
     }));
 
+    const cityTypes = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+
     return {
       item: {
-        name:     this._item.name    ?? "",
-        itemType: this._item.itemType ?? "",
+        name:              this._item.name              ?? "",
+        itemType:          this._item.itemType          ?? "",
+        minCitySize:       this._item.minCitySize       ?? "",
+        stockAvailability: this._item.stockAvailability ?? 100,
+        stockFormula:      this._item.stockFormula      ?? "",
         price: {
           currencyId: this._item.price?.currencyId ?? defaultCurrencyId,
           amount:     this._item.price?.amount     ?? 0
@@ -64,7 +69,9 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       },
       currencies,
       typeOptions,
-      hasTypes: typeOptions.length > 0,
+      cityTypes,
+      hasTypes:     typeOptions.length > 0,
+      hasCityTypes: cityTypes.length > 0,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -81,16 +88,22 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       currencyId: formData.object.priceCurrencyId ?? "",
       amount:     parseFloat(formData.object.priceAmount) || 0
     };
-    const itemType = (formData.object.itemType ?? "").trim() || null;
+    const itemType         = (formData.object.itemType    ?? "").trim() || null;
+    const minCitySize      = (formData.object.minCitySize ?? "").trim();
+    const stockAvailability = parseFloat(formData.object.stockAvailability) || 100;
+    const stockFormula     = (formData.object.stockFormula ?? "").trim();
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({
-      id:       this._item.id || foundry.utils.randomID(),
+      id:               this._item.id || foundry.utils.randomID(),
       name,
       price,
-      itemId:   this._item.itemId   ?? null,
-      quantity: this._item.quantity ?? null,
-      itemType
+      itemId:           this._item.itemId   ?? null,
+      quantity:         this._item.quantity ?? null,
+      itemType,
+      minCitySize,
+      stockAvailability,
+      stockFormula
     });
   }
 

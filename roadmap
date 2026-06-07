@@ -1,7 +1,0 @@
-In purchasing, If a user clicks the "add currency to cover this cost" button, do not add more currency than they have of the type they offer, even if the price requires more. IE if the price would be 150 SP, and they click + but only have 10 sp, only add 10 sp.
-
-Additionally we should show a tally under Cost as they add funds showing remaining balance, with the total offered + change at the bottom, extending the pictured section
-
-
-## NExt
-Show linked item vs simple item. have way to view it.

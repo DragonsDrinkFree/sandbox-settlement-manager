@@ -29,7 +29,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: `${MODULE_ID}-sub-type-edit`,
     tag: "form",
     form: { handler: SubTypeEditApp.#onSubmit, closeOnSubmit: true },
-    position: { width: 620 },
+    position: { width: 800 },
     actions: {
       addLodging:                 SubTypeEditApp.#onAddLodging,
       deleteLodging:              SubTypeEditApp.#onDeleteLodging,
@@ -96,6 +96,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         })));
       }
     }
+    const cityTypes = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+    const merchantData = this._subType.typeData?.merchant ?? {};
+    const stockType       = merchantData.stockType        ?? "percent";
+    const restockFrequency = merchantData.restockFrequency ?? "weekly";
     return {
       subType: this._subType,
       isInn,
@@ -109,6 +113,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       currencies,
       courses,
       templateInventory,
+      cityTypes,
+      stockType,
+      restockFrequency,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -205,9 +212,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #syncTemplateInventoryFromDOM() {
     const rows = this.element?.querySelectorAll('.merchant-inventory-row') ?? [];
     this._templateInventory = [...rows].map(row => ({
-      id:     row.dataset.inventoryItemId || foundry.utils.randomID(),
-      name:   (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-      itemId: row.dataset.itemUuid ?? null,
+      id:               row.dataset.inventoryItemId || foundry.utils.randomID(),
+      name:             (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
+      itemId:           row.dataset.itemUuid ?? null,
+      itemType:         row.dataset.itemType ?? null,
+      minCitySize:      (row.querySelector('[data-field="minCitySize"]')?.value ?? "").trim(),
+      stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
+      stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
       price: {
         currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? "",
         amount:     parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
@@ -235,11 +246,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
       this._templateInventory.push({
-        id:       foundry.utils.randomID(),
-        name:     readItemName(item),
-        price:    readItemPrice(item, currencies),
-        itemId:   item.uuid,
-        itemType: item.type ?? null
+        id:                foundry.utils.randomID(),
+        name:              readItemName(item),
+        price:             readItemPrice(item, currencies),
+        itemId:            item.uuid,
+        itemType:          item.type ?? null,
+        minCitySize:       "",
+        stockAvailability: 100,
+        stockFormula:      ""
       });
       this.render({ parts: ['form'] });
     });
@@ -309,9 +323,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const defaultCurrencyId = currencyConfig.currencies?.[0]?.id ?? "";
     this._templateInventory.push({
-      id:    foundry.utils.randomID(),
-      name:  "",
-      price: { currencyId: defaultCurrencyId, amount: 0 }
+      id:                foundry.utils.randomID(),
+      name:              "",
+      price:             { currencyId: defaultCurrencyId, amount: 0 },
+      itemId:            null,
+      itemType:          null,
+      minCitySize:       "",
+      stockAvailability: 100,
+      stockFormula:      ""
     });
     this.render({ parts: ["form"] });
   }
@@ -341,19 +360,25 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       result.typeData = { lodgings, menu: this._menu };
     }
     if (typeId === RESOURCE_TYPE_IDS.MERCHANT) {
+      const stockType        = (formData.object.merchantStockType        ?? "percent");
+      const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
       const rows = form.querySelectorAll('.merchant-inventory-row');
       const inventory = [...rows]
         .map(row => ({
-          id:     row.dataset.inventoryItemId || foundry.utils.randomID(),
-          name:   (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-          itemId: row.dataset.itemUuid ?? null,
+          id:                row.dataset.inventoryItemId || foundry.utils.randomID(),
+          name:              (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
+          itemId:            row.dataset.itemUuid ?? null,
+          itemType:          row.dataset.itemType ?? null,
+          minCitySize:       (row.querySelector('[data-field="minCitySize"]')?.value ?? "").trim(),
+          stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
+          stockFormula:      (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
           price: {
             currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? "",
             amount:     parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
           }
         }))
         .filter(item => item.name);
-      result.typeData = { merchant: { inventory } };
+      result.typeData = { merchant: { stockType, restockFrequency, inventory } };
     }
     result._templateTypeId = typeId;
 

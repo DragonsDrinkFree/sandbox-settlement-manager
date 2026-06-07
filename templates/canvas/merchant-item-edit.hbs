@@ -29,4 +29,24 @@
       </select>
     </div>
   </div>
+  {{#if hasCityTypes}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}}</label>
+    <select name="minCitySize">
+      <option value=""{{#unless item.minCitySize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+      {{#each cityTypes}}
+      <option value="{{this.name}}"{{#if (eq this.name ../item.minCitySize)}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+  {{/if}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}}</label>
+    <input type="number" name="stockAvailability" value="{{item.stockAvailability}}" min="0" max="100" step="1">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}}</label>
+    <input type="text" name="stockFormula" value="{{item.stockFormula}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormulaHint'}}">
+  </div>
 </div>

@@ -2195,6 +2195,49 @@
 }
 
 /* -------------------------------------------- */
+/*  Merchant Stock Config                        */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .merchant-stock-config {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-stock-config label {
+  font-weight: 500;
+  white-space: nowrap;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-stock-config select {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-sub-type-edit .col-msize {
+  min-width: 110px;
+}
+
+#sandbox-settlement-manager-sub-type-edit .col-mavail {
+  width: 60px;
+  text-align: center;
+}
+
+#sandbox-settlement-manager-sub-type-edit .col-mformula {
+  min-width: 100px;
+}
+
+#sandbox-settlement-manager-city-manage .col-stock,
+#sandbox-settlement-manager-resource-detail .col-stock {
+  width: 50px;
+  text-align: right;
+}
+
+/* -------------------------------------------- */
 /*  Cart Panel                                  */
 /* -------------------------------------------- */
 

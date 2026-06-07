@@ -126,6 +126,19 @@
   <div class="merchant-only"{{#unless isMerchant}} hidden{{/unless}}>
     <fieldset class="merchant-inventory-templates">
       <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.defaultInventory"}}</legend>
+      <div class="merchant-stock-config">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockType"}}</label>
+        <select name="merchantStockType">
+          <option value="percent"{{#if (eq stockType "percent")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockTypePercent"}}</option>
+          <option value="x-in-6"{{#if (eq stockType "x-in-6")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockTypeXin6"}}</option>
+        </select>
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockFrequency"}}</label>
+        <select name="merchantRestockFrequency">
+          <option value="daily"{{#if (eq restockFrequency "daily")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockDaily"}}</option>
+          <option value="weekly"{{#if (eq restockFrequency "weekly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockWeekly"}}</option>
+          <option value="monthly"{{#if (eq restockFrequency "monthly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockMonthly"}}</option>
+        </select>
+      </div>
       <div class="merchant-template-drop-zone merchant-drop-zone">
         <i class="fa-solid fa-box-open"></i>
         <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>
@@ -135,12 +148,16 @@
           <tr>
             <th class="col-mname">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
             <th class="col-mprice">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colPrice"}}</th>
+            <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}}</th>
+            <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}}</th>
+            <th class="col-mformula">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}}</th>
             <th class="col-del"></th>
           </tr>
         </thead>
         <tbody>
           {{#each templateInventory}}
-          <tr class="merchant-inventory-row" data-inventory-item-id="{{this.id}}" data-item-uuid="{{this.itemId}}">
+          <tr class="merchant-inventory-row" data-inventory-item-id="{{this.id}}"
+              data-item-uuid="{{this.itemId}}" data-item-type="{{this.itemType}}">
             <td class="col-mname">
               {{#if this.itemId}}
               {{{this.enrichedName}}}
@@ -159,6 +176,22 @@
                 {{/each}}
               </select>
             </td>
+            <td class="col-msize">
+              <select data-field="minCitySize">
+                <option value=""{{#unless this.minCitySize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+                {{#each ../cityTypes}}
+                <option value="{{this.name}}"{{#if (eq this.name ../minCitySize)}} selected{{/if}}>{{this.name}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td class="col-mavail">
+              <input type="number" data-field="stockAvailability" value="{{this.stockAvailability}}"
+                     min="0" max="100" step="1" class="lodging-num-input">
+            </td>
+            <td class="col-mformula">
+              <input type="text" data-field="stockFormula" value="{{this.stockFormula}}"
+                     placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormulaHint'}}">
+            </td>
             <td class="col-del">
               <button type="button" class="icon" data-action="deleteTemplateInventoryItem"
                       data-index="{{@index}}" aria-label="Remove">
@@ -168,7 +201,7 @@
           </tr>
           {{else}}
           <tr>
-            <td colspan="3" class="lodging-table-empty">
+            <td colspan="6" class="lodging-table-empty">
               <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noDefaultInventory"}}</em>
             </td>
           </tr>

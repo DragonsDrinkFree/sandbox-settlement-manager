@@ -201,6 +201,7 @@
                 <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
                 {{#each this.attributes}}<th>{{this.label}}</th>{{/each}}
                 <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colPrice"}}</th>
+                <th class="col-stock ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colStock"}}</th>
                 <th class="ssm-col-action"></th>
               </tr>
             </thead>
@@ -222,10 +223,11 @@
                 <td class="col-name">{{this.name}}</td>
                 {{#each this.attrCells}}<td>{{this.value}}</td>{{/each}}
                 <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
+                <td class="col-stock ssm-col-right">{{this.stockLabel}}</td>
                 <td class="ssm-col-action">
                   {{#if this.price}}
                   <button type="button" class="buy-button" data-action="buyInventoryItem"
-                          data-item-id="{{this.id}}">
+                          data-item-id="{{this.id}}" {{#if this.isSoldOut}}disabled{{/if}}>
                     {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
                   </button>
                   {{/if}}
@@ -245,6 +247,7 @@
               {{#if this.merchantData.isGM}}<th class="ssm-col-controls"></th>{{/if}}
               <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
               <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colPrice"}}</th>
+              <th class="col-stock ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colStock"}}</th>
               <th class="ssm-col-action"></th>
             </tr>
           </thead>
@@ -265,17 +268,18 @@
               {{/if}}
               <td class="col-name">{{this.name}}</td>
               <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
+              <td class="col-stock ssm-col-right">{{this.stockLabel}}</td>
               <td class="ssm-col-action">
                 {{#if this.price}}
                 <button type="button" class="buy-button" data-action="buyInventoryItem"
-                        data-item-id="{{this.id}}">
+                        data-item-id="{{this.id}}" {{#if this.isSoldOut}}disabled{{/if}}>
                   {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
                 </button>
                 {{/if}}
               </td>
             </tr>
             {{else}}
-            <tr><td class="ssm-empty" colspan="4"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.empty"}}</em></td></tr>
+            <tr><td class="ssm-empty" colspan="5"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.empty"}}</em></td></tr>
             {{/each}}
           </tbody>
         </table>

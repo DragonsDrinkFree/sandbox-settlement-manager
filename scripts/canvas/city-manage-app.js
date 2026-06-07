@@ -148,8 +148,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         typeId: id, isInn, isCurrencyTest, isMerchant,
         isOther: !isInn && !isCurrencyTest && !isMerchant,
         expenses,
-        innData:      isInn      ? this.#buildInnData(resource, currencies, isGM)             : null,
-        merchantData: isMerchant ? await this.#buildMerchantData(resource, currencies, isGM) : null
+        innData:      isInn ? this.#buildInnData(resource, currencies, isGM) : null,
+        merchantData: await (async () => {
+          if (!isMerchant) return null;
+          const merchantResult = await this.#buildMerchantData(resource, currencies, isGM);
+          if (merchantResult._needsSave && isGM) this.#saveMerchantData(merchantResult._updatedMerchant).catch(() => {});
+          return merchantResult;
+        })()
       };
     }));
 
@@ -445,14 +450,54 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async #buildMerchantData(resource, currencies, isGM = true) {
-    const rawInventory = resource.typeData?.merchant?.inventory ?? [];
-    const itemConfig   = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
-    const typeConfigs  = itemConfig.itemTypes ?? [];
-    const typeMap      = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
+    const merchant       = resource.typeData?.merchant ?? {};
+    const rawInventory   = merchant.inventory ?? [];
+    const stockType        = merchant.stockType        ?? "percent";
+    const restockFrequency = merchant.restockFrequency ?? "weekly";
+
+    const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+    const typeConfigs = itemConfig.itemTypes ?? [];
+    const typeMap     = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
+
+    const cityTypes       = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+    const currentCityType = canvas.scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
+    const currentCityIdx  = cityTypes.findIndex(t => t.name === currentCityType);
+
+    const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
+    const spd         = hoursPerDay * 3600;
+    const cadenceSecs = { daily: spd, weekly: spd * daysPerWeek, monthly: spd * daysPerWeek * 4 }[restockFrequency] ?? spd;
+    const restockDue  = isGM && game.time.worldTime >= (merchant.lastRestocked ?? 0) + cadenceSecs;
+
+    let _needsSave = false;
+    const workingInventory = foundry.utils.deepClone(rawInventory);
+
+    if (restockDue) {
+      for (const item of workingInventory) {
+        if (!(item.stockFormula ?? "").trim()) continue;
+        let avail;
+        if (stockType === "x-in-6") {
+          const roll = await new Roll("1d6").evaluate();
+          avail = roll.total <= (item.stockAvailability ?? 6);
+        } else {
+          avail = Math.random() * 100 < (item.stockAvailability ?? 100);
+        }
+        item.quantity = avail
+          ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total)
+          : 0;
+      }
+      _needsSave = true;
+    }
+
+    const displayInventory = workingInventory.filter(item => {
+      const min = item.minCitySize ?? "";
+      if (!min) return true;
+      const minIdx = cityTypes.findIndex(t => t.name === min);
+      return minIdx === -1 || currentCityIdx >= minIdx;
+    });
 
     const groupMap = new Map();
 
-    for (const item of rawInventory) {
+    for (const item of displayInventory) {
       const typeKey = item.itemType ?? null;
       const typeCfg = typeKey ? (typeMap[typeKey] ?? null) : null;
 
@@ -472,6 +517,12 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         id: a.id, label: a.label, value: attrValues[a.id] ?? "—"
       }));
 
+      const hasFormula = !!(item.stockFormula ?? "").trim();
+      const isSoldOut  = hasFormula && item.quantity === 0;
+      const stockLabel = hasFormula
+        ? (item.quantity == null ? "∞" : String(item.quantity))
+        : "∞";
+
       if (!groupMap.has(typeKey)) {
         groupMap.set(typeKey, {
           typeKey,
@@ -480,7 +531,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
           items:      []
         });
       }
-      groupMap.get(typeKey).items.push({ ...item, priceLabel, attrCells });
+      groupMap.get(typeKey).items.push({ ...item, priceLabel, attrCells, stockLabel, isSoldOut });
     }
 
     const groups = [
@@ -488,16 +539,25 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ...(groupMap.has(null) ? [groupMap.get(null)] : [])
     ];
 
-    const flatInventory = rawInventory.map(item => {
+    const flatInventory = displayInventory.map(item => {
       let priceLabel = "—";
       if (item.price) {
         const curr = currencies.find(c => c.id === item.price.currencyId);
         priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
       }
-      return { ...item, priceLabel, attrCells: [] };
+      const hasFormula = !!(item.stockFormula ?? "").trim();
+      const isSoldOut  = hasFormula && item.quantity === 0;
+      const stockLabel = hasFormula
+        ? (item.quantity == null ? "∞" : String(item.quantity))
+        : "∞";
+      return { ...item, priceLabel, attrCells: [], stockLabel, isSoldOut };
     });
 
-    return { groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0 };
+    return {
+      groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,
+      _needsSave,
+      _updatedMerchant: { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime }
+    };
   }
 
   async #saveMerchantData(merchantData) {

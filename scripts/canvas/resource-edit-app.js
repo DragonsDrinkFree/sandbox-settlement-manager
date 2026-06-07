@@ -197,11 +197,14 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       typeData = {
         ...typeData,
         merchant: {
+          stockType:        merchantSubType?.typeData?.merchant?.stockType        ?? "percent",
+          restockFrequency: merchantSubType?.typeData?.merchant?.restockFrequency ?? "weekly",
+          lastRestocked:    0,
           inventory: templateItems.map(item => ({
             ...item,
             templateItemId: item.id,
-            itemId: null,
-            quantity: null
+            itemId:         null,
+            quantity:       null
           }))
         }
       };
