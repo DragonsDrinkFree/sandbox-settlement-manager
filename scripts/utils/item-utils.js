@@ -51,6 +51,19 @@ export function readItemPrice(item, currencies) {
   return null;
 }
 
+/**
+ * Read configured attribute values for a given type config from a live Foundry item.
+ * typeConfig: { attributes: [{ id, label, path }] }
+ * Returns { attrId: stringValue, ... }
+ */
+export function readItemAttributes(foundryItem, typeConfig) {
+  const result = {};
+  for (const attr of (typeConfig?.attributes ?? [])) {
+    result[attr.id] = String(foundry.utils.getProperty(foundryItem, attr.path) ?? "—");
+  }
+  return result;
+}
+
 /** Read an item's display name using the configured nameAttribute. */
 export function readItemName(item) {
   const { nameAttribute } = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);

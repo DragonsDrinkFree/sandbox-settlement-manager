@@ -66,7 +66,8 @@
         "priceAttributeHint": "Dot-notation path to the item's price value. Leave blank if items have no price. Examples: system.price, system.cost, system.price.value",
         "priceDenominationAttributeLabel": "Price Denomination Attribute",
         "priceDenominationAttributeHint": "Dot-notation path to the denomination string (e.g. system.costDenomination). The value must match a configured currency abbreviation. Only used with the Denomination Field format.",
-        "formatManual": "Manual (GM sets prices when adding items)"
+        "formatManual": "Manual (GM sets prices when adding items)",
+        "globalSection": "Global Settings"
       },
       "currencyConfig": {
         "name": "Currency Configuration",
@@ -174,6 +175,7 @@
       "cost": "Cost",
       "change": "Change",
       "noChange": "None",
+      "remaining": "Remaining",
       "fillTooltip": "Add enough of this currency to cover the remaining cost",
       "confirm": "Confirm Purchase",
       "complete": "Purchase complete.",
@@ -322,6 +324,19 @@
       "addTemplateItem": "Add Item",
       "itemNamePlaceholder": "e.g. Iron Sword",
       "addItem": "Add Item",
+      "otherGroup": "Other",
+      "itemTypes": "Item Types",
+      "addItemType": "Add Item Type",
+      "noItemTypes": "No item types configured.",
+      "systemTypeLabel": "Foundry Item Type",
+      "typeLabel": "Display Label",
+      "attributeLinks": "Attribute Links",
+      "addAttribute": "Add Attribute",
+      "browseAttributes": "Browse",
+      "attrLabelPlaceholder": "e.g. Damage",
+      "attrPathPlaceholder": "e.g. system.damage.base",
+      "attrLabelHeader": "Label",
+      "attrPathHeader": "Path",
       "item": {
         "addTitle": "Add Merchant Item",
         "editTitle": "Edit Merchant Item",
@@ -329,6 +344,15 @@
         "namePlaceholder": "e.g. Iron Sword",
         "priceLabel": "Price"
       }
+    },
+    "itemType": {
+      "addTitle": "Add Item Type",
+      "editTitle": "Edit Item Type"
+    },
+    "attributePicker": {
+      "title": "Browse Attributes",
+      "filter": "Filter paths...",
+      "labelPlaceholder": "Label"
     },
     "keybinding": {},
     "dialog": {

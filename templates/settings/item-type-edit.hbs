@@ -1,0 +1,67 @@
+<div class="item-type-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.systemTypeLabel"}}</label>
+    <div class="form-fields">
+      <select name="systemType">
+        <option value="">— Select —</option>
+        {{#each systemTypes}}
+        <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.typeLabel"}}</label>
+    <div class="form-fields">
+      <input type="text" name="label" value="{{itemType.label}}" placeholder="e.g. Weapons">
+    </div>
+  </div>
+
+  <fieldset class="attr-links-fieldset">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.attributeLinks"}}</legend>
+    <table class="attr-links-table ssm-table">
+      <thead>
+        <tr>
+          <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.attrLabelHeader"}}</th>
+          <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.attrPathHeader"}}</th>
+          <th class="ssm-col-action"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each attributes}}
+        <tr class="attr-link-row" data-attr-id="{{this.id}}">
+          <td>
+            <input type="text" data-field="label" value="{{this.label}}"
+                   placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.attrLabelPlaceholder'}}">
+          </td>
+          <td>
+            <input type="text" data-field="path" value="{{this.path}}"
+                   placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.attrPathPlaceholder'}}">
+          </td>
+          <td class="ssm-col-action">
+            <button type="button" class="icon" data-action="deleteAttribute" data-index="{{@index}}"
+                    aria-label="Remove"><i class="fa-solid fa-times"></i></button>
+          </td>
+        </tr>
+        {{else}}
+        <tr>
+          <td colspan="3" class="lodging-table-empty">
+            <em>No attribute links configured.</em>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <div class="attr-links-actions">
+      <button type="button" data-action="browseAttribute" class="attr-browse-btn">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.browseAttributes"}}
+      </button>
+      <button type="button" data-action="addAttribute" class="attr-add-btn">
+        <i class="fa-solid fa-plus"></i>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addAttribute"}}
+      </button>
+    </div>
+  </fieldset>
+</div>

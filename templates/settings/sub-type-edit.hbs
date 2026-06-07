@@ -142,8 +142,13 @@
           {{#each templateInventory}}
           <tr class="merchant-inventory-row" data-inventory-item-id="{{this.id}}" data-item-uuid="{{this.itemId}}">
             <td class="col-mname">
+              {{#if this.itemId}}
+              {{{this.enrichedName}}}
+              <input type="hidden" data-field="name" value="{{this.name}}">
+              {{else}}
               <input type="text" data-field="name" value="{{this.name}}"
                      placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.itemNamePlaceholder'}}">
+              {{/if}}
             </td>
             <td class="col-mprice">
               <input type="number" data-field="priceAmount" value="{{this.price.amount}}" min="0" step="0.01"

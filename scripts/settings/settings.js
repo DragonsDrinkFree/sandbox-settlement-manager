@@ -42,7 +42,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Object,
-    default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "" }
+    default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "", itemTypes: [] }
   });
 
   game.settings.register(MODULE_ID, SETTINGS.HOURS_PER_DAY, {

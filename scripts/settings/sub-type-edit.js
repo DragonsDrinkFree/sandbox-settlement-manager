@@ -87,10 +87,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }));
       }
       if (showMerchantSection) {
-        templateInventory = this._templateInventory.map(item => ({
+        templateInventory = await Promise.all(this._templateInventory.map(async item => ({
           ...item,
-          price: item.price ?? { currencyId: defaultCurrencyId, amount: 0 }
-        }));
+          price: item.price ?? { currencyId: defaultCurrencyId, amount: 0 },
+          enrichedName: item.itemId
+            ? await TextEditor.enrichHTML(`@UUID[${item.itemId}]{${item.name}}`, { async: true })
+            : null
+        })));
       }
     }
     return {
@@ -232,10 +235,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
       this._templateInventory.push({
-        id:     foundry.utils.randomID(),
-        name:   readItemName(item),
-        price:  readItemPrice(item, currencies),
-        itemId: item.uuid
+        id:       foundry.utils.randomID(),
+        name:     readItemName(item),
+        price:    readItemPrice(item, currencies),
+        itemId:   item.uuid,
+        itemType: item.type ?? null
       });
       this.render({ parts: ['form'] });
     });

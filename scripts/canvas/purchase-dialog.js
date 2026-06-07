@@ -131,14 +131,22 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const cost = costInStandard(this._expense, this._currencies);
     const offered = totalOfferedInStandard(payment, this._currencies);
     const remaining = Math.max(0, cost - offered);
-    if (remaining < 1e-9) return; // already paid
-
-    // Minimum whole coins of this denomination to cover the remaining gap
-    const coinsToAdd = Math.ceil(remaining / rate - 1e-9);
+    if (remaining < 1e-9) return;
 
     const input = this.element.querySelector(`.payment-input[data-currency-id="${currencyId}"]`);
     if (!input) return;
-    input.value = (Math.max(0, parseInt(input.value) || 0)) + coinsToAdd;
+
+    const currentInInput = Math.max(0, parseInt(input.value) || 0);
+    let coinsToAdd = Math.ceil(remaining / rate - 1e-9);
+
+    if (this._mode !== "loose" && this._actor) {
+      const balance = this.#readActorBalance(currency);
+      const maxAddable = Math.max(0, balance - currentInInput);
+      coinsToAdd = Math.min(coinsToAdd, maxAddable);
+    }
+
+    if (coinsToAdd <= 0) return;
+    input.value = currentInInput + coinsToAdd;
     this.#updateLiveCalc();
   }
 
@@ -147,13 +155,25 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const cost = costInStandard(this._expense, this._currencies);
     const offered = totalOfferedInStandard(payment, this._currencies);
     const excess = offered - cost;
+    const remainingStd = Math.max(0, cost - offered);
 
-    const offerEl  = this.element.querySelector(".calc-offering");
-    const changeEl = this.element.querySelector(".calc-change");
-    const errorEl  = this.element.querySelector(".purchase-error");
-    const submitBtn = this.element.querySelector('[type="submit"]');
+    const offerEl     = this.element.querySelector(".calc-offering");
+    const changeEl    = this.element.querySelector(".calc-change");
+    const remainingEl = this.element.querySelector(".calc-remaining");
+    const errorEl     = this.element.querySelector(".purchase-error");
+    const submitBtn   = this.element.querySelector('[type="submit"]');
 
     if (offerEl) offerEl.textContent = formatAmounts(payment, this._currencies);
+
+    if (remainingEl) {
+      if (offered < 1e-9 || remainingStd < 1e-9) {
+        remainingEl.textContent = "—";
+      } else {
+        const maxRate = Math.max(...this._currencies.map(c => parseExchangeRate(c.exchangeRate)));
+        const breakdown = calculateChange(remainingStd, this._currencies, maxRate);
+        remainingEl.textContent = breakdown ? formatAmounts(breakdown, this._currencies) : `${remainingStd}`;
+      }
+    }
 
     const setError = (key) => {
       if (errorEl) errorEl.textContent = game.i18n.localize(key);

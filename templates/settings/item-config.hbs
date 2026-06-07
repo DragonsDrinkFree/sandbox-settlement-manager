@@ -1,39 +1,63 @@
 <div class="ssm-item-config">
-  <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeLabel"}}</label>
-    <div class="form-fields">
-      <input type="text" name="nameAttribute" value="{{nameAttribute}}">
-    </div>
-    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeHint"}}</p>
-  </div>
+  <fieldset class="global-item-config">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.globalSection"}}</legend>
 
-  <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatLabel"}}</label>
-    <div class="form-fields">
-      <select name="priceFormat">
-        {{#each formats}}
-        <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
-        {{/each}}
-      </select>
+    <div class="form-group">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeLabel"}}</label>
+      <div class="form-fields">
+        <input type="text" name="nameAttribute" value="{{nameAttribute}}">
+      </div>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeHint"}}</p>
     </div>
-    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatHint"}}</p>
-  </div>
 
-  <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeLabel"}}</label>
-    <div class="form-fields">
-      <input type="text" name="priceAttribute" value="{{priceAttribute}}"
-             placeholder="e.g. system.cost">
+    <div class="form-group">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatLabel"}}</label>
+      <div class="form-fields">
+        <select name="priceFormat">
+          {{#each formats}}
+          <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatHint"}}</p>
     </div>
-    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeHint"}}</p>
-  </div>
 
-  <div class="form-group denomination-attribute-row"{{#unless showDenominationField}} hidden{{/unless}}>
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeLabel"}}</label>
-    <div class="form-fields">
-      <input type="text" name="priceDenominationAttribute" value="{{priceDenominationAttribute}}"
-             placeholder="e.g. system.costDenomination">
+    <div class="form-group">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeLabel"}}</label>
+      <div class="form-fields">
+        <input type="text" name="priceAttribute" value="{{priceAttribute}}"
+               placeholder="e.g. system.cost">
+      </div>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceAttributeHint"}}</p>
     </div>
-    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeHint"}}</p>
-  </div>
+
+    <div class="form-group denomination-attribute-row"{{#unless showDenominationField}} hidden{{/unless}}>
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeLabel"}}</label>
+      <div class="form-fields">
+        <input type="text" name="priceDenominationAttribute" value="{{priceDenominationAttribute}}"
+               placeholder="e.g. system.costDenomination">
+      </div>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceDenominationAttributeHint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset class="item-type-list-section">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.itemTypes"}}</legend>
+    {{#each itemTypes}}
+    <div class="item-type-row">
+      <span class="item-type-label">{{this.label}}</span>
+      <span class="item-type-system-badge">{{this.systemType}}</span>
+      <span class="item-type-attr-count">{{this.attributes.length}}</span>
+      <button type="button" class="icon" data-action="editItemType" data-index="{{@index}}"
+              aria-label="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+      <button type="button" class="icon" data-action="deleteItemType" data-index="{{@index}}"
+              aria-label="Delete"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    {{else}}
+    <p class="item-type-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noItemTypes"}}</em></p>
+    {{/each}}
+    <button type="button" data-action="addItemType" class="item-type-add-btn">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addItemType"}}
+    </button>
+  </fieldset>
 </div>

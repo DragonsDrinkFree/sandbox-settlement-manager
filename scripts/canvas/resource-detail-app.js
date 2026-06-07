@@ -5,7 +5,7 @@ import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { readItemName, readItemPrice } from "../utils/item-utils.js";
+import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -97,7 +97,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const currencies = currencyConfig.currencies ?? [];
     const isGM = game.user.isGM;
 
-    const tabs = typeIds.map(id => {
+    const tabs = await Promise.all(typeIds.map(async id => {
       const coreType = CORE_RESOURCE_TYPES.find(t => t.id === id);
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
       const isInn          = id === RESOURCE_TYPE_IDS.INN;
@@ -110,8 +110,8 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
           })
         : [];
 
-      const innData      = isInn      ? this.#buildInnData(currencies, isGM)      : null;
-      const merchantData = isMerchant ? this.#buildMerchantData(currencies, isGM) : null;
+      const innData      = isInn      ? this.#buildInnData(currencies, isGM)             : null;
+      const merchantData = isMerchant ? await this.#buildMerchantData(currencies, isGM) : null;
 
       return {
         id,
@@ -123,7 +123,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         innData,
         merchantData
       };
-    });
+    }));
 
     return { resource: this._resource, tabs, hasMultipleTabs: tabs.length > 1 };
   }
@@ -240,16 +240,60 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.render();
   }
 
-  #buildMerchantData(currencies, isGM) {
-    const inventory = (this._resource.typeData?.merchant?.inventory ?? []).map(item => {
+  async #buildMerchantData(currencies, isGM) {
+    const rawInventory = this._resource.typeData?.merchant?.inventory ?? [];
+    const itemConfig   = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+    const typeConfigs  = itemConfig.itemTypes ?? [];
+    const typeMap      = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
+
+    const groupMap = new Map();
+
+    for (const item of rawInventory) {
+      const typeKey = item.itemType ?? null;
+      const typeCfg = typeKey ? (typeMap[typeKey] ?? null) : null;
+
       let priceLabel = "—";
       if (item.price) {
         const curr = currencies.find(c => c.id === item.price.currencyId);
         priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
       }
-      return { ...item, priceLabel };
+
+      let attrValues = {};
+      if (item.itemId && typeCfg?.attributes?.length) {
+        const fi = await fromUuid(item.itemId).catch(() => null);
+        if (fi) attrValues = readItemAttributes(fi, typeCfg);
+      }
+
+      const attrCells = (typeCfg?.attributes ?? []).map(a => ({
+        id: a.id, label: a.label, value: attrValues[a.id] ?? "—"
+      }));
+
+      if (!groupMap.has(typeKey)) {
+        groupMap.set(typeKey, {
+          typeKey,
+          label:      typeCfg?.label ?? (typeKey ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.otherGroup")),
+          attributes: typeCfg?.attributes ?? [],
+          items:      []
+        });
+      }
+      groupMap.get(typeKey).items.push({ ...item, priceLabel, attrCells });
+    }
+
+    const groups = [
+      ...typeConfigs.filter(t => groupMap.has(t.systemType)).map(t => groupMap.get(t.systemType)),
+      ...(groupMap.has(null) ? [groupMap.get(null)] : [])
+    ];
+
+    const flatInventory = rawInventory.map(item => {
+      let priceLabel = "—";
+      if (item.price) {
+        const curr = currencies.find(c => c.id === item.price.currencyId);
+        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
+      }
+      return { ...item, priceLabel, attrCells: [] };
     });
-    return { inventory, isGM };
+
+    return { groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0 };
   }
 
   async #saveMerchantData(merchantData) {
@@ -277,7 +321,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const price = readItemPrice(item, currencies);
 
     const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
-    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null });
+    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
     await this.#saveMerchantData(merchant);
   }
 

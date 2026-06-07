@@ -4,6 +4,17 @@
     <input type="text" name="name" value="{{item.name}}"
            placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.item.namePlaceholder'}}">
   </div>
+  {{#if hasTypes}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.systemTypeLabel"}}</label>
+    <select name="itemType">
+      <option value="">— None —</option>
+      {{#each typeOptions}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+  {{/if}}
   <div class="form-group">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.item.priceLabel"}}</label>
     <div class="price-row">

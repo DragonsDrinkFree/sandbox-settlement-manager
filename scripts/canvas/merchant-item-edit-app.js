@@ -43,17 +43,28 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
 
   async _prepareContext(options) {
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const currencies     = currencyConfig.currencies ?? [];
     const defaultCurrencyId = currencies[0]?.id ?? "";
+
+    const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+    const typeOptions = (itemConfig.itemTypes ?? []).map(t => ({
+      value:    t.systemType,
+      label:    t.label,
+      selected: (this._item.itemType ?? "") === t.systemType
+    }));
+
     return {
       item: {
-        name:  this._item.name ?? "",
+        name:     this._item.name    ?? "",
+        itemType: this._item.itemType ?? "",
         price: {
           currencyId: this._item.price?.currencyId ?? defaultCurrencyId,
           amount:     this._item.price?.amount     ?? 0
         }
       },
       currencies,
+      typeOptions,
+      hasTypes: typeOptions.length > 0,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -70,9 +81,17 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       currencyId: formData.object.priceCurrencyId ?? "",
       amount:     parseFloat(formData.object.priceAmount) || 0
     };
+    const itemType = (formData.object.itemType ?? "").trim() || null;
     const resolve = this._resolve;
     this._resolve = null;
-    resolve?.({ id: this._item.id || foundry.utils.randomID(), name, price, itemId: null, quantity: null });
+    resolve?.({
+      id:       this._item.id || foundry.utils.randomID(),
+      name,
+      price,
+      itemId:   this._item.itemId   ?? null,
+      quantity: this._item.quantity ?? null,
+      itemType
+    });
   }
 
   async _onClose(options) {

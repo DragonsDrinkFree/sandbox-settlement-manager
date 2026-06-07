@@ -1,0 +1,19 @@
+<div class="attribute-picker-content">
+  <div class="attr-filter-row">
+    <input type="text" class="attr-filter-input"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.attributePicker.filter'}}">
+  </div>
+  <div class="attr-path-list">
+    {{#each paths}}
+    <div class="attr-path-row" data-path="{{this.path}}">
+      <span class="attr-path-text">{{this.path}}</span>
+      <input type="text" class="attr-label-input" value="{{this.defaultLabel}}"
+             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.attributePicker.labelPlaceholder'}}">
+      <button type="button" class="icon attr-add-btn" data-action="addAttribute"
+              aria-label="Add"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    {{else}}
+    <p class="attr-empty"><em>No attributes found for item type "{{systemType}}".</em></p>
+    {{/each}}
+  </div>
+</div>

@@ -8,7 +8,7 @@ import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { readItemName, readItemPrice } from "../utils/item-utils.js";
+import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 
@@ -69,7 +69,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .map(t => ({ value: t.name, label: t.name }));
     context.selectedType = scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
     context.resources    = this.#enrichResources(isGM);
-    context.selectedResource = this.#buildSelectedResourceContext(currencies, isGM);
+    context.selectedResource = await this.#buildSelectedResourceContext(currencies, isGM);
     return context;
   }
 
@@ -93,7 +93,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  #buildSelectedResourceContext(currencies, isGM = true) {
+  async #buildSelectedResourceContext(currencies, isGM = true) {
     const resource = this.#syncSelectedResource();
     if (!resource) return null;
 
@@ -125,7 +125,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const typeIds = [...new Set(rawEntries.map(e => e.typeId))];
     const activeTab = this._activeTab ?? typeIds[0] ?? null;
-    const tabs = typeIds.map(id => {
+    const tabs = await Promise.all(typeIds.map(async id => {
       const coreType       = CORE_RESOURCE_TYPES.find(t => t.id === id);
       const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
       const isInn          = id === RESOURCE_TYPE_IDS.INN;
@@ -148,10 +148,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         typeId: id, isInn, isCurrencyTest, isMerchant,
         isOther: !isInn && !isCurrencyTest && !isMerchant,
         expenses,
-        innData:      isInn      ? this.#buildInnData(resource, currencies, isGM)      : null,
-        merchantData: isMerchant ? this.#buildMerchantData(resource, currencies, isGM) : null
+        innData:      isInn      ? this.#buildInnData(resource, currencies, isGM)             : null,
+        merchantData: isMerchant ? await this.#buildMerchantData(resource, currencies, isGM) : null
       };
-    });
+    }));
 
     const innTemplate = isGM ? this.#getTemplateForResource(resource) : null;
     return {
@@ -444,16 +444,60 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this.#saveResourceData(resource);
   }
 
-  #buildMerchantData(resource, currencies, isGM = true) {
-    const inventory = (resource.typeData?.merchant?.inventory ?? []).map(item => {
+  async #buildMerchantData(resource, currencies, isGM = true) {
+    const rawInventory = resource.typeData?.merchant?.inventory ?? [];
+    const itemConfig   = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+    const typeConfigs  = itemConfig.itemTypes ?? [];
+    const typeMap      = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
+
+    const groupMap = new Map();
+
+    for (const item of rawInventory) {
+      const typeKey = item.itemType ?? null;
+      const typeCfg = typeKey ? (typeMap[typeKey] ?? null) : null;
+
       let priceLabel = "—";
       if (item.price) {
         const curr = currencies.find(c => c.id === item.price.currencyId);
         priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
       }
-      return { ...item, priceLabel };
+
+      let attrValues = {};
+      if (item.itemId && typeCfg?.attributes?.length) {
+        const fi = await fromUuid(item.itemId).catch(() => null);
+        if (fi) attrValues = readItemAttributes(fi, typeCfg);
+      }
+
+      const attrCells = (typeCfg?.attributes ?? []).map(a => ({
+        id: a.id, label: a.label, value: attrValues[a.id] ?? "—"
+      }));
+
+      if (!groupMap.has(typeKey)) {
+        groupMap.set(typeKey, {
+          typeKey,
+          label:      typeCfg?.label ?? (typeKey ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.otherGroup")),
+          attributes: typeCfg?.attributes ?? [],
+          items:      []
+        });
+      }
+      groupMap.get(typeKey).items.push({ ...item, priceLabel, attrCells });
+    }
+
+    const groups = [
+      ...typeConfigs.filter(t => groupMap.has(t.systemType)).map(t => groupMap.get(t.systemType)),
+      ...(groupMap.has(null) ? [groupMap.get(null)] : [])
+    ];
+
+    const flatInventory = rawInventory.map(item => {
+      let priceLabel = "—";
+      if (item.price) {
+        const curr = currencies.find(c => c.id === item.price.currencyId);
+        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
+      }
+      return { ...item, priceLabel, attrCells: [] };
     });
-    return { inventory, isGM };
+
+    return { groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0 };
   }
 
   async #saveMerchantData(merchantData) {
@@ -480,7 +524,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resource = this.#syncSelectedResource();
     if (!resource) return;
     const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
-    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null });
+    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
     resource.typeData ??= {};
     resource.typeData.merchant = merchant;
     await this.#saveResourceData(resource);

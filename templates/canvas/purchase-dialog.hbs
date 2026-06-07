@@ -53,9 +53,14 @@
   </div>
 
   <div class="calc-section">
-    <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.offering"}}: <strong class="calc-offering">—</strong></span>
-    <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.cost"}}: <strong>{{expenseCostLabel}}</strong></span>
-    <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.change"}}: <strong class="calc-change">—</strong></span>
+    <div class="calc-row">
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.cost"}}: <strong>{{expenseCostLabel}}</strong></span>
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.remaining"}}: <strong class="calc-remaining">—</strong></span>
+    </div>
+    <div class="calc-row">
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.offering"}}: <strong class="calc-offering">—</strong></span>
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.change"}}: <strong class="calc-change">—</strong></span>
+    </div>
   </div>
 
   <p class="purchase-error"></p>
