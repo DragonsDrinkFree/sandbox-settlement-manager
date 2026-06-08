@@ -4,7 +4,7 @@ import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInSt
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
 export const SOCKET_TYPES = {
-  SAVE_RESOURCE:      "saveResource",
+  SAVE_LOCATION:      "saveLocation",
   RECORD_DEPOSIT:     "recordDeposit",
   PROCESS_WITHDRAWAL: "processWithdrawal"
 };
@@ -17,8 +17,8 @@ export function registerSocketHandlers() {
     if (!game.user.isGM) return;
     if (game.users.activeGM?.id !== game.user.id) return;
 
-    if (data.type === SOCKET_TYPES.SAVE_RESOURCE) {
-      await _handleSaveResource(data);
+    if (data.type === SOCKET_TYPES.SAVE_LOCATION) {
+      await _handleSaveLocation(data);
     } else if (data.type === SOCKET_TYPES.RECORD_DEPOSIT) {
       await _handleRecordDeposit(data);
     } else if (data.type === SOCKET_TYPES.PROCESS_WITHDRAWAL) {
@@ -28,33 +28,33 @@ export function registerSocketHandlers() {
 }
 
 /**
- * GM-side handler: replaces a single resource in the scene flag by ID.
- * Players cannot write scene flags directly, so all resource mutations from
+ * GM-side handler: replaces a single location in the scene flag by ID.
+ * Players cannot write scene flags directly, so all location mutations from
  * non-GM clients are routed here via socket.
  */
-async function _handleSaveResource({ sceneId, resource }) {
+async function _handleSaveLocation({ sceneId, location }) {
   const scene = game.scenes.get(sceneId);
   if (!scene) return;
-  const resources = scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-  const index = resources.findIndex(r => r.id === resource.id);
+  const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+  const index = locations.findIndex(r => r.id === location.id);
   if (index === -1) return;
-  resources[index] = resource;
-  await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+  locations[index] = location;
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
 }
 
 /** GM-side: record a new deposit into either world flag (global) or scene flag. */
-export async function _handleRecordDeposit({ deposit, resourceId, sceneId, isGlobal }) {
+export async function _handleRecordDeposit({ deposit, locationId, sceneId, isGlobal }) {
   if (isGlobal) {
     const existing = game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [];
     await game.world.setFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS, [...existing, deposit]);
   } else {
     const scene = game.scenes.get(sceneId);
     if (!scene) return;
-    const resources = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []);
-    const resource  = resources.find(r => r.id === resourceId);
-    if (!resource?.typeData?.bank) return;
-    resource.typeData.bank.deposits = [...(resource.typeData.bank.deposits ?? []), deposit];
-    await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+    const location  = locations.find(r => r.id === locationId);
+    if (!location?.typeData?.bank) return;
+    location.typeData.bank.deposits = [...(location.typeData.bank.deposits ?? []), deposit];
+    await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
   _refreshBankApps();
 }
@@ -66,7 +66,7 @@ export async function _handleRecordDeposit({ deposit, resourceId, sceneId, isGlo
  */
 export async function _handleProcessWithdrawal({
   depositIds, withdrawCoins, actorId, earlyFeeRate,
-  resourceId, sceneId, isGlobal
+  locationId, sceneId, isGlobal
 }) {
   const currencyConfig = game.settings.get(MODULE_ID, "currencyConfig");
   const currencies     = currencyConfig.currencies ?? [];
@@ -76,15 +76,15 @@ export async function _handleProcessWithdrawal({
 
   // Load current deposits
   let allDeposits;
-  let scene, resources, resource;
+  let scene, locations, location;
   if (isGlobal) {
     allDeposits = foundry.utils.deepClone(game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? []);
   } else {
     scene     = game.scenes.get(sceneId);
     if (!scene) return;
-    resources = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []);
-    resource  = resources.find(r => r.id === resourceId);
-    allDeposits = foundry.utils.deepClone(resource?.typeData?.bank?.deposits ?? []);
+    locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+    location  = locations.find(r => r.id === locationId);
+    allDeposits = foundry.utils.deepClone(location?.typeData?.bank?.deposits ?? []);
   }
 
   // Deduct withdrawCoins from target deposit records
@@ -105,9 +105,9 @@ export async function _handleProcessWithdrawal({
   // Save back
   if (isGlobal) {
     await game.world.setFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS, consolidated);
-  } else if (resource?.typeData?.bank) {
-    resource.typeData.bank.deposits = consolidated;
-    await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+  } else if (location?.typeData?.bank) {
+    location.typeData.bank.deposits = consolidated;
+    await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
 
   // Compute payout: withdrawCoins minus proportional early fee
@@ -163,10 +163,10 @@ export function _consolidateMatureDeposits(deposits, filterActorId = null) {
   return result;
 }
 
-/** Re-render any open bank resource windows so balances stay current. */
+/** Re-render any open bank location windows so balances stay current. */
 function _refreshBankApps() {
   for (const app of foundry.applications.instances.values()) {
-    if (app.id === 'sandbox-settlement-manager-resource-detail') app.render();
-    else if (app.id === 'sandbox-settlement-manager-city-manage') app.render({ parts: ['content'] });
+    if (app.id === 'sandbox-settlement-manager-location-detail') app.render();
+    else if (app.id === 'sandbox-settlement-manager-settlement-manage') app.render({ parts: ['content'] });
   }
 }

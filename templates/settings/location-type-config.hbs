@@ -1,5 +1,5 @@
-<div class="resource-type-config">
-  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypes.hint"}}</p>
+<div class="location-type-config">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypes.hint"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.locationTemplates'}}"></i></p>
 
   <ul class="template-flat-list">
     {{#each templates}}
@@ -10,25 +10,25 @@
       <div class="sub-type-controls">
         <button type="button" class="icon" data-action="editTemplate"
                 data-type-id="{{this.typeId}}" data-template-index="{{this.index}}"
-                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.edit'}}">
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.edit'}}">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
         <button type="button" class="icon" data-action="deleteTemplate"
                 data-type-id="{{this.typeId}}" data-template-index="{{this.index}}"
-                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.delete'}}">
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.delete'}}">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>
     </li>
     {{else}}
     <li class="sub-type-empty">
-      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.noSubTypes"}}</em>
+      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.noSubTypes"}}</em>
     </li>
     {{/each}}
   </ul>
   <div class="add-template-row">
     <button type="button" data-action="addTemplate">
-      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.add"}}
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.add"}}
     </button>
   </div>
 </div>

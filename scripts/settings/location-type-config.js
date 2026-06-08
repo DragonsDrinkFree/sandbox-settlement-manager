@@ -1,38 +1,38 @@
-import { MODULE_ID, SETTINGS, CORE_RESOURCE_TYPES } from "../constants.js";
+import { MODULE_ID, SETTINGS, CORE_LOCATION_TYPES } from "../constants.js";
 import { SubTypeEditApp } from "./sub-type-edit.js";
 import { syncNewTemplateItems } from "../canvas/template-sync.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
+export class LocationTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // Working copy: { [typeId]: [{ id, name }] }
   _subTypes = null;
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-resource-type-config`,
+    id: `${MODULE_ID}-location-type-config`,
     tag: "form",
-    form: { handler: ResourceTypeConfigApp.#onSubmit, closeOnSubmit: true },
-    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.name" },
+    form: { handler: LocationTypeConfigApp.#onSubmit, closeOnSubmit: true },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.name" },
     position: { width: 460 },
     actions: {
-      addTemplate:    ResourceTypeConfigApp.#onAddTemplate,
-      editTemplate:   ResourceTypeConfigApp.#onEditTemplate,
-      deleteTemplate: ResourceTypeConfigApp.#onDeleteTemplate
+      addTemplate:    LocationTypeConfigApp.#onAddTemplate,
+      editTemplate:   LocationTypeConfigApp.#onEditTemplate,
+      deleteTemplate: LocationTypeConfigApp.#onDeleteTemplate
     }
   };
 
   static PARTS = {
-    form:   { template: `modules/${MODULE_ID}/templates/settings/resource-type-config.hbs`, scrollable: [""] },
+    form:   { template: `modules/${MODULE_ID}/templates/settings/location-type-config.hbs`, scrollable: [""] },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
   async _prepareContext(options) {
     if (this._subTypes === null) {
-      const raw = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+      const raw = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
       this._subTypes = Array.isArray(raw) ? {} : foundry.utils.deepClone(raw ?? {});
     }
     const templates = [];
-    for (const t of CORE_RESOURCE_TYPES) {
+    for (const t of CORE_LOCATION_TYPES) {
       for (const [i, s] of (this._subTypes[t.id] ?? []).entries()) {
         templates.push({ typeId: t.id, typeIcon: t.icon, typeName: t.name, name: s.name, index: i });
       }
@@ -78,9 +78,9 @@ export class ResourceTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
 
   static async #onSubmit() {
     const oldSubTypes = foundry.utils.deepClone(
-      game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES) ?? {}
+      game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {}
     );
-    await game.settings.set(MODULE_ID, SETTINGS.RESOURCE_TYPES, this._subTypes);
+    await game.settings.set(MODULE_ID, SETTINGS.LOCATION_TYPES, this._subTypes);
     await syncNewTemplateItems(oldSubTypes, this._subTypes);
   }
 }

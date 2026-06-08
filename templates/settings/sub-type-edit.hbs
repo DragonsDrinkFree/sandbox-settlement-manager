@@ -1,7 +1,7 @@
 <div class="sub-type-edit-form">
   {{#if showTypeSelect}}
   <div class="template-type-row">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.typeLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.typeLabel"}}</label>
     <select name="templateType">
       {{#each coreTypes}}
       <option value="{{this.id}}">{{this.name}}</option>
@@ -10,9 +10,9 @@
   </div>
   {{/if}}
   <div class="template-name-row">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.nameLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.nameLabel"}}</label>
     <input type="text" name="name" value="{{subType.name}}"
-           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.namePlaceholder'}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.namePlaceholder'}}"
            class="template-name-input">
   </div>
   {{#if showTypeSpecificSections}}
@@ -105,11 +105,11 @@
         <span class="course-list-count">{{this.itemCount}} items</span>
         <div class="course-list-controls">
           <button type="button" class="icon" data-action="editCourse" data-course-index="{{this.index}}"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.edit'}}">
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.edit'}}">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
           <button type="button" class="icon" data-action="deleteCourse" data-course-index="{{this.index}}"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.delete'}}">
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.delete'}}">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -125,7 +125,7 @@
   {{#if showBankSection}}
   <div class="bank-only"{{#unless isBank}} hidden{{/unless}}>
     <fieldset class="bank-exchange-config">
-      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeSettingsTitle"}}</legend>
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.exchangeSettingsTitle"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.bankExchange'}}"></i></legend>
       <div class="form-group bank-checkbox-group">
         <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.doesExchangeLabel"}}</label>
         <input type="checkbox" name="bankDoesExchange"{{#if bankData.doesExchange}} checked{{/if}}>
@@ -138,7 +138,7 @@
       </div>
     </fieldset>
     <fieldset class="bank-deposit-config">
-      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.settingsTitle"}}</legend>
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.settingsTitle"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.bankDeposits'}}"></i></legend>
       <div class="form-group bank-checkbox-group">
         <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.globalLabel"}}</label>
         <input type="checkbox" name="bankDepositGlobal"{{#if bankData.depositSettings.global}} checked{{/if}}>
@@ -179,7 +179,7 @@
 
     {{#if (eq merchantTab "inventory")}}
     <fieldset class="merchant-inventory-templates">
-      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.defaultInventory"}}</legend>
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.defaultInventory"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantInventory'}}"></i></legend>
       <div class="merchant-stock-config">
         <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockType"}}</label>
         <select name="merchantStockType">
@@ -231,10 +231,10 @@
               </select>
             </td>
             <td class="col-msize">
-              <select data-field="minCitySize">
-                <option value=""{{#unless this.minCitySize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
-                {{#each ../cityTypes}}
-                <option value="{{this.name}}"{{#if (eq this.name ../minCitySize)}} selected{{/if}}>{{this.name}}</option>
+              <select data-field="minSettlementSize">
+                <option value=""{{#unless this.minSettlementSize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+                {{#each ../settlementTypes}}
+                <option value="{{this.name}}"{{#if (eq this.name ../minSettlementSize)}} selected{{/if}}>{{this.name}}</option>
                 {{/each}}
               </select>
             </td>
@@ -270,7 +270,7 @@
 
     {{#if (eq merchantTab "purchasing")}}
     <fieldset class="purchasing-profile-fieldset">
-      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.purchasingProfile"}}</legend>
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.purchasingProfile"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantPurchasing'}}"></i></legend>
 
       <div class="purchasing-add-row">
         <select data-field="ruleItemType" class="ssm-rule-type-select">

@@ -1,45 +1,45 @@
-import { MODULE_ID, FLAGS, SETTINGS, CORE_RESOURCE_TYPES, RESOURCE_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
+export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
-  _resource;
+  _location;
   _typeEntries;
   #pickerAbort = null;
   #pickerDropdown = null;
 
-  constructor(resource, options = {}) {
+  constructor(location, options = {}) {
     super(options);
-    this._resource = resource;
-    this._typeEntries = getTypeEntries(resource).map(e => ({ ...e }));
+    this._location = location;
+    this._typeEntries = getTypeEntries(location).map(e => ({ ...e }));
   }
 
   get title() {
-    const key = this._resource?.name
-      ? "SANDBOX_SETTLEMENT_MANAGER.resource.editTitle"
-      : "SANDBOX_SETTLEMENT_MANAGER.resource.addTitle";
+    const key = this._location?.name
+      ? "SANDBOX_SETTLEMENT_MANAGER.location.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.location.addTitle";
     return game.i18n.localize(key);
   }
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-resource-edit`,
+    id: `${MODULE_ID}-location-edit`,
     tag: "form",
-    form: { handler: ResourceEditApp.#onSubmit, closeOnSubmit: true },
+    form: { handler: LocationEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 380 },
     actions: {
-      removeTypeEntry: ResourceEditApp.#onRemoveTypeEntry
+      removeTypeEntry: LocationEditApp.#onRemoveTypeEntry
     }
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/canvas/resource-edit.hbs` },
+    form: { template: `modules/${MODULE_ID}/templates/canvas/location-edit.hbs` },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(resource = {}) {
+  static async open(location = {}) {
     return new Promise(resolve => {
-      const app = new ResourceEditApp(foundry.utils.deepClone(resource));
+      const app = new LocationEditApp(foundry.utils.deepClone(location));
       app._resolve = resolve;
       app.render(true);
     });
@@ -50,7 +50,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const selectedSet = new Set(this._typeEntries.map(e => `${e.typeId}::${e.subTypeId ?? ""}`));
 
     const typeEntries = this._typeEntries.map((entry, index) => {
-      const coreType = CORE_RESOURCE_TYPES.find(t => t.id === entry.typeId);
+      const coreType = CORE_LOCATION_TYPES.find(t => t.id === entry.typeId);
       const subTypes = subTypeMap[entry.typeId] ?? [];
       const subType = entry.subTypeId ? subTypes.find(s => s.id === entry.subTypeId) : null;
       return {
@@ -62,7 +62,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
-    const pickerGroups = CORE_RESOURCE_TYPES.map(t => {
+    const pickerGroups = CORE_LOCATION_TYPES.map(t => {
       const allSubTypes = subTypeMap[t.id] ?? [];
       const availSubTypes = allSubTypes
         .filter(s => !selectedSet.has(`${t.id}::${s.id}`))
@@ -78,7 +78,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).filter(g => g.typeItselfAvailable || g.subTypes.length > 0);
 
     return {
-      resource: this._resource,
+      location: this._location,
       typeEntries,
       pickerGroups,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
@@ -86,7 +86,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #getSubTypeMap() {
-    const raw = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+    const raw = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
     return Array.isArray(raw) ? {} : (raw ?? {});
   }
 
@@ -165,17 +165,17 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
-  // Capture the current name input value into _resource so partial re-renders preserve it.
+  // Capture the current name input value into _location so partial re-renders preserve it.
   #syncName() {
     const current = this.element.querySelector('[name="name"]')?.value ?? "";
-    this._resource.name = current;
+    this._location.name = current;
   }
 
   #generateDefaultName() {
     const firstEntry = this._typeEntries[0];
-    const primaryType = CORE_RESOURCE_TYPES.find(t => t.id === firstEntry?.typeId);
-    const typeName = primaryType?.name ?? "Resource";
-    const existing = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
+    const primaryType = CORE_LOCATION_TYPES.find(t => t.id === firstEntry?.typeId);
+    const typeName = primaryType?.name ?? "Location";
+    const existing = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
     const sameTypeCount = existing.filter(r =>
       getTypeEntries(r).some(e => e.typeId === firstEntry?.typeId)
     ).length;
@@ -186,12 +186,12 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const name = (formData.object.name ?? "").trim() || this.#generateDefaultName();
 
     // Auto-init inn typeData from sub-type defaults when an inn entry is added for the first time
-    const innEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.INN);
-    let typeData = this._resource.typeData ?? { expenses: [] };
-    const merchantEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+    const innEntry = this._typeEntries.find(e => e.typeId === LOCATION_TYPE_IDS.INN);
+    let typeData = this._location.typeData ?? {};
+    const merchantEntry = this._typeEntries.find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
     if (merchantEntry && !typeData.merchant) {
       const subTypeMap = this.#getSubTypeMap();
-      const merchantSubType = (subTypeMap[RESOURCE_TYPE_IDS.MERCHANT] ?? [])
+      const merchantSubType = (subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? [])
         .find(s => s.id === merchantEntry.subTypeId);
       const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
       const tpl = merchantSubType?.typeData?.merchant ?? {};
@@ -210,7 +210,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
             _templateValues: {
               name:              item.name,
               itemId:            item.itemId            ?? null,
-              minCitySize:       item.minCitySize       ?? "",
+              minSettlementSize:       item.minSettlementSize       ?? "",
               stockAvailability: item.stockAvailability ?? 100,
               stockFormula:      item.stockFormula      ?? "",
               price:             { ...(item.price ?? {}) }
@@ -222,7 +222,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     if (innEntry && !typeData.inn) {
       const subTypeMap = this.#getSubTypeMap();
-      const subType = (subTypeMap[RESOURCE_TYPE_IDS.INN] ?? []).find(s => s.id === innEntry.subTypeId);
+      const subType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === innEntry.subTypeId);
       typeData = {
         ...typeData,
         inn: {
@@ -239,10 +239,10 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
 
-    const bankEntry = this._typeEntries.find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const bankEntry = this._typeEntries.find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     if (bankEntry && !typeData.bank) {
       const subTypeMap = this.#getSubTypeMap();
-      const bankSubType = (subTypeMap[RESOURCE_TYPE_IDS.BANK] ?? [])
+      const bankSubType = (subTypeMap[LOCATION_TYPE_IDS.BANK] ?? [])
         .find(s => s.id === bankEntry.subTypeId);
       const tpl = bankSubType?.typeData?.bank ?? {};
       typeData = {
@@ -261,7 +261,7 @@ export class ResourceEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({
-      id: this._resource.id || foundry.utils.randomID(),
+      id: this._location.id || foundry.utils.randomID(),
       typeEntries: this._typeEntries.slice(),
       name,
       ownerId: null,

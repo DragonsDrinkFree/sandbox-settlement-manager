@@ -14,7 +14,7 @@
           <i class="fa-solid fa-arrow-right" inert></i>
           {{this.toAmount}} {{this.toAbbreviation}}
         </span>
-        <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+        <span class="ssm-cart-item-source">{{this.locationName}}</span>
         <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
                 aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
           <i class="fa-solid fa-times"></i>
@@ -29,7 +29,7 @@
     <li class="ssm-cart-item" data-cart-id="{{this.id}}">
       <div class="ssm-cart-item-header">
         <span class="ssm-cart-item-name">{{#if this.isLodging}}{{this.lodgingName}}{{else}}{{this.itemName}}{{/if}}</span>
-        <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+        <span class="ssm-cart-item-source">{{this.locationName}}</span>
         <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
                 aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
           <i class="fa-solid fa-times"></i>
@@ -68,7 +68,7 @@
           {{else}}
           <span class="ssm-cart-item-name">{{this.itemName}}</span>
           {{/if}}
-          <span class="ssm-cart-item-source">{{this.resourceName}}</span>
+          <span class="ssm-cart-item-source">{{this.locationName}}</span>
           <button type="button" class="icon ssm-cart-remove-btn" data-action="removeItem" data-cart-id="{{this.id}}"
                   aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cart.remove'}}">
             <i class="fa-solid fa-times"></i>

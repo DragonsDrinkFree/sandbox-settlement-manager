@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
 import { mergePurchasingProfiles } from "./purchasing-utils.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES } from "../socket.js";
 
@@ -6,13 +6,13 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
-  _resource;
+  _location;
   _overrides = [];
 
-  constructor(resource, options = {}) {
+  constructor(location, options = {}) {
     super(options);
-    this._resource  = resource;
-    this._overrides = foundry.utils.deepClone(resource.typeData?.merchant?.purchasingOverrides ?? []);
+    this._location  = location;
+    this._overrides = foundry.utils.deepClone(location.typeData?.merchant?.purchasingOverrides ?? []);
   }
 
   get title() { return game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.editProfile"); }
@@ -33,18 +33,18 @@ export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(Applica
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(resource) {
+  static async open(location) {
     const existing = foundry.applications.instances.get(`${MODULE_ID}-purchasing-profile-edit`);
     if (existing) existing.close();
     return new Promise(resolve => {
-      const app = new PurchasingProfileEditApp(foundry.utils.deepClone(resource));
+      const app = new PurchasingProfileEditApp(foundry.utils.deepClone(location));
       app._resolve = resolve;
       app.render(true);
     });
   }
 
   async _prepareContext(options) {
-    const effectiveProfile = mergePurchasingProfiles(this._resource);
+    const effectiveProfile = mergePurchasingProfiles(this._location);
 
     const rawTypes = game.system.documentTypes?.Item ?? [];
     const systemItemTypes = [
@@ -118,20 +118,20 @@ export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(Applica
   }
 
   static async #onSubmit(event, form, formData) {
-    const resources = foundry.utils.deepClone(
-      canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []
+    const locations = foundry.utils.deepClone(
+      canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []
     );
-    const resource = resources.find(r => r.id === this._resource.id);
-    if (!resource) { this._resolve?.(null); return; }
+    const location = locations.find(r => r.id === this._location.id);
+    if (!location) { this._resolve?.(null); return; }
 
-    resource.typeData ??= {};
-    resource.typeData.merchant ??= {};
-    resource.typeData.merchant.purchasingOverrides = this._overrides;
+    location.typeData ??= {};
+    location.typeData.merchant ??= {};
+    location.typeData.merchant.purchasingOverrides = this._overrides;
 
     if (game.user.isGM) {
-      await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+      await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     } else {
-      game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_RESOURCE, sceneId: canvas.scene?.id, resource });
+      game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_LOCATION, sceneId: canvas.scene?.id, location });
     }
 
     const resolve = this._resolve;

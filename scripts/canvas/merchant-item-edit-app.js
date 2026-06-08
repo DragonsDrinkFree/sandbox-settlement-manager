@@ -53,13 +53,13 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       selected: (this._item.itemType ?? "") === t.systemType
     }));
 
-    const cityTypes = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+    const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
 
     return {
       item: {
         name:              this._item.name              ?? "",
         itemType:          this._item.itemType          ?? "",
-        minCitySize:       this._item.minCitySize       ?? "",
+        minSettlementSize:       this._item.minSettlementSize       ?? "",
         stockAvailability: this._item.stockAvailability ?? 100,
         stockFormula:      this._item.stockFormula      ?? "",
         price: {
@@ -69,9 +69,9 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       },
       currencies,
       typeOptions,
-      cityTypes,
+      settlementTypes,
       hasTypes:     typeOptions.length > 0,
-      hasCityTypes: cityTypes.length > 0,
+      hasSettlementTypes: settlementTypes.length > 0,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -89,7 +89,7 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       amount:     parseFloat(formData.object.priceAmount) || 0
     };
     const itemType         = (formData.object.itemType    ?? "").trim() || null;
-    const minCitySize      = (formData.object.minCitySize ?? "").trim();
+    const minSettlementSize      = (formData.object.minSettlementSize ?? "").trim();
     const stockAvailability = parseFloat(formData.object.stockAvailability) || 100;
     const stockFormula     = (formData.object.stockFormula ?? "").trim();
     const resolve = this._resolve;
@@ -101,7 +101,7 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
       itemId:           this._item.itemId        ?? null,
       quantity:         this._item.quantity      ?? null,
       itemType,
-      minCitySize,
+      minSettlementSize,
       stockAvailability,
       stockFormula,
       templateItemId:   this._item.templateItemId  ?? null,

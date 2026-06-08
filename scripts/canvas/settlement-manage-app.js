@@ -1,6 +1,5 @@
-import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES, getTypeEntries } from "../constants.js";
-import { ResourceEditApp } from "./resource-edit-app.js";
-import { CurrencyTestConfigApp } from "./currency-test-config.js";
+import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES, getTypeEntries } from "../constants.js";
+import { LocationEditApp } from "./location-edit-app.js";
 import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
@@ -9,7 +8,7 @@ import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
-import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
+import { costInStandard, calculateChange, formatAmounts, getSettlementMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal } from "../socket.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
@@ -54,8 +53,8 @@ function buildDepositDisplayList(deposits, now, secondsPerDay, currencies) {
   return result;
 }
 
-export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  _selectedResourceId = null;
+export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  _selectedLocationId = null;
   _activeTab = null;
   _sellTabActive = false;
   _sellActorId   = null;
@@ -66,46 +65,45 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #pickerDropdown = null;
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-city-manage`,
+    id: `${MODULE_ID}-settlement-manage`,
     window: { title: "SANDBOX_SETTLEMENT_MANAGER.manage.title", resizable: true },
     position: { width: 750, height: 560 },
     actions: {
-      addResource:        CityManageApp.#onAddResource,
-      deleteResource:     CityManageApp.#onDeleteResource,
-      toggleDiscovered:   CityManageApp.#onToggleDiscovered,
-      configureExpenses:  CityManageApp.#onConfigureExpenses,
-      selectResource:     CityManageApp.#onSelectResource,
-      switchTab:          CityManageApp.#onSwitchTab,
-      deleteTypeEntry:    CityManageApp.#onDeleteTypeEntry,
-      removeTypeEntry:    CityManageApp.#onRemoveTypeEntry,
-      addLodging:         CityManageApp.#onAddLodging,
-      editLodging:        CityManageApp.#onEditLodging,
-      deleteLodging:      CityManageApp.#onDeleteLodging,
-      rentLodging:        CityManageApp.#onRentLodging,
-      dismissLedgerEntry: CityManageApp.#onDismissLedgerEntry,
-      configureMenu:        CityManageApp.#onConfigureMenu,
-      refreshCourse:        CityManageApp.#onRefreshCourse,
-      buyMenuItem:          CityManageApp.#onBuyMenuItem,
-      restoreFromTemplate:         CityManageApp.#onRestoreFromTemplate,
-      restoreFromMerchantTemplate: CityManageApp.#onRestoreFromMerchantTemplate,
-      addMerchantItem:             CityManageApp.#onAddMerchantItem,
-      deleteMerchantItem:     CityManageApp.#onDeleteMerchantItem,
-      editMerchantItem:       CityManageApp.#onEditMerchantItem,
-      addManualInventoryItem: CityManageApp.#onAddManualInventoryItem,
-      switchToSellTab:        CityManageApp.#onSwitchToSellTab,
-      addToSellCart:          CityManageApp.#onAddToSellCart,
-      buyBackItem:            CityManageApp.#onBuyBackItem,
-      editPurchasingProfile:  CityManageApp.#onEditPurchasingProfile,
-      addExchangeToCart:      CityManageApp.#onAddExchangeToCart,
-      depositCoins:           CityManageApp.#onDepositCoins,
-      withdrawDeposit:        CityManageApp.#onWithdrawDeposit,
-      overrideBankSettings:   CityManageApp.#onOverrideBankSettings,
-      resetBankSettings:      CityManageApp.#onResetBankSettings
+      addLocation:        SettlementManageApp.#onAddLocation,
+      deleteLocation:     SettlementManageApp.#onDeleteLocation,
+      toggleDiscovered:   SettlementManageApp.#onToggleDiscovered,
+      selectLocation:     SettlementManageApp.#onSelectLocation,
+      switchTab:          SettlementManageApp.#onSwitchTab,
+      deleteTypeEntry:    SettlementManageApp.#onDeleteTypeEntry,
+      removeTypeEntry:    SettlementManageApp.#onRemoveTypeEntry,
+      addLodging:         SettlementManageApp.#onAddLodging,
+      editLodging:        SettlementManageApp.#onEditLodging,
+      deleteLodging:      SettlementManageApp.#onDeleteLodging,
+      rentLodging:        SettlementManageApp.#onRentLodging,
+      dismissLedgerEntry: SettlementManageApp.#onDismissLedgerEntry,
+      configureMenu:        SettlementManageApp.#onConfigureMenu,
+      refreshCourse:        SettlementManageApp.#onRefreshCourse,
+      buyMenuItem:          SettlementManageApp.#onBuyMenuItem,
+      restoreFromTemplate:         SettlementManageApp.#onRestoreFromTemplate,
+      restoreFromMerchantTemplate: SettlementManageApp.#onRestoreFromMerchantTemplate,
+      addMerchantItem:             SettlementManageApp.#onAddMerchantItem,
+      deleteMerchantItem:     SettlementManageApp.#onDeleteMerchantItem,
+      editMerchantItem:       SettlementManageApp.#onEditMerchantItem,
+      addManualInventoryItem: SettlementManageApp.#onAddManualInventoryItem,
+      switchToSellTab:        SettlementManageApp.#onSwitchToSellTab,
+      addToSellCart:          SettlementManageApp.#onAddToSellCart,
+      buyBackItem:            SettlementManageApp.#onBuyBackItem,
+      editPurchasingProfile:  SettlementManageApp.#onEditPurchasingProfile,
+      addExchangeToCart:      SettlementManageApp.#onAddExchangeToCart,
+      depositCoins:           SettlementManageApp.#onDepositCoins,
+      withdrawDeposit:        SettlementManageApp.#onWithdrawDeposit,
+      overrideBankSettings:   SettlementManageApp.#onOverrideBankSettings,
+      resetBankSettings:      SettlementManageApp.#onResetBankSettings
     }
   };
 
   static PARTS = {
-    content: { template: `modules/${MODULE_ID}/templates/canvas/city-manage.hbs` }
+    content: { template: `modules/${MODULE_ID}/templates/canvas/settlement-manage.hbs` }
   };
 
   // ------------------------------------------------------------------ context
@@ -118,45 +116,45 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencies = currencyConfig.currencies ?? [];
 
     context.isGM         = isGM;
-    context.cityName     = scene?.getFlag(MODULE_ID, FLAGS.CITY_NAME) ?? "";
-    context.cityTypes    = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES)
+    context.settlementName     = scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_NAME) ?? "";
+    context.settlementTypes    = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES)
       .map(t => ({ value: t.name, label: t.name }));
-    context.selectedType = scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
-    context.resources    = this.#enrichResources(isGM);
-    context.selectedResource = await this.#buildSelectedResourceContext(currencies, isGM);
+    context.selectedType = scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
+    context.locations    = this.#enrichLocations(isGM);
+    context.selectedLocation = await this.#buildSelectedLocationContext(currencies, isGM);
     return context;
   }
 
-  #enrichResources(isGM = true) {
-    const all = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
+  #enrichLocations(isGM = true) {
+    const all = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
     const instances = isGM ? all : all.filter(r => r.discovered?.default === true);
     return instances.map(r => {
       const entries = getTypeEntries(r);
       const seenTypeIds = new Set();
       const types = entries
         .filter(e => !seenTypeIds.has(e.typeId) && seenTypeIds.add(e.typeId))
-        .map(e => CORE_RESOURCE_TYPES.find(t => t.id === e.typeId))
+        .map(e => CORE_LOCATION_TYPES.find(t => t.id === e.typeId))
         .filter(Boolean);
       return {
         ...r,
         typeName: types.map(t => t.name).join(" · ")
-          || game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.unknownType"),
+          || game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.unknownType"),
         typeIcon: types[0]?.icon ?? "fa-solid fa-question",
-        selected: r.id === this._selectedResourceId
+        selected: r.id === this._selectedLocationId
       };
     });
   }
 
-  async #buildSelectedResourceContext(currencies, isGM = true) {
-    const resource = this.#syncSelectedResource();
-    if (!resource) return null;
+  async #buildSelectedLocationContext(currencies, isGM = true) {
+    const location = this.#syncSelectedLocation();
+    if (!location) return null;
 
-    const rawEntries  = getTypeEntries(resource);
+    const rawEntries  = getTypeEntries(location);
     const subTypeMap  = this.#getSubTypeMap();
     const selectedSet = new Set(rawEntries.map(e => `${e.typeId}::${e.subTypeId ?? ""}`));
 
     const typeEntries = rawEntries.map((entry, index) => {
-      const coreType = CORE_RESOURCE_TYPES.find(t => t.id === entry.typeId);
+      const coreType = CORE_LOCATION_TYPES.find(t => t.id === entry.typeId);
       const subType  = entry.subTypeId
         ? (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId)
         : null;
@@ -168,7 +166,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
-    const pickerGroups = CORE_RESOURCE_TYPES.map(t => {
+    const pickerGroups = CORE_LOCATION_TYPES.map(t => {
       const allSubTypes   = subTypeMap[t.id] ?? [];
       const availSubTypes = allSubTypes
         .filter(s => !selectedSet.has(`${t.id}::${s.id}`))
@@ -180,48 +178,40 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const typeIds = [...new Set(rawEntries.map(e => e.typeId))];
     const activeTab = this._activeTab ?? typeIds[0] ?? null;
     const tabs = await Promise.all(typeIds.map(async id => {
-      const coreType       = CORE_RESOURCE_TYPES.find(t => t.id === id);
-      const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
-      const isInn          = id === RESOURCE_TYPE_IDS.INN;
-      const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
-      const isBank         = id === RESOURCE_TYPE_IDS.BANK;
+      const coreType       = CORE_LOCATION_TYPES.find(t => t.id === id);
+      const isInn          = id === LOCATION_TYPE_IDS.INN;
+      const isMerchant     = id === LOCATION_TYPE_IDS.MERCHANT;
+      const isBank         = id === LOCATION_TYPE_IDS.BANK;
       const firstEntry     = rawEntries.find(e => e.typeId === id);
       const subType        = firstEntry?.subTypeId
         ? (subTypeMap[id] ?? []).find(s => s.id === firstEntry.subTypeId) ?? null
         : null;
-      const expenses = isCurrencyTest
-        ? (resource.typeData?.expenses ?? []).map(e => {
-            const c = currencies.find(x => x.id === e.currencyId);
-            return { ...e, costLabel: `${e.amount} ${c?.abbreviation ?? "?"}` };
-          })
-        : [];
       return {
         id, active: id === activeTab,
         name:        coreType?.name ?? id,
         subTypeName: subType?.name ?? null,
         icon:        coreType?.icon ?? "fa-solid fa-question",
-        typeId: id, isInn, isCurrencyTest, isMerchant, isBank,
-        isOther: !isInn && !isCurrencyTest && !isMerchant && !isBank,
-        expenses,
-        innData:      isInn ? this.#buildInnData(resource, currencies, isGM) : null,
-        bankData:     isBank ? this.#buildBankData(resource, currencies) : null,
+        typeId: id, isInn, isMerchant, isBank,
+        isOther: !isInn && !isMerchant && !isBank,
+        innData:      isInn ? this.#buildInnData(location, currencies, isGM) : null,
+        bankData:     isBank ? this.#buildBankData(location, currencies) : null,
         merchantData: await (async () => {
           if (!isMerchant) return null;
-          const merchantResult = await this.#buildMerchantData(resource, currencies, isGM);
+          const merchantResult = await this.#buildMerchantData(location, currencies, isGM);
           if (merchantResult._needsSave && isGM) this.#saveMerchantData(merchantResult._updatedMerchant).catch(() => {});
           return merchantResult;
         })()
       };
     }));
 
-    const innTemplate      = isGM ? this.#getTemplateForResource(resource)         : null;
-    const merchantTemplate = isGM ? this.#getMerchantTemplateForResource(resource) : null;
+    const innTemplate      = isGM ? this.#getTemplateForLocation(location)         : null;
+    const merchantTemplate = isGM ? this.#getMerchantTemplateForLocation(location) : null;
 
-    const effectiveProfile = mergePurchasingProfiles(resource);
+    const effectiveProfile = mergePurchasingProfiles(location);
     const hasSellTab = effectiveProfile.length > 0;
     let sellData = null;
     if (hasSellTab) {
-      sellData = await this.#buildSellData(resource, currencies, isGM, effectiveProfile);
+      sellData = await this.#buildSellData(location, currencies, isGM, effectiveProfile);
     }
     const sellTabActive = this._sellTabActive && hasSellTab;
     if (sellTabActive) {
@@ -229,8 +219,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     return {
-      id: resource.id,
-      name: resource.name,
+      id: location.id,
+      name: location.name,
       isGM,
       pickerGroups,
       hasAvailableTypes: isGM && pickerGroups.length > 0,
@@ -244,22 +234,22 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  #getTemplateForResource(resource) {
-    const entry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.INN);
+  #getTemplateForLocation(location) {
+    const entry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.INN);
     if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
-    return (subTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
+    return (subTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
-  #getMerchantTemplateForResource(resource) {
-    const entry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+  #getMerchantTemplateForLocation(location) {
+    const entry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
     if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
-    return (subTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
+    return (subTypes[LOCATION_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
-  #buildBankData(resource, currencies) {
-    const bankRaw    = resource.typeData?.bank ?? {};
+  #buildBankData(location, currencies) {
+    const bankRaw    = location.typeData?.bank ?? {};
     const ownedActors = game.actors
       .filter(a => a.isOwner && a.hasPlayerOwner)
       .map(a => ({ id: a.id, name: a.name }));
@@ -281,9 +271,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Resolve effective settings: template when not overridden, stored values when overridden
     const isOverridden = bankRaw._settingsOverridden ?? false;
-    const bankEntry = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const bankEntry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType = bankEntry?.subTypeId
-      ? (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const hasTemplate = !!subType;
     const src = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
@@ -374,8 +364,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     toSel?.addEventListener('change', update);
   }
 
-  #buildInnData(resource, currencies, isGM = true) {
-    const innRaw    = resource.typeData?.inn ?? { lodgings: [], ledger: [] };
+  #buildInnData(location, currencies, isGM = true) {
+    const innRaw    = location.typeData?.inn ?? { lodgings: [], ledger: [] };
     const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
     const worldTime = game.time.worldTime;
 
@@ -477,19 +467,19 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await super._onRender(context, options);
 
     if (game.user.isGM) {
-      this.element.querySelector('[name="cityName"]')?.addEventListener("change", e => {
-        canvas.scene?.setFlag(MODULE_ID, FLAGS.CITY_NAME, e.target.value);
+      this.element.querySelector('[name="settlementName"]')?.addEventListener("change", e => {
+        canvas.scene?.setFlag(MODULE_ID, FLAGS.SETTLEMENT_NAME, e.target.value);
       });
-      this.element.querySelector('[name="cityType"]')?.addEventListener("change", e => {
-        canvas.scene?.setFlag(MODULE_ID, FLAGS.CITY_TYPE, e.target.value);
+      this.element.querySelector('[name="settlementType"]')?.addEventListener("change", e => {
+        canvas.scene?.setFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE, e.target.value);
       });
-      this.element.querySelector('[name="resourceName"]')?.addEventListener("change", async e => {
-        const resource = this.#syncSelectedResource();
-        if (!resource) return;
+      this.element.querySelector('[name="locationName"]')?.addEventListener("change", async e => {
+        const location = this.#syncSelectedLocation();
+        if (!location) return;
         const name = e.target.value.trim();
         if (!name) return;
-        resource.name = name;
-        await this.#saveResourceData(resource);
+        location.name = name;
+        await this.#saveLocationData(location);
       });
       this.#setupTypePicker();
     }
@@ -497,9 +487,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._sceneUpdateHook) {
       this._sceneUpdateHook = Hooks.on("updateScene", (scene, changes) => {
         if (scene.id !== canvas.scene?.id) return;
-        const resourcesChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.RESOURCES}`);
-        const cityTypeChanged  = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.CITY_TYPE}`);
-        if (!resourcesChanged && !cityTypeChanged) return;
+        const locationsChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.LOCATIONS}`);
+        const settlementTypeChanged  = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.SETTLEMENT_TYPE}`);
+        if (!locationsChanged && !settlementTypeChanged) return;
         this.render({ parts: ["content"] });
       });
     }
@@ -562,8 +552,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#pickerDropdown?.remove();
     this.#pickerDropdown = null;
 
-    const trigger  = this.element.querySelector(".resource-add-type-trigger");
-    const dropdown = trigger?.querySelector(".resource-type-picker-dropdown");
+    const trigger  = this.element.querySelector(".location-add-type-trigger");
+    const dropdown = trigger?.querySelector(".location-type-picker-dropdown");
     if (!trigger || !dropdown) return;
 
     document.body.appendChild(dropdown);
@@ -601,17 +591,17 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     dropdown.querySelectorAll(".picker-item").forEach(item => {
       item.addEventListener("click", async () => {
-        const resource = this.#syncSelectedResource();
-        if (!resource) return;
+        const location = this.#syncSelectedLocation();
+        if (!location) return;
         const typeId   = item.dataset.typeId;
         const subTypeId = item.dataset.subTypeId || null;
-        const entries  = getTypeEntries(resource);
+        const entries  = getTypeEntries(location);
         entries.push({ typeId, subTypeId });
-        resource.typeEntries = entries;
-        if (typeId === RESOURCE_TYPE_IDS.INN && !resource.typeData?.inn) {
-          const subType = (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
-          resource.typeData ??= {};
-          resource.typeData.inn = {
+        location.typeEntries = entries;
+        if (typeId === LOCATION_TYPE_IDS.INN && !location.typeData?.inn) {
+          const subType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
+          location.typeData ??= {};
+          location.typeData.inn = {
             lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []).map(l => ({
               ...l, templateItemId: l.id, overridden: false
             })),
@@ -623,12 +613,12 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
             }
           };
         }
-        if (typeId === RESOURCE_TYPE_IDS.MERCHANT && !resource.typeData?.merchant) {
-          resource.typeData ??= {};
-          resource.typeData.merchant = { inventory: [] };
+        if (typeId === LOCATION_TYPE_IDS.MERCHANT && !location.typeData?.merchant) {
+          location.typeData ??= {};
+          location.typeData.merchant = { inventory: [] };
         }
         dropdown.classList.remove("is-open");
-        await this.#saveResourceData(resource);
+        await this.#saveLocationData(location);
       }, { signal });
     });
   }
@@ -636,47 +626,47 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ------------------------------------------------------------------ helpers
 
   #getSubTypeMap() {
-    const raw = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
+    const raw = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
     return Array.isArray(raw) ? {} : (raw ?? {});
   }
 
-  #syncSelectedResource() {
-    if (!this._selectedResourceId) return null;
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    return resources.find(r => r.id === this._selectedResourceId) ?? null;
+  #syncSelectedLocation() {
+    if (!this._selectedLocationId) return null;
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    return locations.find(r => r.id === this._selectedLocationId) ?? null;
   }
 
-  async #saveResourceData(updatedResource) {
+  async #saveLocationData(updatedLocation) {
     const scene = canvas.scene;
     if (!scene) return;
     if (game.user.isGM) {
-      const resources = scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-      const index = resources.findIndex(r => r.id === updatedResource.id);
+      const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+      const index = locations.findIndex(r => r.id === updatedLocation.id);
       if (index === -1) return;
-      resources[index] = updatedResource;
-      await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+      locations[index] = updatedLocation;
+      await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
       this.render({ parts: ["content"] });
     } else {
       // Players lack scene write permission — route through the active GM.
       // The updateScene hook on all clients re-renders this app once the GM saves.
       game.socket.emit(SOCKET_CHANNEL, {
-        type: SOCKET_TYPES.SAVE_RESOURCE,
+        type: SOCKET_TYPES.SAVE_LOCATION,
         sceneId: scene.id,
-        resource: updatedResource
+        location: updatedLocation
       });
     }
   }
 
   async #saveInnData(innData) {
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    resource.typeData ??= {};
-    resource.typeData.inn = innData;
-    await this.#saveResourceData(resource);
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    location.typeData ??= {};
+    location.typeData.inn = innData;
+    await this.#saveLocationData(location);
   }
 
-  async #buildMerchantData(resource, currencies, isGM = true) {
-    const merchant       = resource.typeData?.merchant ?? {};
+  async #buildMerchantData(location, currencies, isGM = true) {
+    const merchant       = location.typeData?.merchant ?? {};
     const rawInventory   = merchant.inventory ?? [];
     const stockType        = merchant.stockType        ?? "percent";
     const restockFrequency = merchant.restockFrequency ?? "weekly";
@@ -685,9 +675,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const typeConfigs = itemConfig.itemTypes ?? [];
     const typeMap     = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
 
-    const cityTypes       = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
-    const currentCityType = canvas.scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
-    const currentCityIdx  = cityTypes.findIndex(t => t.name === currentCityType);
+    const settlementTypes       = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
+    const currentSettlementType = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
+    const currentSettlementIdx  = settlementTypes.findIndex(t => t.name === currentSettlementType);
 
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const spd         = hoursPerDay * 3600;
@@ -715,10 +705,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const displayInventory = workingInventory.filter(item => {
-      const min = item.minCitySize ?? "";
+      const min = item.minSettlementSize ?? "";
       if (!min) return true;
-      const minIdx = cityTypes.findIndex(t => t.name === min);
-      return minIdx === -1 || currentCityIdx >= minIdx;
+      const minIdx = settlementTypes.findIndex(t => t.name === min);
+      return minIdx === -1 || currentSettlementIdx >= minIdx;
     });
 
     const groupMap = new Map();
@@ -790,7 +780,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  async #buildSellData(resource, currencies, isGM, effectiveProfile) {
+  async #buildSellData(location, currencies, isGM, effectiveProfile) {
     const hasConflicts = effectiveProfile.some(r => r._conflicted || r._buybackConflicted);
 
     const ownedActors = game.actors.filter(a => a.testUserPermission(game.user, "OWNER"));
@@ -807,7 +797,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
     const typeConfigs = itemConfig.itemTypes ?? [];
 
-    const cityMaxDenomValue = getCityMaxDenomValue(currencies);
+    const settlementMaxDenomValue = getSettlementMaxDenomValue(currencies);
 
     const sellableItems = [];
     if (defaultActor) {
@@ -819,7 +809,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const curr = currencies.find(c => c.id === salePrice.currencyId);
         const typeCfg  = typeConfigs.find(t => t.systemType === actorItem.type) ?? null;
         const saleStd  = costInStandard(salePrice, currencies);
-        const breakdown = calculateChange(saleStd, currencies, cityMaxDenomValue);
+        const breakdown = calculateChange(saleStd, currencies, settlementMaxDenomValue);
         const salePriceLabel = (breakdown && Object.values(breakdown).some(v => v > 0))
           ? formatAmounts(breakdown, currencies)
           : `${salePrice.amount} ${curr?.abbreviation ?? "?"}`;
@@ -834,7 +824,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    const rawBuyback = resource.typeData?.merchant?.buybackItems ?? [];
+    const rawBuyback = location.typeData?.merchant?.buybackItems ?? [];
     const buybackItems = rawBuyback.map(entry => {
       const curr = currencies.find(c => c.id === entry.buybackPrice?.currencyId);
       return {
@@ -849,11 +839,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async #saveMerchantData(merchantData) {
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    resource.typeData ??= {};
-    resource.typeData.merchant = merchantData;
-    await this.#saveResourceData(resource);
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    location.typeData ??= {};
+    location.typeData.merchant = merchantData;
+    await this.#saveLocationData(location);
   }
 
   async #onMerchantDrop(event) {
@@ -869,67 +859,67 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const name  = readItemName(item);
     const price = readItemPrice(item, currencies);
 
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
     merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
-    resource.typeData ??= {};
-    resource.typeData.merchant = merchant;
-    await this.#saveResourceData(resource);
+    location.typeData ??= {};
+    location.typeData.merchant = merchant;
+    await this.#saveLocationData(location);
   }
 
   // ------------------------------------------------------------------ left pane actions
 
-  static async #onAddResource() {
+  static async #onAddLocation() {
     if (!game.user.isGM) return;
-    const result = await ResourceEditApp.open({});
+    const result = await LocationEditApp.open({});
     if (!result) return;
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    resources.push(result);
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
-    this._selectedResourceId = result.id;
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    locations.push(result);
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+    this._selectedLocationId = result.id;
     this.render({ parts: ["content"] });
   }
 
-  static async #onDeleteResource(event, target) {
+  static async #onDeleteLocation(event, target) {
     if (!game.user.isGM) return;
-    const id = target.closest("[data-resource-id]")?.dataset.resourceId;
+    const id = target.closest("[data-location-id]")?.dataset.locationId;
     if (!id) return;
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const index = resources.findIndex(r => r.id === id);
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    const index = locations.findIndex(r => r.id === id);
     if (index === -1) return;
-    const resource = resources[index];
+    const location = locations[index];
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.deleteResourceTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.deleteResourceConfirm", { name: resource.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.deleteLocationTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.location.deleteLocationConfirm", { name: location.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
-    resources.splice(index, 1);
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
-    if (this._selectedResourceId === id) this._selectedResourceId = null;
+    locations.splice(index, 1);
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+    if (this._selectedLocationId === id) this._selectedLocationId = null;
     this.render({ parts: ["content"] });
   }
 
   static async #onToggleDiscovered(event, target) {
     if (!game.user.isGM) return;
-    const id = target.closest("[data-resource-id]")?.dataset.resourceId;
+    const id = target.closest("[data-location-id]")?.dataset.locationId;
     if (!id) return;
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const resource = resources.find(r => r.id === id);
-    if (!resource) return;
-    resource.discovered.default = !resource.discovered.default;
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    const location = locations.find(r => r.id === id);
+    if (!location) return;
+    location.discovered.default = !location.discovered.default;
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     const icon = target.querySelector("i");
-    if (icon) icon.className = resource.discovered.default ? "fa-solid fa-eye" : "fa-regular fa-eye-slash";
-    target.classList.toggle("is-discovered", resource.discovered.default);
+    if (icon) icon.className = location.discovered.default ? "fa-solid fa-eye" : "fa-regular fa-eye-slash";
+    target.classList.toggle("is-discovered", location.discovered.default);
   }
 
-  static #onSelectResource(event, target) {
-    const id = target.closest("[data-resource-id]")?.dataset.resourceId;
-    if (!id || id === this._selectedResourceId) return;
-    this._selectedResourceId = id;
+  static #onSelectLocation(event, target) {
+    const id = target.closest("[data-location-id]")?.dataset.locationId;
+    if (!id || id === this._selectedLocationId) return;
+    this._selectedLocationId = id;
     this._activeTab    = null;
     this._sellTabActive = false;
     this._sellActorId   = null;
@@ -945,29 +935,20 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onDeleteTypeEntry(event, target) {
     if (!game.user.isGM) return;
     const typeId = target.dataset.typeId;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const coreType = CORE_RESOURCE_TYPES.find(t => t.id === typeId);
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const coreType = CORE_LOCATION_TYPES.find(t => t.id === typeId);
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.removeTypeTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.removeTypeConfirm", { type: coreType?.name ?? typeId, resource: resource.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.removeTypeTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.location.removeTypeConfirm", { type: coreType?.name ?? typeId, location: location.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
-    resource.typeEntries = getTypeEntries(resource).filter(e => e.typeId !== typeId);
-    if (resource.typeData?.[typeId]) delete resource.typeData[typeId];
+    location.typeEntries = getTypeEntries(location).filter(e => e.typeId !== typeId);
+    if (location.typeData?.[typeId]) delete location.typeData[typeId];
     if (this._activeTab === typeId) this._activeTab = null;
-    await this.#saveResourceData(resource);
-  }
-
-  static #onConfigureExpenses(event, target) {
-    const id = target.closest("[data-resource-id]")?.dataset.resourceId;
-    if (!id) return;
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const resource = resources.find(r => r.id === id);
-    if (!resource) return;
-    CurrencyTestConfigApp.open(resource, canvas.scene);
+    await this.#saveLocationData(location);
   }
 
   // ------------------------------------------------------------------ right pane actions
@@ -975,19 +956,19 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onRemoveTypeEntry(event, target) {
     if (!game.user.isGM) return;
     const index = parseInt(target.dataset.entryIndex);
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.removeEntryTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.resource.removeEntryConfirm", { name: resource.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.removeEntryTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.location.removeEntryConfirm", { name: location.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
-    const entries = getTypeEntries(resource);
+    const entries = getTypeEntries(location);
     entries.splice(index, 1);
-    resource.typeEntries = entries;
-    await this.#saveResourceData(resource);
+    location.typeEntries = entries;
+    await this.#saveLocationData(location);
   }
 
   static async #onAddLodging() {
@@ -995,7 +976,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await LodgingEditApp.open({});
     if (!result) return;
     result.id ??= foundry.utils.randomID();
-    const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
     innData.lodgings.push(result);
     await this.#saveInnData(innData);
   }
@@ -1004,12 +985,12 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const resource = this.#syncSelectedResource();
-    const innData  = foundry.utils.deepClone(resource?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const location = this.#syncSelectedLocation();
+    const innData  = foundry.utils.deepClone(location?.typeData?.inn ?? { lodgings: [], ledger: [] });
     const index    = innData.lodgings.findIndex(l => l.id === lodgingId);
     if (index === -1) return;
     const lodging = innData.lodgings[index];
-    const template = lodging.templateItemId ? this.#getTemplateForResource(resource) : null;
+    const template = lodging.templateItemId ? this.#getTemplateForLocation(location) : null;
     const templateLodging = template
       ? (template.typeData?.lodgings ?? []).find(l => l.id === lodging.templateItemId) ?? null
       : null;
@@ -1025,13 +1006,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
     const lodging = innData.lodgings.find(l => l.id === lodgingId);
     if (!lodging) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingTitle") },
       content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingConfirm", { name: lodging.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
@@ -1042,13 +1023,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onRentLodging(event, target) {
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const resource = this.#syncSelectedResource();
-    const lodging  = resource?.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
+    const location = this.#syncSelectedLocation();
+    const lodging  = location?.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
     if (!lodging) return;
     cartManager.addLodging({
       sceneId: canvas.scene?.id,
-      resourceId: resource.id,
-      resourceName: resource.name,
+      locationId: location.id,
+      locationName: location.name,
       lodging
     });
     CartApp.open();
@@ -1058,7 +1039,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const entryId = target.dataset.entryId;
     if (!entryId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
     const entry = innData.ledger.find(e => e.id === entryId);
     if (!entry) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -1074,14 +1055,14 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onConfigureMenu() {
     if (!game.user.isGM) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const inn      = resource.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
-    const template = this.#getTemplateForResource(resource);
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const inn      = location.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    const template = this.#getTemplateForLocation(location);
     await MenuConfigApp.open(
       inn.menu ?? { courses: [] },
       async (updatedMenu) => {
-        const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+        const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
         innData.menu = updatedMenu;
         await this.#saveInnData(innData);
       },
@@ -1091,10 +1072,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onRestoreFromTemplate() {
     if (!game.user.isGM) return;
-    const resource = this.#syncSelectedResource();
-    const template = this.#getTemplateForResource(resource);
-    if (!resource || !template) return;
-    const innData = foundry.utils.deepClone(resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const location = this.#syncSelectedLocation();
+    const template = this.#getTemplateForLocation(location);
+    if (!location || !template) return;
+    const innData = foundry.utils.deepClone(location.typeData?.inn ?? { lodgings: [], ledger: [] });
     await TemplateRestoreDialog.open(innData, template, async (updatedInn) => {
       await this.#saveInnData(updatedInn);
     });
@@ -1102,10 +1083,10 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onRestoreFromMerchantTemplate() {
     if (!game.user.isGM) return;
-    const resource = this.#syncSelectedResource();
-    const template = this.#getMerchantTemplateForResource(resource);
-    if (!resource || !template) return;
-    const merchantData = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    const location = this.#syncSelectedLocation();
+    const template = this.#getMerchantTemplateForLocation(location);
+    if (!location || !template) return;
+    const merchantData = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
     await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
       await this.#saveMerchantData(updated);
     });
@@ -1115,7 +1096,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const courseId = target.dataset.courseId;
     if (!courseId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedResource()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
     const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course || course.mode !== "random") return;
     const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
@@ -1127,8 +1108,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onBuyMenuItem(event, target) {
     const { courseId, itemId } = target.dataset;
     if (!courseId || !itemId) return;
-    const resource = this.#syncSelectedResource();
-    const inn = resource?.typeData?.inn;
+    const location = this.#syncSelectedLocation();
+    const inn = location?.typeData?.inn;
     if (!inn) return;
     const course = (inn.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course) return;
@@ -1137,8 +1118,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!item) return;
     cartManager.addMenuItem({
       sceneId: canvas.scene?.id,
-      resourceId: resource.id,
-      resourceName: resource.name,
+      locationId: location.id,
+      locationName: location.name,
       course,
       item
     });
@@ -1148,13 +1129,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onAddMerchantItem(event, target) {
     const itemId = target.dataset.itemId;
     if (!itemId) return;
-    const resource = this.#syncSelectedResource();
-    const item = (resource?.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
+    const location = this.#syncSelectedLocation();
+    const item = (location?.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
     if (!item) return;
     cartManager.addMerchantItem({
       sceneId: canvas.scene?.id,
-      resourceId: resource.id,
-      resourceName: resource.name,
+      locationId: location.id,
+      locationName: location.name,
       item
     });
     CartApp.open();
@@ -1164,15 +1145,15 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
     if (!itemId) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
     const item = merchant.inventory.find(i => i.id === itemId);
     if (!item) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemTitle") },
       content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemConfirm", { name: item.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
@@ -1183,8 +1164,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onEditMerchantItem(event, target) {
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
-    const resource = this.#syncSelectedResource();
-    const merchant = foundry.utils.deepClone(resource?.typeData?.merchant ?? { inventory: [] });
+    const location = this.#syncSelectedLocation();
+    const merchant = foundry.utils.deepClone(location?.typeData?.merchant ?? { inventory: [] });
     const existing = merchant.inventory.find(i => i.id === itemId);
     if (!existing) return;
     const result = await MerchantItemEditApp.open(existing);
@@ -1198,13 +1179,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const result = await MerchantItemEditApp.open({});
     if (!result) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const merchant = foundry.utils.deepClone(resource.typeData?.merchant ?? { inventory: [] });
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
     merchant.inventory.push(result);
-    resource.typeData ??= {};
-    resource.typeData.merchant = merchant;
-    await this.#saveResourceData(resource);
+    location.typeData ??= {};
+    location.typeData.merchant = merchant;
+    await this.#saveLocationData(location);
   }
 
   static #onSwitchToSellTab() {
@@ -1219,11 +1200,11 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!actor) return;
     const actorItem = actor.items.get(actorItemId);
     if (!actorItem) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
 
     const currencies       = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const effectiveProfile = mergePurchasingProfiles(resource);
+    const effectiveProfile = mergePurchasingProfiles(location);
     const rule = findEffectiveRule(effectiveProfile, actorItem.type ?? "");
     if (!rule) return;
     const salePrice = computeSalePrice(actorItem, rule, currencies);
@@ -1234,8 +1215,8 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     cartManager.addSellItem({
       sceneId:        canvas.scene?.id,
-      resourceId:     resource.id,
-      resourceName:   resource.name,
+      locationId:     location.id,
+      locationName:   location.name,
       actorId:        actor.id,
       actorName:      actor.name,
       actorItemId,
@@ -1249,14 +1230,14 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onBuyBackItem(event, target) {
     const buybackId = target.dataset.buybackId;
     if (!buybackId) return;
-    const resource = this.#syncSelectedResource();
-    const buybackItems = resource?.typeData?.merchant?.buybackItems ?? [];
+    const location = this.#syncSelectedLocation();
+    const buybackItems = location?.typeData?.merchant?.buybackItems ?? [];
     const entry = buybackItems.find(b => b.id === buybackId);
     if (!entry || !entry.buybackPrice) return;
     cartManager.addMerchantItem({
       sceneId:      canvas.scene?.id,
-      resourceId:   resource.id,
-      resourceName: resource.name,
+      locationId:   location.id,
+      locationName: location.name,
       item: {
         id:     entry.id,
         name:   entry.itemName,
@@ -1269,9 +1250,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onEditPurchasingProfile() {
     if (!game.user.isGM) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    await PurchasingProfileEditApp.open(resource);
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    await PurchasingProfileEditApp.open(location);
   }
 
   static async #onAddExchangeToCart(event, target) {
@@ -1283,17 +1264,17 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const toCurrencyId   = section.querySelector('[data-field="toCurrency"]')?.value ?? "";
     if (!fromAmount || !fromCurrencyId || !toCurrencyId || fromCurrencyId === toCurrencyId) return;
 
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
     const currencies   = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const bankData     = resource.typeData?.bank ?? {};
+    const bankData     = location.typeData?.bank ?? {};
     const actor        = game.actors.get(this._bankActorId);
     if (!actor) return;
 
     cartManager.addExchange({
       sceneId:        canvas.scene?.id,
-      resourceId:     resource.id,
-      resourceName:   resource.name,
+      locationId:     location.id,
+      locationName:   location.name,
       actorId:        actor.id,
       actorName:      actor.name,
       fromCurrencyId,
@@ -1322,9 +1303,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies      = currencyConfig.currencies ?? [];
-    const resource        = this.#syncSelectedResource();
-    if (!resource) return;
-    const bankRaw         = resource.typeData?.bank ?? {};
+    const location        = this.#syncSelectedLocation();
+    if (!location) return;
+    const bankRaw         = location.typeData?.bank ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const feeRate         = depositSettings.depositFee ?? 0;
 
@@ -1366,7 +1347,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const payload = {
       deposit,
-      resourceId: resource.id,
+      locationId: location.id,
       sceneId:    canvas.scene?.id,
       isGlobal:   depositSettings.global ?? false
     };
@@ -1383,13 +1364,13 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onOverrideBankSettings() {
     if (!game.user.isGM) return;
-    const resource     = this.#syncSelectedResource();
-    if (!resource) return;
-    const bankRaw      = resource.typeData?.bank ?? {};
+    const location     = this.#syncSelectedLocation();
+    if (!location) return;
+    const bankRaw      = location.typeData?.bank ?? {};
     const isOverridden = bankRaw._settingsOverridden ?? false;
-    const bankEntry    = getTypeEntries(resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const bankEntry    = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType      = bankEntry?.subTypeId
-      ? (this.#getSubTypeMap()[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const src  = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const dSrc = src.depositSettings ?? {};
@@ -1442,7 +1423,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!result) return;
 
-    const bankData = foundry.utils.deepClone(resource.typeData?.bank ?? {});
+    const bankData = foundry.utils.deepClone(location.typeData?.bank ?? {});
     bankData.doesExchange        = result.doesExchange;
     bankData.exchangeFee         = result.exchangeFee;
     bankData.depositSettings     = {
@@ -1452,20 +1433,20 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       earlyWithdrawalFee: result.earlyWithdrawalFee
     };
     bankData._settingsOverridden = true;
-    resource.typeData ??= {};
-    resource.typeData.bank = bankData;
-    await this.#saveResourceData(resource);
+    location.typeData ??= {};
+    location.typeData.bank = bankData;
+    await this.#saveLocationData(location);
   }
 
   static async #onResetBankSettings() {
     if (!game.user.isGM) return;
-    const resource = this.#syncSelectedResource();
-    if (!resource) return;
-    const bankData = foundry.utils.deepClone(resource.typeData?.bank ?? {});
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const bankData = foundry.utils.deepClone(location.typeData?.bank ?? {});
     bankData._settingsOverridden = false;
-    resource.typeData ??= {};
-    resource.typeData.bank = bankData;
-    await this.#saveResourceData(resource);
+    location.typeData ??= {};
+    location.typeData.bank = bankData;
+    await this.#saveLocationData(location);
   }
 
   static async #onWithdrawDeposit(event, target) {
@@ -1479,9 +1460,9 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies      = currencyConfig.currencies ?? [];
-    const resource        = this.#syncSelectedResource();
-    if (!resource) return;
-    const bankRaw         = resource.typeData?.bank ?? {};
+    const location        = this.#syncSelectedLocation();
+    if (!location) return;
+    const bankRaw         = location.typeData?.bank ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const allDeposits     = depositSettings.global
       ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
@@ -1514,7 +1495,7 @@ export class CityManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
       withdrawCoins:  result.withdrawCoins,
       actorId:        actor.id,
       earlyFeeRate:   depositSettings.earlyWithdrawalFee ?? 0,
-      resourceId:     resource.id,
+      locationId:     location.id,
       sceneId:        canvas.scene?.id,
       isGlobal:       depositSettings.global ?? false
     };

@@ -44,15 +44,15 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext(options) {
     const templateItems = this._template?.typeData?.merchant?.inventory ?? [];
-    const resourceItems = this._merchantData.inventory ?? [];
+    const locationItems = this._merchantData.inventory ?? [];
 
-    const changedItems = resourceItems.filter(item => {
+    const changedItems = locationItems.filter(item => {
       if (!item.templateItemId || !item._templateValues) return false;
       const tv = item._templateValues;
       return (
         item.name              !== tv.name              ||
         item.itemId            !== tv.itemId            ||
-        item.minCitySize       !== tv.minCitySize       ||
+        item.minSettlementSize       !== tv.minSettlementSize       ||
         item.stockAvailability !== tv.stockAvailability ||
         item.stockFormula      !== tv.stockFormula      ||
         item.price?.amount     !== tv.price?.amount     ||
@@ -61,7 +61,7 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
     });
 
     const missingItems = templateItems.filter(
-      ti => !resourceItems.some(ri => ri.templateItemId === ti.id)
+      ti => !locationItems.some(ri => ri.templateItemId === ti.id)
     );
 
     const hasAnyItems = !!(changedItems.length || missingItems.length);
@@ -90,7 +90,7 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
         Object.assign(item, {
           name:              tv.name,
           itemId:            tv.itemId,
-          minCitySize:       tv.minCitySize,
+          minSettlementSize:       tv.minSettlementSize,
           stockAvailability: tv.stockAvailability,
           stockFormula:      tv.stockFormula,
           price:             foundry.utils.deepClone(tv.price)
@@ -107,7 +107,7 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
           _templateValues: {
             name:              ti.name,
             itemId:            ti.itemId            ?? null,
-            minCitySize:       ti.minCitySize       ?? "",
+            minSettlementSize:       ti.minSettlementSize       ?? "",
             stockAvailability: ti.stockAvailability ?? 100,
             stockFormula:      ti.stockFormula      ?? "",
             price:             { ...(ti.price ?? {}) }

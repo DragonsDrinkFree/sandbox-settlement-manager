@@ -1,9 +1,9 @@
 ﻿import { MODULE_ID, SETTINGS } from "../constants.js";
-import { CityTypeEditApp } from "./city-type-edit.js";
+import { SettlementTypeEditApp } from "./settlement-type-edit.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-export const DEFAULT_CITY_TYPES = [
+export const DEFAULT_SETTLEMENT_TYPES = [
   { name: "Hamlet" },
   { name: "Village" },
   { name: "Small Town" },
@@ -11,35 +11,35 @@ export const DEFAULT_CITY_TYPES = [
   { name: "City" }
 ];
 
-export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
+export class SettlementTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // Working copy — null until first _prepareContext, not saved until Save is clicked
   _types = null;
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-city-type-config`,
+    id: `${MODULE_ID}-settlement-type-config`,
     tag: "form",
-    form: { handler: CityTypeConfigApp.#onSubmit, closeOnSubmit: true },
-    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.name" },
+    form: { handler: SettlementTypeConfigApp.#onSubmit, closeOnSubmit: true },
+    window: { title: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.name" },
     position: { width: 460 },
     actions: {
-      addCityType: CityTypeConfigApp.#onAddCityType,
-      editCityType: CityTypeConfigApp.#onEditCityType,
-      deleteCityType: CityTypeConfigApp.#onDeleteCityType,
-      resetToDefaults: CityTypeConfigApp.#onResetToDefaults
+      addSettlementType: SettlementTypeConfigApp.#onAddSettlementType,
+      editSettlementType: SettlementTypeConfigApp.#onEditSettlementType,
+      deleteSettlementType: SettlementTypeConfigApp.#onDeleteSettlementType,
+      resetToDefaults: SettlementTypeConfigApp.#onResetToDefaults
     }
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/settings/city-type-config.hbs` },
+    form: { template: `modules/${MODULE_ID}/templates/settings/settlement-type-config.hbs` },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
   async _prepareContext(options) {
     if (this._types === null) {
-      this._types = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES).map(t => foundry.utils.deepClone(t));
+      this._types = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES).map(t => foundry.utils.deepClone(t));
     }
     return {
-      cityTypes: this._types,
+      settlementTypes: this._types,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
   }
@@ -52,12 +52,12 @@ export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   #setupDragSort() {
-    const list = this.element.querySelector(".city-type-list");
+    const list = this.element.querySelector(".settlement-type-list");
     if (!list) return;
     let dragSrc = null;
 
     list.addEventListener("dragstart", e => {
-      dragSrc = e.target.closest(".city-type-item");
+      dragSrc = e.target.closest(".settlement-type-item");
       if (!dragSrc) return;
       e.dataTransfer.effectAllowed = "move";
       // defer so the drag ghost renders before the opacity change
@@ -67,7 +67,7 @@ export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
     list.addEventListener("dragover", e => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      const target = e.target.closest(".city-type-item");
+      const target = e.target.closest(".settlement-type-item");
       if (!target || target === dragSrc) return;
       const { top, height } = target.getBoundingClientRect();
       if (e.clientY < top + height / 2) list.insertBefore(dragSrc, target);
@@ -78,7 +78,7 @@ export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
       dragSrc?.classList.remove("dragging");
       if (!dragSrc) return;
       const snapshot = this._types.slice();
-      this._types = Array.from(list.querySelectorAll(".city-type-item"))
+      this._types = Array.from(list.querySelectorAll(".settlement-type-item"))
         .map(item => snapshot[parseInt(item.dataset.index)])
         .filter(Boolean);
       dragSrc = null;
@@ -86,32 +86,32 @@ export class CityTypeConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
     });
   }
 
-  static async #onAddCityType() {
-    const result = await CityTypeEditApp.open({});
+  static async #onAddSettlementType() {
+    const result = await SettlementTypeEditApp.open({});
     if (!result) return;
     this._types.push(result);
     this.render({ parts: ["form"] });
   }
 
-  static async #onEditCityType(event, target) {
+  static async #onEditSettlementType(event, target) {
     const index = parseInt(target.dataset.index);
-    const result = await CityTypeEditApp.open(this._types[index]);
+    const result = await SettlementTypeEditApp.open(this._types[index]);
     if (!result) return;
     this._types[index] = result;
     this.render({ parts: ["form"] });
   }
 
-  static #onDeleteCityType(event, target) {
+  static #onDeleteSettlementType(event, target) {
     this._types.splice(parseInt(target.dataset.index), 1);
     this.render({ parts: ["form"] });
   }
 
   static #onResetToDefaults() {
-    this._types = DEFAULT_CITY_TYPES.map(t => ({ ...t }));
+    this._types = DEFAULT_SETTLEMENT_TYPES.map(t => ({ ...t }));
     this.render({ parts: ["form"] });
   }
 
   static async #onSubmit() {
-    await game.settings.set(MODULE_ID, SETTINGS.CITY_TYPES, this._types);
+    await game.settings.set(MODULE_ID, SETTINGS.SETTLEMENT_TYPES, this._types);
   }
 }

@@ -1,11 +1,11 @@
 ﻿import { MODULE_ID, SETTINGS } from "../constants.js";
-import { CityTypeConfigApp } from "./city-type-config.js";
-import { ResourceTypeConfigApp } from "./resource-type-config.js";
+import { SettlementTypeConfigApp } from "./settlement-type-config.js";
+import { LocationTypeConfigApp } from "./location-type-config.js";
 import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
 import { ItemConfigApp } from "./item-config.js";
 
 export function registerSettings() {
-  game.settings.register(MODULE_ID, SETTINGS.CITY_TYPES, {
+  game.settings.register(MODULE_ID, SETTINGS.SETTLEMENT_TYPES, {
     scope: "world",
     config: false,
     type: new foundry.data.fields.ArrayField(
@@ -23,13 +23,21 @@ export function registerSettings() {
     ]
   });
 
-  // Sub-types keyed by core resource type id: { inn: [{id, name}], merchant: [...], ... }
-  // Core types themselves are hardcoded in CORE_RESOURCE_TYPES (constants.js).
-  game.settings.register(MODULE_ID, SETTINGS.RESOURCE_TYPES, {
+  // Sub-types keyed by core location type id: { inn: [{id, name}], merchant: [...], ... }
+  // Core types themselves are hardcoded in CORE_LOCATION_TYPES (constants.js).
+  game.settings.register(MODULE_ID, SETTINGS.LOCATION_TYPES, {
     scope: "world",
     config: false,
     type: Object,
-    default: { inn: [], merchant: [], bank: [], currency_test: [] }
+    default: { inn: [], merchant: [], bank: [] }
+  });
+
+  // Persisted data schema version — drives one-time migrations (see migrate.js).
+  game.settings.register(MODULE_ID, SETTINGS.SCHEMA_VERSION, {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
   });
 
   game.settings.register(MODULE_ID, SETTINGS.CURRENCY_CONFIG, {
@@ -66,21 +74,21 @@ export function registerSettings() {
     restricted: true
   });
 
-  game.settings.registerMenu(MODULE_ID, "cityTypeConfig", {
-    name: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.name",
-    label: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.label",
-    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypeConfig.hint",
-    icon: "fa-solid fa-city",
-    type: CityTypeConfigApp,
+  game.settings.registerMenu(MODULE_ID, "settlementTypeConfig", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.hint",
+    icon: "fa-solid fa-house-chimney",
+    type: SettlementTypeConfigApp,
     restricted: true
   });
 
-  game.settings.registerMenu(MODULE_ID, "resourceTypeConfig", {
-    name: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.name",
-    label: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.label",
-    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.resourceTypeConfig.hint",
+  game.settings.registerMenu(MODULE_ID, "locationTypeConfig", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.hint",
     icon: "fa-solid fa-warehouse",
-    type: ResourceTypeConfigApp,
+    type: LocationTypeConfigApp,
     restricted: true
   });
 

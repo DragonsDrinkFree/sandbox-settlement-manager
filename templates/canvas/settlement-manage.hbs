@@ -1,70 +1,70 @@
-<div class="city-two-pane">
+<div class="settlement-two-pane">
 
   {{!-- LEFT PANE --}}
-  <div class="city-left-pane">
+  <div class="settlement-left-pane">
     {{#if isGM}}
-    <div class="city-controls">
-      <input type="text" name="cityName" value="{{cityName}}"
-             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.manage.cityNamePlaceholder'}}"
-             class="city-name-input">
-      <select name="cityType" class="city-type-select">
-        <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.manage.cityType"}} —</option>
-        {{#each cityTypes}}
+    <div class="settlement-controls">
+      <input type="text" name="settlementName" value="{{settlementName}}"
+             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.manage.settlementNamePlaceholder'}}"
+             class="settlement-name-input">
+      <select name="settlementType" class="settlement-type-select">
+        <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.manage.settlementType"}} —</option>
+        {{#each settlementTypes}}
         <option value="{{value}}"{{#if (eq value ../selectedType)}} selected{{/if}}>{{label}}</option>
         {{/each}}
       </select>
-      <button type="button" data-action="addResource" class="city-add-resource-btn">
-        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resource.add"}}
+      <button type="button" data-action="addLocation" class="settlement-add-location-btn">
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.add"}}
       </button>
     </div>
-    <hr class="city-pane-divider">
+    <hr class="settlement-pane-divider">
     {{/if}}
-    <ul class="city-resource-list">
-      {{#each resources}}
-      <li class="city-resource-row{{#if this.selected}} selected{{/if}}"
-          data-resource-id="{{this.id}}"
-          data-action="selectResource">
+    <ul class="settlement-location-list">
+      {{#each locations}}
+      <li class="settlement-location-row{{#if this.selected}} selected{{/if}}"
+          data-location-id="{{this.id}}"
+          data-action="selectLocation">
         {{#if ../isGM}}
         <button type="button" class="discovered-toggle{{#if this.discovered.default}} is-discovered{{/if}}"
                 data-action="toggleDiscovered"
-                aria-label="{{#if this.discovered.default}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.discovered'}}{{else}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.undiscovered'}}{{/if}}">
+                aria-label="{{#if this.discovered.default}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.discovered'}}{{else}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.undiscovered'}}{{/if}}">
           <i class="{{#if this.discovered.default}}fa-solid fa-eye{{else}}fa-regular fa-eye-slash{{/if}}"></i>
         </button>
         {{/if}}
-        <i class="{{this.typeIcon}} city-type-icon" inert></i>
-        <div class="city-resource-info">
-          <span class="city-resource-name">{{this.name}}</span>
-          <span class="city-resource-type">{{this.typeName}}</span>
+        <i class="{{this.typeIcon}} settlement-type-icon" inert></i>
+        <div class="settlement-location-info">
+          <span class="settlement-location-name">{{this.name}}</span>
+          <span class="settlement-location-type">{{this.typeName}}</span>
         </div>
       </li>
       {{else}}
-      <li class="city-resource-empty">
-        <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.empty"}}</em>
+      <li class="settlement-location-empty">
+        <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.location.empty"}}</em>
       </li>
       {{/each}}
     </ul>
   </div>
 
   {{!-- RIGHT PANE --}}
-  <div class="city-right-pane">
-    {{#if selectedResource}}
-    <div data-resource-id="{{selectedResource.id}}">
+  <div class="settlement-right-pane">
+    {{#if selectedLocation}}
+    <div data-location-id="{{selectedLocation.id}}">
 
-      <div class="resource-header-row">
-        {{#if selectedResource.isGM}}
-        <input type="text" name="resourceName" value="{{selectedResource.name}}"
-               class="resource-name-input">
-        {{#if selectedResource.hasAvailableTypes}}
-        <div class="add-type-trigger resource-add-type-trigger">
+      <div class="location-header-row">
+        {{#if selectedLocation.isGM}}
+        <input type="text" name="locationName" value="{{selectedLocation.name}}"
+               class="location-name-input">
+        {{#if selectedLocation.hasAvailableTypes}}
+        <div class="add-type-trigger location-add-type-trigger">
           <button type="button" class="add-type-btn icon"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.addType'}}">
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.addType'}}">
             <i class="fa-solid fa-plus"></i>
           </button>
-          <div class="type-picker-dropdown resource-type-picker-dropdown">
+          <div class="type-picker-dropdown location-type-picker-dropdown">
             <input type="text" class="type-picker-filter"
-                   placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.filterTypes'}}">
+                   placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.filterTypes'}}">
             <ul class="type-picker-list">
-              {{#each selectedResource.pickerGroups}}
+              {{#each selectedLocation.pickerGroups}}
               <li class="picker-group">
                 {{#if this.typeItselfAvailable}}
                 <button type="button" class="picker-item picker-type-item"
@@ -88,37 +88,37 @@
           </div>
         </div>
         {{/if}}
-        {{#if selectedResource.hasInnTemplate}}
+        {{#if selectedLocation.hasInnTemplate}}
         <button type="button" class="icon" data-action="restoreFromTemplate"
                 aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.restore.buttonLabel'}}">
           <i class="fa-solid fa-rotate-left"></i>
         </button>
         {{/if}}
-        {{#if selectedResource.hasMerchantTemplate}}
+        {{#if selectedLocation.hasMerchantTemplate}}
         <button type="button" class="icon" data-action="restoreFromMerchantTemplate"
                 aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.restore.buttonLabel'}}">
           <i class="fa-solid fa-rotate-left"></i>
         </button>
         {{/if}}
-        <button type="button" class="icon" data-action="deleteResource"
-                data-resource-id="{{selectedResource.id}}"
-                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+        <button type="button" class="icon" data-action="deleteLocation"
+                data-location-id="{{selectedLocation.id}}"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
           <i class="fa-solid fa-trash"></i>
         </button>
         {{else}}
-        <h3 class="resource-name-heading">{{selectedResource.name}}</h3>
+        <h3 class="location-name-heading">{{selectedLocation.name}}</h3>
         {{/if}}
       </div>
 
-      {{#if selectedResource.hasTabs}}
-      <nav class="resource-detail-tabs city-manage-tabs">
-        {{#each selectedResource.tabs}}
-        <div class="resource-detail-tab{{#if this.active}} active{{/if}}">
+      {{#if selectedLocation.hasTabs}}
+      <nav class="location-detail-tabs settlement-manage-tabs">
+        {{#each selectedLocation.tabs}}
+        <div class="location-detail-tab{{#if this.active}} active{{/if}}">
           <button type="button" class="tab-switch-btn" data-action="switchTab" data-tab-id="{{this.id}}">
             <i class="{{this.icon}}" inert></i>
             {{this.name}}{{#if this.subTypeName}} &middot; {{this.subTypeName}}{{/if}}
           </button>
-          {{#if ../selectedResource.isGM}}
+          {{#if ../selectedLocation.isGM}}
           <button type="button" class="tab-remove-btn icon" data-action="deleteTypeEntry"
                   data-type-id="{{this.id}}" aria-label="Remove type">
             <i class="fa-solid fa-times"></i>
@@ -126,8 +126,8 @@
           {{/if}}
         </div>
         {{/each}}
-        {{#if selectedResource.hasSellTab}}
-        <div class="resource-detail-tab{{#if selectedResource.sellTabActive}} active{{/if}}">
+        {{#if selectedLocation.hasSellTab}}
+        <div class="location-detail-tab{{#if selectedLocation.sellTabActive}} active{{/if}}">
           <button type="button" class="tab-switch-btn" data-action="switchToSellTab">
             <i class="fa-solid fa-hand-holding-dollar" inert></i>
             {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellItems"}}
@@ -137,10 +137,10 @@
       </nav>
       {{/if}}
 
-      {{#if selectedResource.hasDetails}}
+      {{#if selectedLocation.hasDetails}}
 
-      {{#each selectedResource.tabs}}
-      <div class="resource-detail-tab-pane{{#if this.active}} active{{/if}}">
+      {{#each selectedLocation.tabs}}
+      <div class="location-detail-tab-pane{{#if this.active}} active{{/if}}">
 
       {{#if this.isInn}}
       <div class="inn-detail">
@@ -211,11 +211,11 @@
                 {{#if ../innData.isGM}}
                 <td class="ssm-col-controls">
                   <button type="button" class="icon lodging-ctrl-btn" data-action="editLodging" data-lodging-id="{{this.id}}"
-                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <button type="button" class="icon lodging-ctrl-btn" data-action="deleteLodging" data-lodging-id="{{this.id}}"
-                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </td>
@@ -341,11 +341,11 @@
                   {{#if ../../merchantData.isGM}}
                   <td class="ssm-col-controls">
                     <button type="button" class="icon lodging-ctrl-btn" data-action="editMerchantItem"
-                            data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                            data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
                       <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <button type="button" class="icon lodging-ctrl-btn" data-action="deleteMerchantItem"
-                            data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                            data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
                       <i class="fa-solid fa-trash"></i>
                     </button>
                   </td>
@@ -387,11 +387,11 @@
                 {{#if ../merchantData.isGM}}
                 <td class="ssm-col-controls">
                   <button type="button" class="icon lodging-ctrl-btn" data-action="editMerchantItem"
-                          data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                          data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <button type="button" class="icon lodging-ctrl-btn" data-action="deleteMerchantItem"
-                          data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                          data-item-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </td>
@@ -416,34 +416,6 @@
           {{/if}}
         </div>
       </div>
-
-      {{else if this.isCurrencyTest}}
-      <table class="expense-table ssm-table">
-        <thead>
-          <tr>
-            <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.table.colItem"}}</th>
-            <th class="col-cost ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.table.colCost"}}</th>
-            <th class="ssm-col-action"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {{#each this.expenses}}
-          <tr class="expense-row" data-expense-id="{{this.id}}">
-            <td class="col-name">{{this.name}}</td>
-            <td class="col-cost ssm-col-right">{{this.costLabel}}</td>
-            <td class="ssm-col-action">
-              <button type="button" class="buy-button" data-action="buyExpense">
-                {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
-              </button>
-            </td>
-          </tr>
-          {{else}}
-          <tr>
-            <td class="ssm-empty" colspan="3"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.noExpenses"}}</em></td>
-          </tr>
-          {{/each}}
-        </tbody>
-      </table>
 
       {{else if this.isBank}}
       <div class="ssm-bank-detail">
@@ -552,28 +524,30 @@
           {{/if}}
         </fieldset>
 
+        {{#if this.bankData.isGM}}
         <fieldset class="ssm-bank-section">
           <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loansTitle"}}</legend>
           <p class="ssm-bank-placeholder">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.comingSoon"}}</p>
         </fieldset>
+        {{/if}}
       </div>
       {{else}}
-      <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.noDetailView"}}</p>
+      <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.location.noDetailView"}}</p>
       {{/if}}
 
       </div>
       {{/each}}
 
-      {{#if selectedResource.hasSellTab}}
-      <div class="resource-detail-tab-pane{{#if selectedResource.sellTabActive}} active{{/if}}">
+      {{#if selectedLocation.hasSellTab}}
+      <div class="location-detail-tab-pane{{#if selectedLocation.sellTabActive}} active{{/if}}">
         <div class="ssm-sell-tab">
           <div class="ssm-sell-tab-header">
-            {{#if selectedResource.isGM}}
+            {{#if selectedLocation.isGM}}
             <button type="button" data-action="editPurchasingProfile" class="ssm-edit-profile-btn">
               <i class="fa-solid fa-pen-to-square"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.editProfile"}}
             </button>
             {{/if}}
-            {{#if selectedResource.sellData.hasConflicts}}
+            {{#if selectedLocation.sellData.hasConflicts}}
             <div class="ssm-conflict-warning">
               <i class="fa-solid fa-triangle-exclamation"></i>
               {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.conflictWarning"}}
@@ -581,18 +555,18 @@
             {{/if}}
           </div>
 
-          {{#if selectedResource.sellData.actors.length}}
+          {{#if selectedLocation.sellData.actors.length}}
           <div class="form-group ssm-sell-actor-row">
             <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellCharacter"}}</label>
             <select class="ssm-sell-actor-select">
-              {{#each selectedResource.sellData.actors}}
+              {{#each selectedLocation.sellData.actors}}
               <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
               {{/each}}
             </select>
           </div>
           {{/if}}
 
-          {{#if selectedResource.sellData.sellableItems.length}}
+          {{#if selectedLocation.sellData.sellableItems.length}}
           <table class="ssm-sell-table ssm-table">
             <thead>
               <tr>
@@ -603,7 +577,7 @@
               </tr>
             </thead>
             <tbody>
-              {{#each selectedResource.sellData.sellableItems}}
+              {{#each selectedLocation.sellData.sellableItems}}
               <tr>
                 <td>{{this.name}}<br><small class="ssm-item-type-label">{{this.typeLabel}}</small></td>
                 <td>{{this.salePriceLabel}}</td>
@@ -625,12 +599,12 @@
           <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noSellableItems"}}</p>
           {{/if}}
 
-          {{#if selectedResource.sellData.buybackItems.length}}
+          {{#if selectedLocation.sellData.buybackItems.length}}
           <div class="ssm-buyback-section">
             <h4 class="ssm-section-heading">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackSection"}}</h4>
             <table class="ssm-buyback-table ssm-table">
               <tbody>
-                {{#each selectedResource.sellData.buybackItems}}
+                {{#each selectedLocation.sellData.buybackItems}}
                 <tr>
                   <td>{{this.itemName}}</td>
                   <td>{{this.buybackPriceLabel}}</td>
@@ -654,11 +628,11 @@
 
     </div>
     {{else}}
-    <div class="city-right-placeholder">
+    <div class="settlement-right-placeholder">
       {{#if isGM}}
-      <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectResource"}}</p>
+      <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectLocation"}}</p>
       {{else}}
-      <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectResourcePlayer"}}</p>
+      <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectLocationPlayer"}}</p>
       {{/if}}
     </div>
     {{/if}}

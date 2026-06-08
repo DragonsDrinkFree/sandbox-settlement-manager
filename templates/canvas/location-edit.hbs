@@ -1,12 +1,12 @@
-<div class="resource-edit-form">
+<div class="location-edit-form">
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.nameLabel"}}</label>
-    <input type="text" name="name" value="{{resource.name}}"
-           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.namePlaceholder'}}">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.location.nameLabel"}}</label>
+    <input type="text" name="name" value="{{location.name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.namePlaceholder'}}">
   </div>
 
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.typesLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.location.typesLabel"}}</label>
     <div class="type-entries-area">
       <div class="type-chips">
         {{#each typeEntries}}
@@ -22,11 +22,11 @@
       </div>
       <div class="add-type-trigger">
         <button type="button" class="add-type-btn">
-          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resource.addType"}}
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.addType"}}
         </button>
         <div class="type-picker-dropdown">
           <input type="text" class="type-picker-filter"
-                 placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.filterTypes'}}">
+                 placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.filterTypes'}}">
           <ul class="type-picker-list">
             {{#each pickerGroups}}
             <li class="picker-group">
@@ -55,7 +55,7 @@
   </div>
 
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.discoveredLabel"}}</label>
-    <input type="checkbox" name="discovered"{{#if resource.discovered.default}} checked{{/if}}>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.location.discoveredLabel"}}</label>
+    <input type="checkbox" name="discovered"{{#if location.discovered.default}} checked{{/if}}>
   </div>
 </div>

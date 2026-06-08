@@ -9,13 +9,13 @@ class CartManager {
   get items() { return foundry.utils.deepClone(this.#items); }
 
   /** Add a lodging to the cart. Multiple entries for the same lodging are allowed (separate bookings). */
-  addLodging({ sceneId, resourceId, resourceName, lodging }) {
+  addLodging({ sceneId, locationId, locationName, lodging }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'lodging',
       sceneId,
-      resourceId,
-      resourceName,
+      locationId,
+      locationName,
       lodgingId: lodging.id,
       lodgingName: lodging.name,
       beds: lodging.beds ?? 1,
@@ -28,13 +28,13 @@ class CartManager {
   }
 
   /** Add a merchant inventory item to the cart. */
-  addMerchantItem({ sceneId, resourceId, resourceName, item }) {
+  addMerchantItem({ sceneId, locationId, locationName, item }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'merchantItem',
       sceneId,
-      resourceId,
-      resourceName,
+      locationId,
+      locationName,
       inventoryItemId: item.id,
       itemName: item.name,
       itemLinkedId: item.itemId ?? null,
@@ -45,13 +45,13 @@ class CartManager {
   }
 
   /** Add an item being sold by the player to the cart. */
-  addSellItem({ sceneId, resourceId, resourceName, actorId, actorName, actorItemId, itemName, itemLinkedUuid, salePrice }) {
+  addSellItem({ sceneId, locationId, locationName, actorId, actorName, actorItemId, itemName, itemLinkedUuid, salePrice }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'sellItem',
       sceneId,
-      resourceId,
-      resourceName,
+      locationId,
+      locationName,
       actorId,
       actorName,
       actorItemId,
@@ -64,14 +64,14 @@ class CartManager {
   }
 
   /** Add a menu item to the cart. Price is resolved from item first, then course default. */
-  addMenuItem({ sceneId, resourceId, resourceName, course, item }) {
+  addMenuItem({ sceneId, locationId, locationName, course, item }) {
     const resolvedPrice = item.price ?? course.price ?? null;
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'menuItem',
       sceneId,
-      resourceId,
-      resourceName,
+      locationId,
+      locationName,
       courseId: course.id,
       itemId: item.id,
       itemName: item.name,
@@ -83,13 +83,13 @@ class CartManager {
   }
 
   /** Add a currency exchange transaction to the cart. Line total = fee only. */
-  addExchange({ sceneId, resourceId, resourceName, actorId, actorName, fromCurrencyId, fromAmount, toCurrencyId, feeRatePercent }) {
+  addExchange({ sceneId, locationId, locationName, actorId, actorName, fromCurrencyId, fromAmount, toCurrencyId, feeRatePercent }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'exchange',
       sceneId,
-      resourceId,
-      resourceName,
+      locationId,
+      locationName,
       actorId,
       actorName,
       fromCurrencyId,

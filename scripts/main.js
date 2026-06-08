@@ -11,9 +11,10 @@
 import { MODULE_ID } from "./constants.js";
 import { registerSettings } from "./settings/settings.js";
 import { SandboxSceneConfig } from "./scene/scene-config.js";
-import { registerCityControls } from "./canvas/city-controls.js";
+import { registerSettlementControls } from "./canvas/settlement-controls.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
 import { registerSocketHandlers } from "./socket.js";
+import { runMigrations } from "./migrate.js";
 import "./canvas/cart-manager.js";
 
 Hooks.once("init", () => {
@@ -23,14 +24,15 @@ Hooks.once("init", () => {
   // See reference: Keybindings.md
 
   registerSettings();
-  registerCityControls();
+  registerSettlementControls();
   registerWorldTimeHooks();
   foundry.applications.apps.DocumentSheetConfig.registerSheet(Scene, MODULE_ID, SandboxSceneConfig, {
     makeDefault: true
   });
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   console.log(`${MODULE_ID} | Ready`);
   registerSocketHandlers();
+  await runMigrations();
 });

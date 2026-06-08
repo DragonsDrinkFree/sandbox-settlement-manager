@@ -1,19 +1,19 @@
-{{#if selectedResource}}
-<div class="city-right-pane" data-resource-id="{{selectedResource.id}}">
+{{#if selectedLocation}}
+<div class="settlement-right-pane" data-location-id="{{selectedLocation.id}}">
 
-  <div class="resource-header-row">
-    <input type="text" name="resourceName" value="{{selectedResource.name}}"
-           class="resource-name-input">
-    <button type="button" class="icon" data-action="deleteResource"
-            data-resource-id="{{selectedResource.id}}"
-            aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+  <div class="location-header-row">
+    <input type="text" name="locationName" value="{{selectedLocation.name}}"
+           class="location-name-input">
+    <button type="button" class="icon" data-action="deleteLocation"
+            data-location-id="{{selectedLocation.id}}"
+            aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
       <i class="fa-solid fa-trash"></i>
     </button>
   </div>
 
-  <div class="resource-types-section">
-    <div class="resource-type-chips">
-      {{#each selectedResource.typeEntries}}
+  <div class="location-types-section">
+    <div class="location-type-chips">
+      {{#each selectedLocation.typeEntries}}
       <span class="type-entry-chip">
         <i class="{{this.typeIcon}}" inert></i>
         <span>{{this.typeName}}{{#if this.subTypeName}} &middot; {{this.subTypeName}}{{/if}}</span>
@@ -23,16 +23,16 @@
         </button>
       </span>
       {{/each}}
-      {{#if selectedResource.hasAvailableTypes}}
-      <div class="add-type-trigger resource-add-type-trigger">
+      {{#if selectedLocation.hasAvailableTypes}}
+      <div class="add-type-trigger location-add-type-trigger">
         <button type="button" class="add-type-btn">
-          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.resource.addType"}}
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.addType"}}
         </button>
-        <div class="type-picker-dropdown resource-type-picker-dropdown">
+        <div class="type-picker-dropdown location-type-picker-dropdown">
           <input type="text" class="type-picker-filter"
-                 placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.filterTypes'}}">
+                 placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.filterTypes'}}">
           <ul class="type-picker-list">
-            {{#each selectedResource.pickerGroups}}
+            {{#each selectedLocation.pickerGroups}}
             <li class="picker-group">
               {{#if this.typeItselfAvailable}}
               <button type="button" class="picker-item picker-type-item"
@@ -59,10 +59,10 @@
     </div>
   </div>
 
-  {{#if selectedResource.hasDetails}}
-  <hr class="resource-detail-divider">
+  {{#if selectedLocation.hasDetails}}
+  <hr class="location-detail-divider">
 
-  {{#each selectedResource.sections}}
+  {{#each selectedLocation.sections}}
 
   {{#if this.isInn}}
   <div class="inn-detail">
@@ -85,11 +85,11 @@
           <div class="controls">
             {{#if ../innData.isGM}}
             <button type="button" class="icon" data-action="editLodging" data-lodging-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.edit'}}">
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
             <button type="button" class="icon" data-action="deleteLodging" data-lodging-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.resource.delete'}}">
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
               <i class="fa-solid fa-trash"></i>
             </button>
             {{/if}}
@@ -137,25 +137,8 @@
     </div>
   </div>
 
-  {{else if this.isCurrencyTest}}
-  <ul class="expense-list">
-    {{#each this.expenses}}
-    <li class="expense-entry" data-expense-id="{{this.id}}">
-      <div class="expense-info">
-        <span class="expense-name">{{this.name}}</span>
-        <span class="expense-cost">{{this.costLabel}}</span>
-      </div>
-      <button type="button" class="buy-button" data-action="buyExpense">
-        {{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.buy"}}
-      </button>
-    </li>
-    {{else}}
-    <li class="expense-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.currencyTest.noExpenses"}}</em></li>
-    {{/each}}
-  </ul>
-
   {{else}}
-  <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resource.noDetailView"}}</p>
+  <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.location.noDetailView"}}</p>
   {{/if}}
 
   {{/each}}
@@ -163,7 +146,7 @@
 
 </div>
 {{else}}
-<div class="city-right-placeholder">
-  <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectResource"}}</p>
+<div class="settlement-right-placeholder">
+  <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.manage.selectLocation"}}</p>
 </div>
 {{/if}}

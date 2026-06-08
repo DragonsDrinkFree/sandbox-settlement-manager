@@ -1,54 +1,54 @@
 ﻿{
   "SANDBOX_SETTLEMENT_MANAGER": {
     "module": {
-      "name": "Sandbox City Manager"
+      "name": "Sandbox Settlement Manager"
     },
     "scene": {
-      "isCity": "Mark as City"
+      "isSettlement": "Mark as Settlement"
     },
     "controls": {
-      "city": "City",
+      "settlement": "Settlement",
       "select": "Select",
-      "manage": "City"
+      "manage": "Settlement Manager"
     },
     "manage": {
-      "title": "City Manager",
-      "cityName": "City Name",
-      "cityNamePlaceholder": "Enter city name...",
-      "cityType": "City Type",
-      "cityDescription": "Description",
-      "selectResource": "Select a resource to view its details.",
-      "selectResourcePlayer": "Select a discovered resource to view details.",
+      "title": "Settlement Manager",
+      "settlementName": "Settlement Name",
+      "settlementNamePlaceholder": "Enter settlement name...",
+      "settlementType": "Settlement Type",
+      "settlementDescription": "Description",
+      "selectLocation": "Select a location to view its details.",
+      "selectLocationPlayer": "Select a discovered location to view details.",
       "sections": {
-        "cityDetails": "City Details",
-        "cityResources": "City Resources"
+        "settlementDetails": "Settlement Details",
+        "settlementLocations": "Settlement Locations"
       }
     },
-    "resources": {
-      "title": "City Resources",
-      "noneDiscovered": "No resources discovered yet."
+    "locations": {
+      "title": "Settlement Locations",
+      "noneDiscovered": "No locations discovered yet."
     },
     "setting": {
-      "cityTypeConfig": {
-        "name": "City Type Configuration",
-        "label": "Configure City Types",
-        "hint": "Define the list of city types ordered from smallest to largest."
+      "settlementTypeConfig": {
+        "name": "Settlement Type Configuration",
+        "label": "Configure Settlement Types",
+        "hint": "Define the list of settlement types ordered from smallest to largest."
       },
-      "cityTypes": {
-        "name": "City Types",
-        "hint": "City types ordered from smallest to largest. Drag to reorder.",
-        "add": "Add City Type",
+      "settlementTypes": {
+        "name": "Settlement Types",
+        "hint": "Settlement types ordered from smallest to largest. Drag to reorder.",
+        "add": "Add Settlement Type",
         "reset": "Reset to Defaults"
       },
-      "resourceTypeConfig": {
-        "name": "Resource Templates",
-        "label": "Configure Resource Templates",
-        "hint": "Define templates for establishments and resources that can appear in cities."
+      "locationTypeConfig": {
+        "name": "Location Templates",
+        "label": "Configure Location Templates",
+        "hint": "Define templates for establishments and locations that can appear in settlements."
       },
-      "resourceTypes": {
-        "name": "Resource Templates",
-        "hint": "Resource templates define establishment configurations. Drag to reorder.",
-        "add": "Add Resource Type",
+      "locationTypes": {
+        "name": "Location Templates",
+        "hint": "Location templates define establishment configurations. Drag to reorder.",
+        "add": "Add Location Type",
         "reset": "Reset to Defaults"
       },
       "itemConfig": {
@@ -72,7 +72,7 @@
       "currencyConfig": {
         "name": "Currency Configuration",
         "label": "Configure Currency",
-        "hint": "Configure the currency system used by all city interactions."
+        "hint": "Configure the currency system used by all settlement interactions."
       },
       "hoursPerDay": {
         "name": "Hours Per Day",
@@ -82,6 +82,18 @@
         "name": "Days Per Week",
         "hint": "Number of in-game days in a week. Used to calculate weekly schedules."
       }
+    },
+    "help": {
+      "settlementTypes": "Settlement types are the size tiers of your settlements (e.g. Hamlet → City), ordered smallest to largest. A location's settlement type can gate which goods are available and cap the largest coin denomination traded locally.",
+      "locationTemplates": "Location templates are reusable blueprints for the establishments players visit — inns, merchants, banks. Configure a template once here, then place instances of it on any settlement scene; instance changes can later be overridden or reset back to the template.",
+      "currencyMode": "Choose how currency is tracked. Loose: untracked — purchase totals are whispered to the GM and buyer to record manually. Attribute: a number stored on the actor sheet. Item: a world item document carried in inventory. The fields below depend on this choice.",
+      "currencyList": "Define each denomination and its exchange rate relative to the standard (1:1) currency. Order them however you like — drag the handle to reorder. The standard currency is the base all prices are converted through.",
+      "itemGlobal": "Tell the module how to read names and prices from this game system's item documents, using dot-notation paths. Set these once so merchants can import items and price them correctly.",
+      "itemTypes": "Map this system's item types so merchants can group their inventory and apply per-type buy/sell rules in purchasing profiles.",
+      "bankExchange": "Controls whether this bank converts between currencies and the percentage fee charged on each exchange.",
+      "bankDeposits": "Configure player deposits: an optional fee taken when depositing, a minimum lock-in period before penalty-free withdrawal, and an early-withdrawal penalty. A Global bank shares one deposit ledger across every scene, so players can deposit and withdraw at any of its branches.",
+      "merchantInventory": "Define the stock this merchant starts with and how it restocks over time. Availability and stock formulas can vary by settlement size. Drag items from the sidebar onto the drop zone to add them.",
+      "merchantPurchasing": "Set how this merchant buys items from players: the buy rate (percent of value paid) and how buyback pricing works, optionally overridden per item type."
     },
     "currency": {
       "addTitle": "Add Currency",
@@ -117,9 +129,9 @@
       "add": "Add Currency",
       "reset": "Reset to Defaults"
     },
-    "cityType": {
-      "addTitle": "Add City Type",
-      "editTitle": "Edit City Type",
+    "settlementType": {
+      "addTitle": "Add Settlement Type",
+      "editTitle": "Edit Settlement Type",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Hamlet",
       "maxDenomLabel": "Max Currency Denomination",
@@ -127,11 +139,11 @@
       "maxDenomNoLimit": "No limit (any denomination)",
       "edit": "Edit",
       "delete": "Delete",
-      "empty": "No city types defined."
+      "empty": "No settlement types defined."
     },
-    "resourceType": {
-      "addTitle": "Add Resource Type",
-      "editTitle": "Edit Resource Type",
+    "locationType": {
+      "addTitle": "Add Location Type",
+      "editTitle": "Edit Location Type",
       "typeLabel": "Type",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Inn",
@@ -143,7 +155,7 @@
       "subTypeNameLabel": "Sub-type name",
       "edit": "Edit",
       "delete": "Delete",
-      "empty": "No resource types defined.",
+      "empty": "No location types defined.",
       "noSubTypes": "No templates defined.",
       "subType": {
         "addTitle": "Add Template",
@@ -154,21 +166,6 @@
         "edit": "Edit Template",
         "delete": "Delete Template"
       }
-    },
-    "currencyTest": {
-      "table": {
-        "colItem": "Item",
-        "colCost": "Cost"
-      },
-      "configTitle": "Configure Expenses",
-      "configureExpenses": "Configure Expenses",
-      "expensesHeader": "Expenses",
-      "noExpenses": "No expenses configured.",
-      "addExpense": "Add Expense",
-      "deleteExpense": "Delete Expense",
-      "deleteExpenseTitle": "Delete Expense",
-      "deleteExpenseConfirm": "Delete expense <strong>{name}</strong>?",
-      "expenseNamePlaceholder": "e.g. Room for the Night"
     },
     "purchase": {
       "title": "Purchase",
@@ -191,9 +188,9 @@
         "insufficientFunds": "Insufficient funds."
       }
     },
-    "resource": {
-      "addTitle": "Add Resource",
-      "editTitle": "Edit Resource",
+    "location": {
+      "addTitle": "Add Location",
+      "editTitle": "Edit Location",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. The Green Dragon Inn",
       "typeLabel": "Type",
@@ -202,18 +199,18 @@
       "filterTypes": "Filter types...",
       "subTypeLabel": "Sub-type",
       "discoveredLabel": "Discovered",
-      "add": "Add Resource",
+      "add": "Add Location",
       "edit": "Edit",
       "delete": "Delete",
-      "empty": "No resources yet.",
+      "empty": "No locations yet.",
       "unknownType": "Unknown Type",
       "discovered": "Discovered",
       "undiscovered": "Not Discovered",
-      "noDetailView": "No additional details available for this resource type.",
+      "noDetailView": "No additional details available for this location type.",
       "removeTypeTitle": "Remove Type",
-      "removeTypeConfirm": "Remove <strong>{type}</strong> from <strong>{resource}</strong>? All associated data will be deleted.",
-      "deleteResourceTitle": "Delete Resource",
-      "deleteResourceConfirm": "Delete <strong>{name}</strong>? All resource data will be permanently lost.",
+      "removeTypeConfirm": "Remove <strong>{type}</strong> from <strong>{location}</strong>? All associated data will be deleted.",
+      "deleteLocationTitle": "Delete Location",
+      "deleteLocationConfirm": "Delete <strong>{name}</strong>? All location data will be permanently lost.",
       "removeEntryTitle": "Remove Type Entry",
       "removeEntryConfirm": "Remove this type entry from <strong>{name}</strong>?"
     },
@@ -298,7 +295,7 @@
         "title": "Restore from Template",
         "buttonLabel": "Restore from Template",
         "modified": "modified",
-        "removed": "not in resource",
+        "removed": "not in location",
         "modifiedLodgings": "Modified Lodgings",
         "removedLodgings": "Removed Lodgings",
         "modifiedCourses": "Modified Courses",
@@ -436,7 +433,7 @@
       "editProfile": "Edit Profile",
       "conflictWarning": "Conflicting purchasing rules — resolve via Edit Profile.",
       "buybackSection": "Buyback Available",
-      "profileEditHint": "Edit the purchasing profile for this resource. Overrides take precedence over template rules.",
+      "profileEditHint": "Edit the purchasing profile for this location. Overrides take precedence over template rules.",
       "colSource": "Source",
       "restore": {
         "title": "Restore from Template",

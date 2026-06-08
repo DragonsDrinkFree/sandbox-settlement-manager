@@ -1,18 +1,18 @@
-<div class="city-resources-content">
+<div class="settlement-locations-content">
   {{#if hasDiscovered}}
-  <ul class="resource-flat-list">
-    {{#each resources}}
-    <li class="resource-entry" data-resource-id="{{this.id}}">
-      <span class="resource-name">{{this.name}}</span>
-      <div class="resource-type-badges">
+  <ul class="location-flat-list">
+    {{#each locations}}
+    <li class="location-entry" data-location-id="{{this.id}}">
+      <span class="location-name">{{this.name}}</span>
+      <div class="location-type-badges">
         {{#each this.types}}
-        <i class="{{this.icon}} resource-type-badge" title="{{this.name}}" inert></i>
+        <i class="{{this.icon}} location-type-badge" title="{{this.name}}" inert></i>
         {{/each}}
       </div>
     </li>
     {{/each}}
   </ul>
   {{else}}
-    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.resources.noneDiscovered"}}</p>
+    <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.locations.noneDiscovered"}}</p>
   {{/if}}
 </div>

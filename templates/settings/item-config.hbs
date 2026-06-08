@@ -1,6 +1,6 @@
 <div class="ssm-item-config">
   <fieldset class="global-item-config">
-    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.globalSection"}}</legend>
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.globalSection"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.itemGlobal'}}"></i></legend>
 
     <div class="form-group">
       <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.nameAttributeLabel"}}</label>
@@ -42,7 +42,7 @@
   </fieldset>
 
   <fieldset class="item-type-list-section">
-    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.itemTypes"}}</legend>
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.itemTypes"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.itemTypes'}}"></i></legend>
     {{#each itemTypes}}
     <div class="item-type-row">
       <span class="item-type-label">{{this.label}}</span>

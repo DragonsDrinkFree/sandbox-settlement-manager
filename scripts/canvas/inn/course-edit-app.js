@@ -173,7 +173,7 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.removeItemTitle") },
       content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.course.removeItemConfirm", { name: item.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;

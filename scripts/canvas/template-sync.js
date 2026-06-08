@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS, RESOURCE_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { MODULE_ID, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
 
 function syncMerchantInventory(merchantData, templateMerchant) {
   const currentInventory  = merchantData.inventory  ?? [];
@@ -16,7 +16,7 @@ function syncMerchantInventory(merchantData, templateMerchant) {
       const fieldDefs = [
         ["name",              ""],
         ["itemId",            null],
-        ["minCitySize",       ""],
+        ["minSettlementSize",       ""],
         ["stockAvailability", 100],
         ["stockFormula",      ""]
       ];
@@ -37,7 +37,7 @@ function syncMerchantInventory(merchantData, templateMerchant) {
       updated._templateValues = {
         name:              tItem.name,
         itemId:            tItem.itemId            ?? null,
-        minCitySize:       tItem.minCitySize       ?? "",
+        minSettlementSize:       tItem.minSettlementSize       ?? "",
         stockAvailability: tItem.stockAvailability ?? 100,
         stockFormula:      tItem.stockFormula      ?? "",
         price:             { ...(tItem.price ?? {}) }
@@ -52,7 +52,7 @@ function syncMerchantInventory(merchantData, templateMerchant) {
         _templateValues: {
           name:              tItem.name,
           itemId:            tItem.itemId            ?? null,
-          minCitySize:       tItem.minCitySize       ?? "",
+          minSettlementSize:       tItem.minSettlementSize       ?? "",
           stockAvailability: tItem.stockAvailability ?? 100,
           stockFormula:      tItem.stockFormula      ?? "",
           price:             { ...(tItem.price ?? {}) }
@@ -84,14 +84,14 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
 
   const scenesData = [];
   for (const scene of game.scenes) {
-    const resources = scene.getFlag(MODULE_ID, FLAGS.RESOURCES);
-    if (resources?.length) scenesData.push({ scene, resources: foundry.utils.deepClone(resources) });
+    const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
+    if (locations?.length) scenesData.push({ scene, locations: foundry.utils.deepClone(locations) });
   }
   if (!scenesData.length) return;
 
   // INN: add-only sync (existing behaviour)
-  for (const newTemplate of (newSubTypes[RESOURCE_TYPE_IDS.INN] ?? [])) {
-    const oldTemplate   = (oldSubTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === newTemplate.id);
+  for (const newTemplate of (newSubTypes[LOCATION_TYPE_IDS.INN] ?? [])) {
+    const oldTemplate   = (oldSubTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === newTemplate.id);
     const newLodgings   = newTemplate.typeData?.lodgings ?? [];
     const newCourses    = newTemplate.typeData?.menu?.courses ?? [];
     const oldLodgings   = oldTemplate?.typeData?.lodgings ?? [];
@@ -100,14 +100,14 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
     const addedCourses  = newCourses.filter(c => !oldCourses.some(oc => oc.id === c.id));
     if (!addedLodgings.length && !addedCourses.length) continue;
 
-    for (const { scene, resources } of scenesData) {
+    for (const { scene, locations } of scenesData) {
       let dirty = false;
-      for (const resource of resources) {
-        const entry = getTypeEntries(resource).find(
-          e => e.typeId === RESOURCE_TYPE_IDS.INN && e.subTypeId === newTemplate.id
+      for (const location of locations) {
+        const entry = getTypeEntries(location).find(
+          e => e.typeId === LOCATION_TYPE_IDS.INN && e.subTypeId === newTemplate.id
         );
         if (!entry) continue;
-        const inn = resource.typeData?.inn;
+        const inn = location.typeData?.inn;
         if (!inn) continue;
 
         inn.lodgings ??= [];
@@ -127,32 +127,32 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
           }
         }
       }
-      if (dirty) await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+      if (dirty) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     }
   }
 
   // MERCHANT: full add/remove/change sync with field-level override tracking
-  for (const newTemplate of (newSubTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? [])) {
+  for (const newTemplate of (newSubTypes[LOCATION_TYPE_IDS.MERCHANT] ?? [])) {
     const templateMerchant = newTemplate.typeData?.merchant;
     if (!templateMerchant) continue;
 
-    for (const { scene, resources } of scenesData) {
+    for (const { scene, locations } of scenesData) {
       let dirty = false;
-      for (const resource of resources) {
-        const entry = getTypeEntries(resource).find(
-          e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT && e.subTypeId === newTemplate.id
+      for (const location of locations) {
+        const entry = getTypeEntries(location).find(
+          e => e.typeId === LOCATION_TYPE_IDS.MERCHANT && e.subTypeId === newTemplate.id
         );
         if (!entry) continue;
-        const currentMerchant = resource.typeData?.merchant;
+        const currentMerchant = location.typeData?.merchant;
         if (!currentMerchant) continue;
 
         const syncedMerchant = syncMerchantInventory(currentMerchant, templateMerchant);
         if (JSON.stringify(currentMerchant) !== JSON.stringify(syncedMerchant)) {
-          resource.typeData.merchant = syncedMerchant;
+          location.typeData.merchant = syncedMerchant;
           dirty = true;
         }
       }
-      if (dirty) await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+      if (dirty) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     }
   }
 }

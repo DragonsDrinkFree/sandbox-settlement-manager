@@ -1,6 +1,6 @@
 ﻿<div class="currency-config">
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.currencyMode'}}"></i></label>
     <select name="mode">
       <option value="loose"{{#if (eq currentMode "loose")}} selected{{/if}}>
         {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.loose"}}
@@ -22,7 +22,7 @@
     <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeItemHint"}}</p>
   {{/if}}
 
-  <h3>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.listHeader"}}</h3>
+  <h3>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.listHeader"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.currencyList'}}"></i></h3>
   <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.listHint"}}</p>
 
   <ul class="currency-list">

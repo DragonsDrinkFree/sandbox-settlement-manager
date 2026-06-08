@@ -132,15 +132,15 @@ export async function removeCoinsFromActor(actor, coins, currencies, mode) {
 
 /**
  * Returns the exchange rate (in standard units) of the highest denomination
- * a merchant in the current scene's city type can pay.
+ * a merchant in the current scene's settlement type can pay.
  * Falls back to the global max rate if no constraint is configured.
  */
-export function getCityMaxDenomValue(currencies) {
-  const cityTypes    = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
-  const cityTypeName = canvas.scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
-  const cityType     = cityTypes.find(t => t.name === cityTypeName);
+export function getSettlementMaxDenomValue(currencies) {
+  const settlementTypes    = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
+  const settlementTypeName = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
+  const settlementType     = settlementTypes.find(t => t.name === settlementTypeName);
   const globalMax    = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
-  const maxId        = cityType?.maxCurrencyId ?? "";
+  const maxId        = settlementType?.maxCurrencyId ?? "";
   if (maxId === "*") return globalMax;
   if (maxId === "") {
     // Default: cap at the standard (1:1) currency

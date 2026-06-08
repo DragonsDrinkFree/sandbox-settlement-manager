@@ -1,12 +1,11 @@
-import { MODULE_ID, FLAGS, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES, getTypeEntries } from "../constants.js";
-import { PurchaseDialog } from "./purchase-dialog.js";
+import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES, getTypeEntries } from "../constants.js";
 import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
-import { costInStandard, calculateChange, formatAmounts, getCityMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
+import { costInStandard, calculateChange, formatAmounts, getSettlementMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal } from "../socket.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
@@ -51,8 +50,8 @@ function buildDepositDisplayList(deposits, now, secondsPerDay, currencies) {
   return result;
 }
 
-export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  _resource;
+export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  _location;
   _activeTab = null;
   _sellTabActive = false;
   _sellActorId   = null;
@@ -60,55 +59,54 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   _sceneUpdateHook = null;
   _worldTimeHook   = null;
 
-  constructor(resource, options = {}) {
+  constructor(location, options = {}) {
     super(options);
-    this._resource = resource;
+    this._location = location;
   }
 
-  get title() { return this._resource.name; }
+  get title() { return this._location.name; }
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-resource-detail`,
+    id: `${MODULE_ID}-location-detail`,
     window: { resizable: false },
     position: { width: 420 },
     actions: {
-      buyExpense:         ResourceDetailApp.#onBuyExpense,
-      switchTab:          ResourceDetailApp.#onSwitchTab,
-      addLodging:         ResourceDetailApp.#onAddLodging,
-      editLodging:        ResourceDetailApp.#onEditLodging,
-      deleteLodging:      ResourceDetailApp.#onDeleteLodging,
-      rentLodging:        ResourceDetailApp.#onRentLodging,
-      dismissLedgerEntry: ResourceDetailApp.#onDismissLedgerEntry,
-      configureMenu:      ResourceDetailApp.#onConfigureMenu,
-      refreshCourse:      ResourceDetailApp.#onRefreshCourse,
-      buyMenuItem:        ResourceDetailApp.#onBuyMenuItem,
-      buyInventoryItem:         ResourceDetailApp.#onBuyInventoryItem,
-      deleteMerchantItem:       ResourceDetailApp.#onDeleteMerchantItem,
-      editMerchantItem:         ResourceDetailApp.#onEditMerchantItem,
-      addManualInventoryItem:         ResourceDetailApp.#onAddManualInventoryItem,
-      restoreFromMerchantTemplate:    ResourceDetailApp.#onRestoreFromMerchantTemplate,
-      switchToSellTab:                ResourceDetailApp.#onSwitchToSellTab,
-      switchFromSellTab:        ResourceDetailApp.#onSwitchFromSellTab,
-      selectSellActor:          ResourceDetailApp.#onSelectSellActor,
-      addToSellCart:            ResourceDetailApp.#onAddToSellCart,
-      buyBackItem:              ResourceDetailApp.#onBuyBackItem,
-      editPurchasingProfile:    ResourceDetailApp.#onEditPurchasingProfile,
-      addExchangeToCart:        ResourceDetailApp.#onAddExchangeToCart,
-      depositCoins:             ResourceDetailApp.#onDepositCoins,
-      withdrawDeposit:          ResourceDetailApp.#onWithdrawDeposit,
-      overrideBankSettings:     ResourceDetailApp.#onOverrideBankSettings,
-      resetBankSettings:        ResourceDetailApp.#onResetBankSettings
+      switchTab:          LocationDetailApp.#onSwitchTab,
+      addLodging:         LocationDetailApp.#onAddLodging,
+      editLodging:        LocationDetailApp.#onEditLodging,
+      deleteLodging:      LocationDetailApp.#onDeleteLodging,
+      rentLodging:        LocationDetailApp.#onRentLodging,
+      dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
+      configureMenu:      LocationDetailApp.#onConfigureMenu,
+      refreshCourse:      LocationDetailApp.#onRefreshCourse,
+      buyMenuItem:        LocationDetailApp.#onBuyMenuItem,
+      buyInventoryItem:         LocationDetailApp.#onBuyInventoryItem,
+      deleteMerchantItem:       LocationDetailApp.#onDeleteMerchantItem,
+      editMerchantItem:         LocationDetailApp.#onEditMerchantItem,
+      addManualInventoryItem:         LocationDetailApp.#onAddManualInventoryItem,
+      restoreFromMerchantTemplate:    LocationDetailApp.#onRestoreFromMerchantTemplate,
+      switchToSellTab:                LocationDetailApp.#onSwitchToSellTab,
+      switchFromSellTab:        LocationDetailApp.#onSwitchFromSellTab,
+      selectSellActor:          LocationDetailApp.#onSelectSellActor,
+      addToSellCart:            LocationDetailApp.#onAddToSellCart,
+      buyBackItem:              LocationDetailApp.#onBuyBackItem,
+      editPurchasingProfile:    LocationDetailApp.#onEditPurchasingProfile,
+      addExchangeToCart:        LocationDetailApp.#onAddExchangeToCart,
+      depositCoins:             LocationDetailApp.#onDepositCoins,
+      withdrawDeposit:          LocationDetailApp.#onWithdrawDeposit,
+      overrideBankSettings:     LocationDetailApp.#onOverrideBankSettings,
+      resetBankSettings:        LocationDetailApp.#onResetBankSettings
     }
   };
 
   static PARTS = {
-    content: { template: `modules/${MODULE_ID}/templates/canvas/resource-detail.hbs` }
+    content: { template: `modules/${MODULE_ID}/templates/canvas/location-detail.hbs` }
   };
 
-  static open(resource) {
-    const existing = foundry.applications.instances.get(`${MODULE_ID}-resource-detail`);
+  static open(location) {
+    const existing = foundry.applications.instances.get(`${MODULE_ID}-location-detail`);
     if (existing) existing.close();
-    new ResourceDetailApp(resource).render(true);
+    new LocationDetailApp(location).render(true);
   }
 
   async _onRender(context, options) {
@@ -116,13 +114,13 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!this._sceneUpdateHook) {
       this._sceneUpdateHook = Hooks.on("updateScene", (scene, changes) => {
         if (scene.id !== canvas.scene?.id) return;
-        const resourcesChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.RESOURCES}`);
-        const cityTypeChanged  = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.CITY_TYPE}`);
-        if (!resourcesChanged && !cityTypeChanged) return;
-        if (resourcesChanged) {
-          const resources = canvas.scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-          const fresh = resources.find(r => r.id === this._resource.id);
-          if (fresh) this._resource = fresh;
+        const locationsChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.LOCATIONS}`);
+        const settlementTypeChanged  = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.SETTLEMENT_TYPE}`);
+        if (!locationsChanged && !settlementTypeChanged) return;
+        if (locationsChanged) {
+          const locations = canvas.scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+          const fresh = locations.find(r => r.id === this._location.id);
+          if (fresh) this._location = fresh;
         }
         this.render();
       });
@@ -178,7 +176,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   async _prepareContext(options) {
-    const entries = getTypeEntries(this._resource);
+    const entries = getTypeEntries(this._location);
     const typeIds = [...new Set(entries.map(e => e.typeId))];
     if (!this._activeTab || !typeIds.includes(this._activeTab)) {
       this._activeTab = typeIds[0] ?? null;
@@ -189,25 +187,17 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const isGM = game.user.isGM;
 
     const tabs = await Promise.all(typeIds.map(async id => {
-      const coreType = CORE_RESOURCE_TYPES.find(t => t.id === id);
-      const isCurrencyTest = id === RESOURCE_TYPE_IDS.CURRENCY_TEST;
-      const isInn          = id === RESOURCE_TYPE_IDS.INN;
-      const isMerchant     = id === RESOURCE_TYPE_IDS.MERCHANT;
-      const isBank         = id === RESOURCE_TYPE_IDS.BANK;
-
-      const expenses = isCurrencyTest
-        ? (this._resource.typeData?.expenses ?? []).map(e => {
-            const c = currencies.find(x => x.id === e.currencyId);
-            return { ...e, costLabel: `${e.amount} ${c?.abbreviation ?? "?"}` };
-          })
-        : [];
+      const coreType = CORE_LOCATION_TYPES.find(t => t.id === id);
+      const isInn          = id === LOCATION_TYPE_IDS.INN;
+      const isMerchant     = id === LOCATION_TYPE_IDS.MERCHANT;
+      const isBank         = id === LOCATION_TYPE_IDS.BANK;
 
       const innData = isInn ? this.#buildInnData(currencies, isGM) : null;
       let merchantData = null;
       if (isMerchant) {
         const merchantResult = await this.#buildMerchantData(currencies, isGM);
         if (merchantResult._needsSave && isGM) this.#saveMerchantData(merchantResult._updatedMerchant).catch(() => {});
-        if (isGM) merchantResult.canRestore = !!this.#getMerchantTemplateForResource();
+        if (isGM) merchantResult.canRestore = !!this.#getMerchantTemplateForLocation();
         merchantData = merchantResult;
       }
       const bankData = isBank ? this.#buildBankData(currencies) : null;
@@ -217,8 +207,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         name: coreType?.name ?? id,
         icon: coreType?.icon ?? "fa-solid fa-question",
         active: id === this._activeTab && !this._sellTabActive,
-        isCurrencyTest, isInn, isMerchant, isBank,
-        expenses,
+        isInn, isMerchant, isBank,
         innData,
         merchantData,
         bankData
@@ -226,7 +215,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     }));
 
     // Sell tab: check if any merchant template has a purchasing profile
-    const effectiveProfile = mergePurchasingProfiles(this._resource);
+    const effectiveProfile = mergePurchasingProfiles(this._location);
     const hasSellTab = effectiveProfile.length > 0;
     let sellData = null;
     if (hasSellTab) {
@@ -237,7 +226,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     }
 
     return {
-      resource: this._resource, tabs,
+      location: this._location, tabs,
       hasMultipleTabs: tabs.length > 1 || hasSellTab,
       hasSellTab, sellTabActive: this._sellTabActive && hasSellTab,
       sellData, isGM
@@ -245,7 +234,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   #buildInnData(currencies, isGM) {
-    const innRaw = this._resource.typeData?.inn ?? { lodgings: [], ledger: [] };
+    const innRaw = this._location.typeData?.inn ?? { lodgings: [], ledger: [] };
     const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
     const worldTime = game.time.worldTime;
 
@@ -346,18 +335,18 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   async #saveInnData(innData) {
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const r = resources.find(r => r.id === this._resource.id);
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    const r = locations.find(r => r.id === this._location.id);
     if (!r) return;
     r.typeData ??= {};
     r.typeData.inn = innData;
-    this._resource = r;
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    this._location = r;
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     this.render();
   }
 
   async #buildMerchantData(currencies, isGM) {
-    const merchant       = this._resource.typeData?.merchant ?? {};
+    const merchant       = this._location.typeData?.merchant ?? {};
     const rawInventory   = merchant.inventory ?? [];
     const stockType        = merchant.stockType        ?? "percent";
     const restockFrequency = merchant.restockFrequency ?? "weekly";
@@ -366,9 +355,9 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const typeConfigs = itemConfig.itemTypes ?? [];
     const typeMap     = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
 
-    const cityTypes      = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
-    const currentCityType = canvas.scene?.getFlag(MODULE_ID, FLAGS.CITY_TYPE) ?? "";
-    const currentCityIdx  = cityTypes.findIndex(t => t.name === currentCityType);
+    const settlementTypes      = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
+    const currentSettlementType = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
+    const currentSettlementIdx  = settlementTypes.findIndex(t => t.name === currentSettlementType);
 
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const spd         = hoursPerDay * 3600;
@@ -396,10 +385,10 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     }
 
     const displayInventory = workingInventory.filter(item => {
-      const min = item.minCitySize ?? "";
+      const min = item.minSettlementSize ?? "";
       if (!min) return true;
-      const minIdx = cityTypes.findIndex(t => t.name === min);
-      return minIdx === -1 || currentCityIdx >= minIdx;
+      const minIdx = settlementTypes.findIndex(t => t.name === min);
+      return minIdx === -1 || currentSettlementIdx >= minIdx;
     });
 
     const groupMap = new Map();
@@ -488,7 +477,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
     const typeConfigs = itemConfig.itemTypes ?? [];
 
-    const cityMaxDenomValue = getCityMaxDenomValue(currencies);
+    const settlementMaxDenomValue = getSettlementMaxDenomValue(currencies);
 
     const sellableItems = [];
     if (defaultActor) {
@@ -500,7 +489,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         const curr = currencies.find(c => c.id === salePrice.currencyId);
         const typeCfg  = typeConfigs.find(t => t.systemType === actorItem.type) ?? null;
         const saleStd  = costInStandard(salePrice, currencies);
-        const breakdown = calculateChange(saleStd, currencies, cityMaxDenomValue);
+        const breakdown = calculateChange(saleStd, currencies, settlementMaxDenomValue);
         const salePriceLabel = (breakdown && Object.values(breakdown).some(v => v > 0))
           ? formatAmounts(breakdown, currencies)
           : `${salePrice.amount} ${curr?.abbreviation ?? "?"}`;
@@ -515,7 +504,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       }
     }
 
-    const rawBuyback = this._resource.typeData?.merchant?.buybackItems ?? [];
+    const rawBuyback = this._location.typeData?.merchant?.buybackItems ?? [];
     const buybackItems = rawBuyback.map(entry => {
       const curr = currencies.find(c => c.id === entry.buybackPrice?.currencyId);
       return {
@@ -530,18 +519,18 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   async #saveMerchantData(merchantData) {
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const r = resources.find(r => r.id === this._resource.id);
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    const r = locations.find(r => r.id === this._location.id);
     if (!r) return;
     r.typeData ??= {};
     r.typeData.merchant = merchantData;
-    this._resource = r;
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    this._location = r;
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     this.render();
   }
 
   #buildBankData(currencies) {
-    const bankRaw    = this._resource.typeData?.bank ?? {};
+    const bankRaw    = this._location.typeData?.bank ?? {};
     const ownedActors = game.actors
       .filter(a => a.isOwner && a.hasPlayerOwner)
       .map(a => ({ id: a.id, name: a.name }));
@@ -563,9 +552,9 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     // Resolve effective settings: template when not overridden, stored values when overridden
     const isOverridden = bankRaw._settingsOverridden ?? false;
-    const bankEntry = getTypeEntries(this._resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const bankEntry = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType = bankEntry?.subTypeId
-      ? ((game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES))[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      ? ((game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES))[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const hasTemplate = !!subType;
     const src = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
@@ -611,13 +600,13 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   async #saveBankData(bankData) {
-    const resources = canvas.scene?.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? [];
-    const r = resources.find(r => r.id === this._resource.id);
+    const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+    const r = locations.find(r => r.id === this._location.id);
     if (!r) return;
     r.typeData ??= {};
     r.typeData.bank = bankData;
-    this._resource = r;
-    await canvas.scene?.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+    this._location = r;
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     this.render();
   }
 
@@ -680,7 +669,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const name  = readItemName(item);
     const price = readItemPrice(item, currencies);
 
-    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(this._location.typeData?.merchant ?? { inventory: [] });
     merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
     await this.#saveMerchantData(merchant);
   }
@@ -690,25 +679,12 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.render();
   }
 
-  static async #onBuyExpense(event, target) {
-    const id = target.closest("[data-expense-id]")?.dataset.expenseId;
-    if (!id) return;
-    const expense = this._resource.typeData?.expenses?.find(e => e.id === id);
-    if (!expense) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    await PurchaseDialog.open({
-      expense,
-      currencies: currencyConfig.currencies ?? [],
-      mode: currencyConfig.mode ?? "loose"
-    });
-  }
-
   static async #onAddLodging() {
     if (!game.user.isGM) return;
     const result = await LodgingEditApp.open({});
     if (!result) return;
     result.id ??= foundry.utils.randomID();
-    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
     innData.lodgings.push(result);
     await this.#saveInnData(innData);
   }
@@ -717,11 +693,11 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
     const index   = innData.lodgings.findIndex(l => l.id === lodgingId);
     if (index === -1) return;
     const lodging         = innData.lodgings[index];
-    const template        = lodging.templateItemId ? this.#getTemplateForResource() : null;
+    const template        = lodging.templateItemId ? this.#getTemplateForLocation() : null;
     const templateLodging = template
       ? (template.typeData?.lodgings ?? []).find(l => l.id === lodging.templateItemId) ?? null
       : null;
@@ -733,31 +709,31 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await this.#saveInnData(innData);
   }
 
-  #getTemplateForResource() {
-    const entry = getTypeEntries(this._resource).find(e => e.typeId === RESOURCE_TYPE_IDS.INN);
+  #getTemplateForLocation() {
+    const entry = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.INN);
     if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
-    return (subTypes[RESOURCE_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
+    return (subTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
-  #getMerchantTemplateForResource() {
-    const entry = getTypeEntries(this._resource).find(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
+  #getMerchantTemplateForLocation() {
+    const entry = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
     if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES);
-    return (subTypes[RESOURCE_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
+    return (subTypes[LOCATION_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
   static async #onDeleteLodging(event, target) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
     const lodging = innData.lodgings.find(l => l.id === lodgingId);
     if (!lodging) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingTitle") },
       content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingConfirm", { name: lodging.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
@@ -768,12 +744,12 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onRentLodging(event, target) {
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const lodging = this._resource.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
+    const lodging = this._location.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
     if (!lodging) return;
     cartManager.addLodging({
       sceneId: canvas.scene?.id,
-      resourceId: this._resource.id,
-      resourceName: this._resource.name,
+      locationId: this._location.id,
+      locationName: this._location.name,
       lodging
     });
     CartApp.open();
@@ -783,7 +759,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const entryId = target.dataset.entryId;
     if (!entryId) return;
-    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
     const entry = innData.ledger.find(e => e.id === entryId);
     if (!entry) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -799,12 +775,12 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async #onConfigureMenu() {
     if (!game.user.isGM) return;
-    const inn      = this._resource.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
-    const template = this.#getTemplateForResource();
+    const inn      = this._location.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    const template = this.#getTemplateForLocation();
     await MenuConfigApp.open(
       inn.menu ?? { courses: [] },
       async (updatedMenu) => {
-        const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+        const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
         innData.menu = updatedMenu;
         await this.#saveInnData(innData);
       },
@@ -816,7 +792,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const courseId = target.dataset.courseId;
     if (!courseId) return;
-    const innData = foundry.utils.deepClone(this._resource.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const innData = foundry.utils.deepClone(this._location.typeData?.inn ?? { lodgings: [], ledger: [] });
     const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course || course.mode !== "random") return;
     const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
@@ -828,7 +804,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onBuyMenuItem(event, target) {
     const { courseId, itemId } = target.dataset;
     if (!courseId || !itemId) return;
-    const inn = this._resource.typeData?.inn;
+    const inn = this._location.typeData?.inn;
     if (!inn) return;
     const course = (inn.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course) return;
@@ -837,8 +813,8 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!item) return;
     cartManager.addMenuItem({
       sceneId: canvas.scene?.id,
-      resourceId: this._resource.id,
-      resourceName: this._resource.name,
+      locationId: this._location.id,
+      locationName: this._location.name,
       course,
       item
     });
@@ -848,12 +824,12 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onBuyInventoryItem(event, target) {
     const itemId = target.dataset.itemId;
     if (!itemId) return;
-    const item = (this._resource.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
+    const item = (this._location.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
     if (!item) return;
     cartManager.addMerchantItem({
       sceneId: canvas.scene?.id,
-      resourceId: this._resource.id,
-      resourceName: this._resource.name,
+      locationId: this._location.id,
+      locationName: this._location.name,
       item
     });
     CartApp.open();
@@ -863,13 +839,13 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
     if (!itemId) return;
-    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(this._location.typeData?.merchant ?? { inventory: [] });
     const item = merchant.inventory.find(i => i.id === itemId);
     if (!item) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemTitle") },
       content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.removeItemConfirm", { name: item.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.resource.delete"), icon: "fa-solid fa-trash" },
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
@@ -880,7 +856,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onEditMerchantItem(event, target) {
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
-    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(this._location.typeData?.merchant ?? { inventory: [] });
     const existing = merchant.inventory.find(i => i.id === itemId);
     if (!existing) return;
     const result = await MerchantItemEditApp.open(existing);
@@ -894,16 +870,16 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const result = await MerchantItemEditApp.open({});
     if (!result) return;
-    const merchant = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(this._location.typeData?.merchant ?? { inventory: [] });
     merchant.inventory.push(result);
     await this.#saveMerchantData(merchant);
   }
 
   static async #onRestoreFromMerchantTemplate() {
     if (!game.user.isGM) return;
-    const template = this.#getMerchantTemplateForResource();
+    const template = this.#getMerchantTemplateForLocation();
     if (!template) return;
-    const merchantData = foundry.utils.deepClone(this._resource.typeData?.merchant ?? { inventory: [] });
+    const merchantData = foundry.utils.deepClone(this._location.typeData?.merchant ?? { inventory: [] });
     await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
       await this.#saveMerchantData(updated);
     });
@@ -934,7 +910,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!actorItem) return;
 
     const currencies      = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const effectiveProfile = mergePurchasingProfiles(this._resource);
+    const effectiveProfile = mergePurchasingProfiles(this._location);
     const rule = findEffectiveRule(effectiveProfile, actorItem.type ?? "");
     if (!rule) return;
     const salePrice = computeSalePrice(actorItem, rule, currencies);
@@ -945,8 +921,8 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     cartManager.addSellItem({
       sceneId:        canvas.scene?.id,
-      resourceId:     this._resource.id,
-      resourceName:   this._resource.name,
+      locationId:     this._location.id,
+      locationName:   this._location.name,
       actorId:        actor.id,
       actorName:      actor.name,
       actorItemId,
@@ -960,13 +936,13 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onBuyBackItem(event, target) {
     const buybackId = target.dataset.buybackId;
     if (!buybackId) return;
-    const buybackItems = this._resource.typeData?.merchant?.buybackItems ?? [];
+    const buybackItems = this._location.typeData?.merchant?.buybackItems ?? [];
     const entry = buybackItems.find(b => b.id === buybackId);
     if (!entry || !entry.buybackPrice) return;
     cartManager.addMerchantItem({
       sceneId:      canvas.scene?.id,
-      resourceId:   this._resource.id,
-      resourceName: this._resource.name,
+      locationId:   this._location.id,
+      locationName: this._location.name,
       item: {
         id:     entry.id,
         name:   entry.itemName,
@@ -979,7 +955,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async #onEditPurchasingProfile() {
     if (!game.user.isGM) return;
-    await PurchasingProfileEditApp.open(this._resource);
+    await PurchasingProfileEditApp.open(this._location);
   }
 
   static async #onDepositCoins() {
@@ -998,7 +974,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies     = currencyConfig.currencies ?? [];
-    const bankRaw        = this._resource.typeData?.bank ?? {};
+    const bankRaw        = this._location.typeData?.bank ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const feeRate        = depositSettings.depositFee ?? 0;
 
@@ -1040,7 +1016,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     const payload = {
       deposit,
-      resourceId: this._resource.id,
+      locationId: this._location.id,
       sceneId:    canvas.scene?.id,
       isGlobal:   depositSettings.global ?? false
     };
@@ -1066,7 +1042,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies      = currencyConfig.currencies ?? [];
-    const bankRaw         = this._resource.typeData?.bank ?? {};
+    const bankRaw         = this._location.typeData?.bank ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const allDeposits     = depositSettings.global
       ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
@@ -1099,7 +1075,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       withdrawCoins:  result.withdrawCoins,
       actorId:        actor.id,
       earlyFeeRate:   depositSettings.earlyWithdrawalFee ?? 0,
-      resourceId:     this._resource.id,
+      locationId:     this._location.id,
       sceneId:        canvas.scene?.id,
       isGlobal:       depositSettings.global ?? false
     };
@@ -1115,11 +1091,11 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async #onOverrideBankSettings() {
     if (!game.user.isGM) return;
-    const bankRaw      = this._resource.typeData?.bank ?? {};
+    const bankRaw      = this._location.typeData?.bank ?? {};
     const isOverridden = bankRaw._settingsOverridden ?? false;
-    const bankEntry    = getTypeEntries(this._resource).find(e => e.typeId === RESOURCE_TYPE_IDS.BANK);
+    const bankEntry    = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType      = bankEntry?.subTypeId
-      ? ((game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES))[RESOURCE_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      ? ((game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES))[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const src  = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const dSrc = src.depositSettings ?? {};
@@ -1172,7 +1148,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     });
     if (!result) return;
 
-    const bankData = foundry.utils.deepClone(this._resource.typeData?.bank ?? {});
+    const bankData = foundry.utils.deepClone(this._location.typeData?.bank ?? {});
     bankData.doesExchange        = result.doesExchange;
     bankData.exchangeFee         = result.exchangeFee;
     bankData.depositSettings     = {
@@ -1187,7 +1163,7 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async #onResetBankSettings() {
     if (!game.user.isGM) return;
-    const bankData = foundry.utils.deepClone(this._resource.typeData?.bank ?? {});
+    const bankData = foundry.utils.deepClone(this._location.typeData?.bank ?? {});
     bankData._settingsOverridden = false;
     await this.#saveBankData(bankData);
   }
@@ -1202,14 +1178,14 @@ export class ResourceDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!fromAmount || !fromCurrencyId || !toCurrencyId || fromCurrencyId === toCurrencyId) return;
 
     const currencies   = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const bankData     = this._resource.typeData?.bank ?? {};
+    const bankData     = this._location.typeData?.bank ?? {};
     const actor        = game.actors.get(this._bankActorId);
     if (!actor) return;
 
     cartManager.addExchange({
       sceneId:        canvas.scene?.id,
-      resourceId:     this._resource.id,
-      resourceName:   this._resource.name,
+      locationId:     this._location.id,
+      locationName:   this._location.name,
       actorId:        actor.id,
       actorName:      actor.name,
       fromCurrencyId,

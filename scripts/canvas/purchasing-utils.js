@@ -1,19 +1,19 @@
-import { MODULE_ID, SETTINGS, RESOURCE_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
 import { readItemPrice } from "../utils/item-utils.js";
 
 /**
- * Merge purchasing profiles from all merchant templates attached to a resource.
+ * Merge purchasing profiles from all merchant templates attached to a location.
  *
  * Returns an array of effective rules, each annotated with:
  *   _source: "template" | "override" | "conflict"
  *   _conflicted: boolean — true if two templates disagreed on buyRate
  *   _buybackConflicted: boolean — true if two templates disagreed on buybackType
  */
-export function mergePurchasingProfiles(resource) {
-  const entries        = getTypeEntries(resource).filter(e => e.typeId === RESOURCE_TYPE_IDS.MERCHANT);
-  const subTypeMap     = game.settings.get(MODULE_ID, SETTINGS.RESOURCE_TYPES) ?? {};
-  const merchantList   = subTypeMap[RESOURCE_TYPE_IDS.MERCHANT] ?? [];
-  const overrides      = resource.typeData?.merchant?.purchasingOverrides ?? [];
+export function mergePurchasingProfiles(location) {
+  const entries        = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
+  const subTypeMap     = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+  const merchantList   = subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? [];
+  const overrides      = location.typeData?.merchant?.purchasingOverrides ?? [];
 
   // Collect all template rules grouped by itemType
   const byType = new Map(); // itemType → [rule, ...]

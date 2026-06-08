@@ -29,13 +29,13 @@
       </select>
     </div>
   </div>
-  {{#if hasCityTypes}}
+  {{#if hasSettlementTypes}}
   <div class="form-group">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}}</label>
-    <select name="minCitySize">
-      <option value=""{{#unless item.minCitySize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
-      {{#each cityTypes}}
-      <option value="{{this.name}}"{{#if (eq this.name ../item.minCitySize)}} selected{{/if}}>{{this.name}}</option>
+    <select name="minSettlementSize">
+      <option value=""{{#unless item.minSettlementSize}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+      {{#each settlementTypes}}
+      <option value="{{this.name}}"{{#if (eq this.name ../item.minSettlementSize)}} selected{{/if}}>{{this.name}}</option>
       {{/each}}
     </select>
   </div>

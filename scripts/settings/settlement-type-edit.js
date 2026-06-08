@@ -2,44 +2,44 @@
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
+export class SettlementTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
-  _cityType;
+  _settlementType;
 
-  constructor(cityType, options = {}) {
+  constructor(settlementType, options = {}) {
     super(options);
-    this._cityType = cityType;
+    this._settlementType = settlementType;
   }
 
-  // Dynamic title: "Add City Type" for new, "Edit City Type" for existing
+  // Dynamic title: "Add Settlement Type" for new, "Edit Settlement Type" for existing
   get title() {
-    const key = this._cityType?.name
-      ? "SANDBOX_SETTLEMENT_MANAGER.cityType.editTitle"
-      : "SANDBOX_SETTLEMENT_MANAGER.cityType.addTitle";
+    const key = this._settlementType?.name
+      ? "SANDBOX_SETTLEMENT_MANAGER.settlementType.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.settlementType.addTitle";
     return game.i18n.localize(key);
   }
 
   static DEFAULT_OPTIONS = {
-    id: `${MODULE_ID}-city-type-edit`,
+    id: `${MODULE_ID}-settlement-type-edit`,
     tag: "form",
-    form: { handler: CityTypeEditApp.#onSubmit, closeOnSubmit: true },
+    form: { handler: SettlementTypeEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 360 }
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/settings/city-type-edit.hbs` },
+    form: { template: `modules/${MODULE_ID}/templates/settings/settlement-type-edit.hbs` },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
   /**
-   * Open the dialog and return a Promise that resolves with the saved city type
+   * Open the dialog and return a Promise that resolves with the saved settlement type
    * object, or null if the dialog was closed without saving.
-   * @param {object} [cityType={}]  Existing city type data to edit, or empty for add.
+   * @param {object} [settlementType={}]  Existing settlement type data to edit, or empty for add.
    * @returns {Promise<object|null>}
    */
-  static async open(cityType = {}) {
+  static async open(settlementType = {}) {
     return new Promise(resolve => {
-      const app = new CityTypeEditApp(foundry.utils.deepClone(cityType));
+      const app = new SettlementTypeEditApp(foundry.utils.deepClone(settlementType));
       app._resolve = resolve;
       app.render(true);
     });
@@ -49,7 +49,7 @@ export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
     const currencyOptions = currencies.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation, isStandard: c.isStandard }));
     return {
-      cityType: this._cityType,
+      settlementType: this._settlementType,
       currencyOptions,
       buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
     };
@@ -67,7 +67,7 @@ export class CityTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!name) return; // block empty submission
     const resolve = this._resolve;
     this._resolve = null; // prevent _onClose from resolving again
-    resolve?.({ ...this._cityType, name, maxCurrencyId });
+    resolve?.({ ...this._settlementType, name, maxCurrencyId });
   }
 
   async _onClose(options) {

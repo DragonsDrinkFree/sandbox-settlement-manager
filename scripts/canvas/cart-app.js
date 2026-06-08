@@ -1,7 +1,7 @@
 import { MODULE_ID, SETTINGS, FLAGS } from '../constants.js';
 import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
-import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getCityMaxDenomValue } from '../utils/currency-utils.js';
+import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue } from '../utils/currency-utils.js';
 import { getWorldTimeConfig } from '../time/world-time.js';
 import { SOCKET_CHANNEL, SOCKET_TYPES } from '../socket.js';
 
@@ -41,7 +41,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
     const rawItems = cartManager.items;
 
-    const cityMaxDenomValue = getCityMaxDenomValue(currencies);
+    const settlementMaxDenomValue = getSettlementMaxDenomValue(currencies);
 
     const formatStandard = (std) => {
       if (std <= 0) return '—';
@@ -54,10 +54,10 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const formatConstrained = (std) => {
       if (std <= 0) return '—';
-      const breakdown = calculateChange(std, currencies, cityMaxDenomValue);
+      const breakdown = calculateChange(std, currencies, settlementMaxDenomValue);
       if (breakdown && Object.values(breakdown).some(v => v > 0)) return formatAmounts(breakdown, currencies);
       const eligible = [...currencies]
-        .filter(c => parseExchangeRate(c.exchangeRate) <= cityMaxDenomValue + 1e-9)
+        .filter(c => parseExchangeRate(c.exchangeRate) <= settlementMaxDenomValue + 1e-9)
         .sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
       const sc = eligible[0] ?? currencies.find(c => c.isStandard);
       return sc ? `${Math.ceil(std / parseExchangeRate(sc.exchangeRate))} ${sc.abbreviation}` : '—';
@@ -136,10 +136,10 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#cartHook = Hooks.on(CART_HOOK, () => this.render({ parts: ['content'] }));
     }
 
-    // Auto-position to the right of city-manage on first render
+    // Auto-position to the right of settlement-manage on first render
     if (!this.#positioned) {
       this.#positioned = true;
-      const anchor = foundry.applications.instances.get(`${MODULE_ID}-city-manage`);
+      const anchor = foundry.applications.instances.get(`${MODULE_ID}-settlement-manage`);
       if (anchor?.position) {
         const { top, left, width } = anchor.position;
         this.setPosition({ top, left: left + width + 8 });
@@ -206,7 +206,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const netStd    = cartManager.computeNetTotalInStandard(currencies);
     const sellItems = items.filter(i => i.type === 'sellItem');
     const actorId   = sellItems[0]?.actorId ?? null;
-    const maxDenomValue = getCityMaxDenomValue(currencies);
+    const maxDenomValue = getSettlementMaxDenomValue(currencies);
 
     if (netStd > 1e-9) {
       // Player owes money — open PurchaseDialog with net amount
@@ -217,7 +217,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!result) return;
       await CartApp.#processFulfillments(items, result.actorId, currencies, mode);
     } else if (netStd < -1e-9) {
-      // Merchant owes player — grant currency constrained to city denomination
+      // Merchant owes player — grant currency constrained to settlement denomination
       await CartApp.#grantCurrency(actorId, Math.abs(netStd), currencies, mode, maxDenomValue);
       await CartApp.#processFulfillments(items, actorId, currencies, mode);
     } else {
@@ -238,7 +238,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const EPSILON      = 1e-9;
     const effectiveMax = maxDenomValue ?? currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
 
-    // Break the amount into denominations within the city's constraint
+    // Break the amount into denominations within the settlement's constraint
     let breakdown = calculateChange(amountInStandard, currencies, effectiveMax);
     if (!breakdown) {
       // Can't make exact change — ceil in the smallest eligible denomination
@@ -296,12 +296,12 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const scene = game.scenes.get(sceneId);
       if (!scene) continue;
 
-      const resources  = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []);
+      const locations  = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
       const dirtyIds   = new Set();
 
       for (const cartItem of sceneItems) {
-        const resource = resources.find(r => r.id === cartItem.resourceId);
-        const inn = resource?.typeData?.inn;
+        const location = locations.find(r => r.id === cartItem.locationId);
+        const inn = location?.typeData?.inn;
         if (!inn) continue;
 
         const durationSeconds = cartItem.unit === 'weeks'
@@ -326,21 +326,21 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (lodging && typeof lodging.availability === 'number') {
           lodging.availability = Math.max(0, lodging.availability - 1);
         }
-        dirtyIds.add(cartItem.resourceId);
+        dirtyIds.add(cartItem.locationId);
       }
 
       if (!dirtyIds.size) continue;
 
       if (game.user.isGM) {
-        await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+        await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
       } else {
-        for (const resourceId of dirtyIds) {
-          const resource = resources.find(r => r.id === resourceId);
-          if (resource) {
+        for (const locationId of dirtyIds) {
+          const location = locations.find(r => r.id === locationId);
+          if (location) {
             game.socket.emit(SOCKET_CHANNEL, {
-              type: SOCKET_TYPES.SAVE_RESOURCE,
+              type: SOCKET_TYPES.SAVE_LOCATION,
               sceneId: scene.id,
-              resource
+              location
             });
           }
         }
@@ -364,8 +364,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Fulfill sell items: remove from actor and cache in merchant buyback list
     const sellItems = items.filter(i => i.type === 'sellItem');
 
-    // Group buyback entries by sceneId + resourceId
-    const buybackByResource = new Map(); // key: `${sceneId}:${resourceId}`
+    // Group buyback entries by sceneId + locationId
+    const buybackByLocation = new Map(); // key: `${sceneId}:${locationId}`
 
     if (sellItems.length) for (const sellItem of sellItems) {
       const sellerActor = game.actors.get(sellItem.actorId);
@@ -381,9 +381,9 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         await actorItem.update({ 'system.quantity': currentQty - qty });
       }
 
-      const key = `${sellItem.sceneId}:${sellItem.resourceId}`;
-      if (!buybackByResource.has(key)) buybackByResource.set(key, { sceneId: sellItem.sceneId, resourceId: sellItem.resourceId, entries: [] });
-      buybackByResource.get(key).entries.push({
+      const key = `${sellItem.sceneId}:${sellItem.locationId}`;
+      if (!buybackByLocation.has(key)) buybackByLocation.set(key, { sceneId: sellItem.sceneId, locationId: sellItem.locationId, entries: [] });
+      buybackByLocation.get(key).entries.push({
         id:             foundry.utils.randomID(),
         itemName:       sellItem.itemName,
         itemLinkedUuid: sellItem.itemLinkedUuid ?? null,
@@ -395,22 +395,22 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // Save buyback entries to merchant data on the appropriate scenes
-    for (const { sceneId, resourceId, entries } of buybackByResource.values()) {
+    for (const { sceneId, locationId, entries } of buybackByLocation.values()) {
       const scene = game.scenes.get(sceneId);
       if (!scene) continue;
-      const resources = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.RESOURCES) ?? []);
-      const resource  = resources.find(r => r.id === resourceId);
-      if (!resource) continue;
-      resource.typeData ??= {};
-      resource.typeData.merchant ??= {};
-      resource.typeData.merchant.buybackItems = [
-        ...(resource.typeData.merchant.buybackItems ?? []),
+      const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+      const location  = locations.find(r => r.id === locationId);
+      if (!location) continue;
+      location.typeData ??= {};
+      location.typeData.merchant ??= {};
+      location.typeData.merchant.buybackItems = [
+        ...(location.typeData.merchant.buybackItems ?? []),
         ...entries
       ];
       if (game.user.isGM) {
-        await scene.setFlag(MODULE_ID, FLAGS.RESOURCES, resources);
+        await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
       } else {
-        game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_RESOURCE, sceneId: scene.id, resource });
+        game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_LOCATION, sceneId: scene.id, location });
       }
     }
 
@@ -438,11 +438,11 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await CartApp.#removeCurrency(exActor, fromCurr, actualFromAmt, mode);
     }
 
-    // Refresh any open bank resource windows so displayed balances stay current
+    // Refresh any open bank location windows so displayed balances stay current
     if (exchangeItems.length > 0 && mode !== 'loose') {
       for (const app of foundry.applications.instances.values()) {
-        if (app.id === 'sandbox-settlement-manager-resource-detail') app.render();
-        else if (app.id === 'sandbox-settlement-manager-city-manage') app.render({ parts: ['content'] });
+        if (app.id === 'sandbox-settlement-manager-location-detail') app.render();
+        else if (app.id === 'sandbox-settlement-manager-settlement-manage') app.render({ parts: ['content'] });
       }
     }
   }

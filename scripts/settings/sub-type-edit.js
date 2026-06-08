@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, RESOURCE_TYPE_IDS, CORE_RESOURCE_TYPES } from "../constants.js";
+import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES } from "../constants.js";
 import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
 import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
@@ -22,8 +22,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get title() {
     const key = this._subType?.name
-      ? "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.editTitle"
-      : "SANDBOX_SETTLEMENT_MANAGER.resourceType.subType.addTitle";
+      ? "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.editTitle"
+      : "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.addTitle";
     return game.i18n.localize(key);
   }
 
@@ -65,9 +65,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
-    const isInn             = this._typeId === RESOURCE_TYPE_IDS.INN;
-    const isMerchant        = this._typeId === RESOURCE_TYPE_IDS.MERCHANT;
-    const isBank            = this._typeId === RESOURCE_TYPE_IDS.BANK;
+    const isInn             = this._typeId === LOCATION_TYPE_IDS.INN;
+    const isMerchant        = this._typeId === LOCATION_TYPE_IDS.MERCHANT;
+    const isBank            = this._typeId === LOCATION_TYPE_IDS.BANK;
     const showTypeSelect    = !this._typeId;
     const showInnSections     = isInn || showTypeSelect;
     const showMerchantSection = isMerchant || showTypeSelect;
@@ -104,7 +104,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         })));
       }
     }
-    const cityTypes = game.settings.get(MODULE_ID, SETTINGS.CITY_TYPES) ?? [];
+    const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
     const bankData     = this._subType.typeData?.bank ?? {};
     const merchantData = this._subType.typeData?.merchant ?? {};
     const stockType       = merchantData.stockType        ?? "percent";
@@ -131,12 +131,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       showBankSection,
       bankData,
       showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection,
-      coreTypes: CORE_RESOURCE_TYPES,
+      coreTypes: CORE_LOCATION_TYPES,
       lodgings,
       currencies,
       courses,
       templateInventory,
-      cityTypes,
+      settlementTypes,
       stockType,
       restockFrequency,
       merchantTab: this._merchantTab,
@@ -162,9 +162,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const merchantSection = this.element.querySelector('.merchant-only');
     const bankSection     = this.element.querySelector('.bank-only');
     const toggle = () => {
-      if (innSection)      innSection.hidden      = (sel.value !== RESOURCE_TYPE_IDS.INN);
-      if (merchantSection) merchantSection.hidden = (sel.value !== RESOURCE_TYPE_IDS.MERCHANT);
-      if (bankSection)     bankSection.hidden     = (sel.value !== RESOURCE_TYPE_IDS.BANK);
+      if (innSection)      innSection.hidden      = (sel.value !== LOCATION_TYPE_IDS.INN);
+      if (merchantSection) merchantSection.hidden = (sel.value !== LOCATION_TYPE_IDS.MERCHANT);
+      if (bankSection)     bankSection.hidden     = (sel.value !== LOCATION_TYPE_IDS.BANK);
     };
     sel.addEventListener('change', toggle);
     toggle();
@@ -245,7 +245,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       name:             (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
       itemId:           row.dataset.itemUuid ?? null,
       itemType:         row.dataset.itemType ?? null,
-      minCitySize:      (row.querySelector('[data-field="minCitySize"]')?.value ?? "").trim(),
+      minSettlementSize:      (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
       stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
       stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
       price: {
@@ -280,7 +280,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         price:             readItemPrice(item, currencies),
         itemId:            item.uuid,
         itemType:          item.type ?? null,
-        minCitySize:       "",
+        minSettlementSize:       "",
         stockAvailability: 100,
         stockFormula:      ""
       });
@@ -357,7 +357,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       price:             { currencyId: defaultCurrencyId, amount: 0 },
       itemId:            null,
       itemType:          null,
-      minCitySize:       "",
+      minSettlementSize:       "",
       stockAvailability: 100,
       stockFormula:      ""
     });
@@ -411,14 +411,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!typeId) return;
 
     const result = { ...this._subType, name };
-    if (typeId === RESOURCE_TYPE_IDS.INN) {
+    if (typeId === LOCATION_TYPE_IDS.INN) {
       const rows = form.querySelectorAll('.lodging-table-row');
       const lodgings = [...rows]
         .map(row => this.#rowToLodging(row))
         .filter(l => l.name);
       result.typeData = { lodgings, menu: this._menu };
     }
-    if (typeId === RESOURCE_TYPE_IDS.BANK) {
+    if (typeId === LOCATION_TYPE_IDS.BANK) {
       const doesExchange       = !!form.querySelector('[name="bankDoesExchange"]')?.checked;
       const exchangeFee        = Math.max(0, Math.min(100, parseFloat(formData.object.bankExchangeFee) || 0));
       const depositGlobal      = !!form.querySelector('[name="bankDepositGlobal"]')?.checked;
@@ -433,7 +433,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       };
     }
-    if (typeId === RESOURCE_TYPE_IDS.MERCHANT) {
+    if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
       const rows = form.querySelectorAll('.merchant-inventory-row');
@@ -443,7 +443,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           name:              (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
           itemId:            row.dataset.itemUuid ?? null,
           itemType:          row.dataset.itemType ?? null,
-          minCitySize:       (row.querySelector('[data-field="minCitySize"]')?.value ?? "").trim(),
+          minSettlementSize:       (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
           stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
           stockFormula:      (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
           price: {

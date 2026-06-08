@@ -1,35 +1,35 @@
-﻿<div class="city-type-manager">
-  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypes.hint"}}</p>
+﻿<div class="settlement-type-manager">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypes.hint"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.settlementTypes'}}"></i></p>
 
-  <ul class="city-type-list">
-    {{#each cityTypes}}
-    <li class="city-type-item" draggable="true" data-index="{{@index}}">
+  <ul class="settlement-type-list">
+    {{#each settlementTypes}}
+    <li class="settlement-type-item" draggable="true" data-index="{{@index}}">
       <i class="fa-solid fa-grip-vertical drag-handle" inert></i>
-      <span class="city-type-name">{{this.name}}</span>
+      <span class="settlement-type-name">{{this.name}}</span>
       <div class="controls">
-        <button type="button" class="icon" data-action="editCityType" data-index="{{@index}}"
-                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cityType.edit'}}">
+        <button type="button" class="icon" data-action="editSettlementType" data-index="{{@index}}"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.settlementType.edit'}}">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
-        <button type="button" class="icon" data-action="deleteCityType" data-index="{{@index}}"
-                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.cityType.delete'}}">
+        <button type="button" class="icon" data-action="deleteSettlementType" data-index="{{@index}}"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.settlementType.delete'}}">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>
     </li>
     {{else}}
-    <li class="city-type-empty">
-      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.cityType.empty"}}</em>
+    <li class="settlement-type-empty">
+      <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.settlementType.empty"}}</em>
     </li>
     {{/each}}
   </ul>
 
-  <div class="city-type-actions">
-    <button type="button" data-action="addCityType">
-      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypes.add"}}
+  <div class="settlement-type-actions">
+    <button type="button" data-action="addSettlementType">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypes.add"}}
     </button>
     <button type="button" data-action="resetToDefaults">
-      <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.cityTypes.reset"}}
+      <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypes.reset"}}
     </button>
   </div>
 </div>
