@@ -1,0 +1,34 @@
+<div class="ssm-import-export">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.intro"}}
+    <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.importExport'}}"></i>
+  </p>
+
+  <fieldset class="ssm-ie-sections">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.sectionsLegend"}}</legend>
+    {{#each sections}}
+    <label class="ssm-ie-section">
+      <input type="checkbox" name="section-{{this.key}}" checked>
+      <span>{{this.label}}</span>
+    </label>
+    {{/each}}
+  </fieldset>
+
+  <div class="ssm-ie-actions">
+    <div class="ssm-ie-block">
+      <button type="button" data-action="exportConfig">
+        <i class="fa-solid fa-file-export"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.exportButton"}}
+      </button>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.exportHint"}}</p>
+    </div>
+
+    <hr>
+
+    <div class="ssm-ie-block">
+      <input type="file" name="importFile" accept=".json">
+      <button type="button" data-action="importConfig">
+        <i class="fa-solid fa-file-import"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.importButton"}}
+      </button>
+      <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.importExport.importHint"}}</p>
+    </div>
+  </div>
+</div>

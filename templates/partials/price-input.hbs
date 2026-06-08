@@ -1,0 +1,16 @@
+{{!--
+  Shared price amount + currency selector pair.
+  Params:
+    attr        "name" (formData-driven dialogs) or "data-field" (DOM-sync editors)
+    field       field prefix; renders <field>Amount and <field>CurrencyId
+    price       { amount, currencyId }
+    currencies  array of { id, abbreviation }
+    amountClass css class for the number input
+    selectClass css class for the currency select
+--}}
+<input type="number" {{attr}}="{{field}}Amount" value="{{price.amount}}" min="0" step="0.01" class="{{amountClass}}">
+<select {{attr}}="{{field}}CurrencyId" class="{{selectClass}}">
+  {{#each currencies}}
+  <option value="{{this.id}}"{{#if (eq this.id ../price.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
+  {{/each}}
+</select>

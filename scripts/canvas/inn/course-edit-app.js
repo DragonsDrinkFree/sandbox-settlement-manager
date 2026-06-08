@@ -1,5 +1,6 @@
 import { MODULE_ID, SETTINGS } from "../../constants.js";
 import { MenuItemEditApp } from "./menu-item-edit-app.js";
+import { snapshot, TEMPLATE_FIELDS } from "../template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -92,10 +93,9 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._resolve = null;
       resolve?.({
         ...foundry.utils.deepClone(t),
-        id:             this._course.id || foundry.utils.randomID(),
-        templateItemId: this._course.templateItemId ?? null,
-        overridden:     false,
-        _restored:      true
+        id:              this._course.id || foundry.utils.randomID(),
+        templateItemId:  this._course.templateItemId ?? null,
+        _templateValues: snapshot(t, TEMPLATE_FIELDS.course)
       });
       this.close();
     });
@@ -209,9 +209,9 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       items:          mode === "static"  ? (this._course.items  ?? []) : [],
       pool:           mode === "random"  ? (this._course.pool   ?? []) : [],
       drawnItems:     mode === "random"  ? (this._course.drawnItems ?? []) : [],
-      lastRefreshed:  this._course.lastRefreshed ?? null,
-      templateItemId: this._course.templateItemId ?? null,
-      overridden:     this._course.overridden ?? false
+      lastRefreshed:   this._course.lastRefreshed ?? null,
+      templateItemId:  this._course.templateItemId ?? null,
+      _templateValues: this._course._templateValues ?? null
     });
   }
 

@@ -1,81 +1,25 @@
 import { MODULE_ID, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { syncCollection, TEMPLATE_FIELDS } from "./template-link.js";
 
-function syncMerchantInventory(merchantData, templateMerchant) {
-  const currentInventory  = merchantData.inventory  ?? [];
-  const templateInventory = templateMerchant.inventory ?? [];
+/** Full-sync a merchant instance against its template: inventory items + merchant-level stock settings. */
+function syncMerchant(merchantData, templateMerchant) {
+  const inventory = syncCollection(
+    merchantData.inventory ?? [],
+    templateMerchant.inventory ?? [],
+    TEMPLATE_FIELDS.merchantItem,
+    { mode: "full", newDefaults: { quantity: null } }
+  );
+  const updated = { ...merchantData, inventory };
 
-  const manualItems = currentInventory.filter(i => !i.templateItemId);
-
-  const newInventory = [];
-  for (const tItem of templateInventory) {
-    const existing = currentInventory.find(i => i.templateItemId === tItem.id);
-    if (existing) {
-      const tv = existing._templateValues ?? null;
-      const updated = { ...existing };
-
-      const fieldDefs = [
-        ["name",              ""],
-        ["itemId",            null],
-        ["minSettlementSize",       ""],
-        ["stockAvailability", 100],
-        ["stockFormula",      ""]
-      ];
-      for (const [f, def] of fieldDefs) {
-        const tVal   = tItem[f] ?? def;
-        const oldTpl = tv ? (tv[f] ?? def) : tVal;
-        if (tv === null || existing[f] === oldTpl) updated[f] = tVal;
-      }
-
-      // Price: deep compare
-      const tvPrice = tv?.price ?? null;
-      if (tvPrice === null ||
-          (existing.price?.currencyId === tvPrice.currencyId &&
-           existing.price?.amount    === tvPrice.amount)) {
-        updated.price = { ...(tItem.price ?? {}) };
-      }
-
-      updated._templateValues = {
-        name:              tItem.name,
-        itemId:            tItem.itemId            ?? null,
-        minSettlementSize:       tItem.minSettlementSize       ?? "",
-        stockAvailability: tItem.stockAvailability ?? 100,
-        stockFormula:      tItem.stockFormula      ?? "",
-        price:             { ...(tItem.price ?? {}) }
-      };
-      newInventory.push(updated);
-    } else {
-      newInventory.push({
-        ...foundry.utils.deepClone(tItem),
-        id:             foundry.utils.randomID(),
-        templateItemId: tItem.id,
-        quantity:       null,
-        _templateValues: {
-          name:              tItem.name,
-          itemId:            tItem.itemId            ?? null,
-          minSettlementSize:       tItem.minSettlementSize       ?? "",
-          stockAvailability: tItem.stockAvailability ?? 100,
-          stockFormula:      tItem.stockFormula      ?? "",
-          price:             { ...(tItem.price ?? {}) }
-        }
-      });
-    }
-  }
-
-  newInventory.push(...manualItems);
-
-  const updated = { ...merchantData, inventory: newInventory };
-
+  // Merchant-level stock settings: adopt the template value unless the instance overrode it.
   const tplSt = templateMerchant.stockType        ?? "percent";
   const tplRf = templateMerchant.restockFrequency ?? "weekly";
-
   if (merchantData._tplStockType        === undefined || merchantData.stockType        === merchantData._tplStockType)
     updated.stockType        = tplSt;
   if (merchantData._tplRestockFrequency === undefined || merchantData.restockFrequency === merchantData._tplRestockFrequency)
     updated.restockFrequency = tplRf;
-
   updated._tplStockType        = tplSt;
   updated._tplRestockFrequency = tplRf;
-
   return updated;
 }
 
@@ -89,13 +33,13 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
   }
   if (!scenesData.length) return;
 
-  // INN: add-only sync (existing behaviour)
+  // INN: add-only sync — append instances for lodgings/courses newly added to the template.
   for (const newTemplate of (newSubTypes[LOCATION_TYPE_IDS.INN] ?? [])) {
-    const oldTemplate   = (oldSubTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === newTemplate.id);
-    const newLodgings   = newTemplate.typeData?.lodgings ?? [];
-    const newCourses    = newTemplate.typeData?.menu?.courses ?? [];
-    const oldLodgings   = oldTemplate?.typeData?.lodgings ?? [];
-    const oldCourses    = oldTemplate?.typeData?.menu?.courses ?? [];
+    const oldTemplate = (oldSubTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === newTemplate.id);
+    const newLodgings = newTemplate.typeData?.lodgings ?? [];
+    const newCourses  = newTemplate.typeData?.menu?.courses ?? [];
+    const oldLodgings = oldTemplate?.typeData?.lodgings ?? [];
+    const oldCourses  = oldTemplate?.typeData?.menu?.courses ?? [];
     const addedLodgings = newLodgings.filter(l => !oldLodgings.some(ol => ol.id === l.id));
     const addedCourses  = newCourses.filter(c => !oldCourses.some(oc => oc.id === c.id));
     if (!addedLodgings.length && !addedCourses.length) continue;
@@ -110,28 +54,21 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
         const inn = location.typeData?.inn;
         if (!inn) continue;
 
-        inn.lodgings ??= [];
-        for (const tl of addedLodgings) {
-          if (!inn.lodgings.some(l => l.templateItemId === tl.id)) {
-            inn.lodgings.push({ ...foundry.utils.deepClone(tl), templateItemId: tl.id, overridden: false });
-            dirty = true;
-          }
+        if (addedLodgings.length) {
+          inn.lodgings = syncCollection(inn.lodgings ?? [], addedLodgings, TEMPLATE_FIELDS.lodging, { mode: "add" });
+          dirty = true;
         }
-
-        inn.menu ??= { courses: [] };
-        inn.menu.courses ??= [];
-        for (const tc of addedCourses) {
-          if (!inn.menu.courses.some(c => c.templateItemId === tc.id)) {
-            inn.menu.courses.push({ ...foundry.utils.deepClone(tc), templateItemId: tc.id, overridden: false });
-            dirty = true;
-          }
+        if (addedCourses.length) {
+          inn.menu ??= { courses: [] };
+          inn.menu.courses = syncCollection(inn.menu.courses ?? [], addedCourses, TEMPLATE_FIELDS.course, { mode: "add" });
+          dirty = true;
         }
       }
       if (dirty) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
     }
   }
 
-  // MERCHANT: full add/remove/change sync with field-level override tracking
+  // MERCHANT: full add/remove/change sync with field-level override tracking.
   for (const newTemplate of (newSubTypes[LOCATION_TYPE_IDS.MERCHANT] ?? [])) {
     const templateMerchant = newTemplate.typeData?.merchant;
     if (!templateMerchant) continue;
@@ -146,7 +83,7 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
         const currentMerchant = location.typeData?.merchant;
         if (!currentMerchant) continue;
 
-        const syncedMerchant = syncMerchantInventory(currentMerchant, templateMerchant);
+        const syncedMerchant = syncMerchant(currentMerchant, templateMerchant);
         if (JSON.stringify(currentMerchant) !== JSON.stringify(syncedMerchant)) {
           location.typeData.merchant = syncedMerchant;
           dirty = true;

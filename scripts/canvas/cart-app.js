@@ -1,7 +1,7 @@
 import { MODULE_ID, SETTINGS, FLAGS } from '../constants.js';
 import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
-import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue } from '../utils/currency-utils.js';
+import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue, grantStandardToActor, removeCoinsFromActor, readActorBalance } from '../utils/currency-utils.js';
 import { getWorldTimeConfig } from '../time/world-time.js';
 import { SOCKET_CHANNEL, SOCKET_TYPES } from '../socket.js';
 
@@ -218,7 +218,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await CartApp.#processFulfillments(items, result.actorId, currencies, mode);
     } else if (netStd < -1e-9) {
       // Merchant owes player — grant currency constrained to settlement denomination
-      await CartApp.#grantCurrency(actorId, Math.abs(netStd), currencies, mode, maxDenomValue);
+      await grantStandardToActor(game.actors.get(actorId), Math.abs(netStd), currencies, mode, maxDenomValue);
       await CartApp.#processFulfillments(items, actorId, currencies, mode);
     } else {
       // Balanced — just fulfill both sides
@@ -227,53 +227,6 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     cartManager.clear();
-  }
-
-  /** Grant amountInStandard worth of currency to the actor, constrained to maxDenomValue. */
-  static async #grantCurrency(actorId, amountInStandard, currencies, mode, maxDenomValue = null) {
-    if (!actorId || amountInStandard < 1e-9 || mode === 'loose') return;
-    const actor = game.actors.get(actorId);
-    if (!actor) return;
-
-    const EPSILON      = 1e-9;
-    const effectiveMax = maxDenomValue ?? currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
-
-    // Break the amount into denominations within the settlement's constraint
-    let breakdown = calculateChange(amountInStandard, currencies, effectiveMax);
-    if (!breakdown) {
-      // Can't make exact change — ceil in the smallest eligible denomination
-      const eligible = [...currencies]
-        .filter(c => parseExchangeRate(c.exchangeRate) <= effectiveMax + EPSILON)
-        .sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
-      const sc = eligible[0] ?? currencies.find(c => c.isStandard);
-      if (!sc) return;
-      breakdown = { [sc.id]: Math.ceil(amountInStandard / parseExchangeRate(sc.exchangeRate)) };
-    }
-
-    for (const [currencyId, amount] of Object.entries(breakdown)) {
-      if (!amount || amount <= 0) continue;
-      const currency = currencies.find(c => c.id === currencyId);
-      if (!currency) continue;
-
-      if (mode === 'attribute' && currency.attributePath) {
-        const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
-        await actor.update({ [currency.attributePath]: current + amount });
-      } else if (mode === 'item' && currency.itemName) {
-        const existing = actor.items.find(i => i.name === currency.itemName);
-        if (existing) {
-          const qty = foundry.utils.getProperty(existing, 'system.quantity') ?? 0;
-          await existing.update({ 'system.quantity': qty + amount });
-        } else {
-          const source = game.items.find(i => i.name === currency.itemName)
-            ?? (currency.itemId ? await fromUuid(currency.itemId).catch(() => null) : null);
-          if (source) {
-            const data = source.toObject();
-            foundry.utils.setProperty(data, 'system.quantity', amount);
-            await actor.createEmbeddedDocuments('Item', [data]);
-          }
-        }
-      }
-    }
   }
 
   /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */
@@ -425,7 +378,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!fromCurr || !toCurr) continue;
 
       // Trick-prevention: check how much fromCurrency remains after fee payment
-      const actualBalance = CartApp.#getCurrencyBalance(exActor, fromCurr, mode);
+      const actualBalance = readActorBalance(exActor, fromCurr, mode);
       const actualFromAmt = Math.min(exItem.fromAmount, actualBalance);
       if (actualFromAmt <= 0) continue;
 
@@ -433,9 +386,9 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const toRate        = parseExchangeRate(toCurr.exchangeRate);
 
       // Grant the to-currency, capped at toCurrency denomination (no higher-value coins)
-      await CartApp.#grantCurrency(exItem.actorId, actualFromStd, currencies, mode, toRate);
+      await grantStandardToActor(exActor, actualFromStd, currencies, mode, toRate);
       // Remove the from-currency
-      await CartApp.#removeCurrency(exActor, fromCurr, actualFromAmt, mode);
+      await removeCoinsFromActor(exActor, { [fromCurr.id]: actualFromAmt }, currencies, mode);
     }
 
     // Refresh any open bank location windows so displayed balances stay current
@@ -447,33 +400,4 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  /** Returns the actor's current balance of a specific currency (as a coin count). */
-  static #getCurrencyBalance(actor, currency, mode) {
-    if (mode === 'attribute' && currency.attributePath) {
-      return foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
-    }
-    if (mode === 'item' && currency.itemName) {
-      const item = actor.items.find(i => i.name === currency.itemName);
-      return item ? (foundry.utils.getProperty(item, 'system.quantity') ?? 0) : 0;
-    }
-    return 0;
-  }
-
-  /** Remove a specific amount of a currency from an actor. */
-  static async #removeCurrency(actor, currency, amount, mode) {
-    if (!amount || amount <= 0) return;
-    if (mode === 'attribute' && currency.attributePath) {
-      const current = foundry.utils.getProperty(actor, currency.attributePath) ?? 0;
-      await actor.update({ [currency.attributePath]: Math.max(0, current - amount) });
-    } else if (mode === 'item' && currency.itemName) {
-      const item = actor.items.find(i => i.name === currency.itemName);
-      if (!item) return;
-      const qty = foundry.utils.getProperty(item, 'system.quantity') ?? 0;
-      if (qty <= amount) {
-        await item.delete();
-      } else {
-        await item.update({ 'system.quantity': qty - amount });
-      }
-    }
-  }
 }

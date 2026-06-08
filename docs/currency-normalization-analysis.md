@@ -1,6 +1,10 @@
 # Currency & Template Feature Normalization — Analysis
 
-**Status:** Analysis only. Nothing here is implemented. Reviewed before any refactor.
+**Status:** IMPLEMENTED (all three items). Coin grant/remove unified in `utils/currency-utils.js`
+(`readActorBalance`, `grantStandardToActor`, `settlePayment`); override model unified in
+`canvas/template-link.js` (`_templateValues` snapshot for Inn lodgings/courses, Merchant inventory, Bank
+settings); price+currency entry consolidated into `templates/partials/price-input.hbs`. The two restore
+dialogs were refactored onto `template-link` but kept as two thin classes (not physically merged).
 **Scope:** Inn, Merchant, Bank — their currency handling and template→instance mechanics.
 
 ---

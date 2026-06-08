@@ -10,11 +10,11 @@
 
 import { MODULE_ID } from "./constants.js";
 import { registerSettings } from "./settings/settings.js";
+import { registerSettingsUI } from "./settings/settings-ui.js";
 import { SandboxSceneConfig } from "./scene/scene-config.js";
 import { registerSettlementControls } from "./canvas/settlement-controls.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
 import { registerSocketHandlers } from "./socket.js";
-import { runMigrations } from "./migrate.js";
 import "./canvas/cart-manager.js";
 
 Hooks.once("init", () => {
@@ -23,7 +23,13 @@ Hooks.once("init", () => {
   // Register keybindings FIRST — Foundry silently skips registration if earlier code throws.
   // See reference: Keybindings.md
 
+  // Preload shared Handlebars partials (registered under short ids for {{> id}} use).
+  foundry.applications.handlebars.loadTemplates({
+    "ssm-price-input": `modules/${MODULE_ID}/templates/partials/price-input.hbs`
+  });
+
   registerSettings();
+  registerSettingsUI();
   registerSettlementControls();
   registerWorldTimeHooks();
   foundry.applications.apps.DocumentSheetConfig.registerSheet(Scene, MODULE_ID, SandboxSceneConfig, {
@@ -31,8 +37,7 @@ Hooks.once("init", () => {
   });
 });
 
-Hooks.once("ready", async () => {
+Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | Ready`);
   registerSocketHandlers();
-  await runMigrations();
 });

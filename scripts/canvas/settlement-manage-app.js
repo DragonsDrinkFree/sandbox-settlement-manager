@@ -15,6 +15,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
+import { instanceFromTemplate, isOverridden, restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -270,13 +271,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const standardCurrency = currencies.find(c => c.isStandard) ?? null;
 
     // Resolve effective settings: template when not overridden, stored values when overridden
-    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
     const bankEntry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType = bankEntry?.subTypeId
       ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const hasTemplate = !!subType;
-    const src = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const src = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const doesExchange    = src.doesExchange ?? false;
     const exchangeFee     = src.exchangeFee  ?? 0;
     const depositSettings = src.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
@@ -312,7 +313,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       depositSettings,
       processedDeposits,
       depositsTotal,
-      isOverridden,
+      isOverridden: settingsOverridden,
       hasTemplate,
       isGM: game.user.isGM
     };
@@ -378,6 +379,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       const avail       = l.availability ?? null;
       return {
         ...l,
+        overridden:          isOverridden(l, TEMPLATE_FIELDS.lodging),
         pricePerDayLabel:    dayLabel,
         pricePerWeekLabel:   weekLabel,
         availabilityDisplay: avail === null ? "∞" : String(avail),
@@ -439,6 +441,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       }
       return {
         ...course,
+        overridden: isOverridden(course, TEMPLATE_FIELDS.course),
         isRandom,
         priceLabel,
         visibleItems: visibleItems.map(item => {
@@ -602,14 +605,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
           const subType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
           location.typeData ??= {};
           location.typeData.inn = {
-            lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []).map(l => ({
-              ...l, templateItemId: l.id, overridden: false
-            })),
+            lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
             ledger: [],
             menu: {
-              courses: foundry.utils.deepClone(subType?.typeData?.menu?.courses ?? []).map(c => ({
-                ...c, templateItemId: c.id, overridden: false
-              }))
+              courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course))
             }
           };
         }
@@ -996,8 +995,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       : null;
     const result = await LodgingEditApp.open(lodging, templateLodging);
     if (!result) return;
-    if (result.templateItemId && !result._restored) result.overridden = true;
-    delete result._restored;
     innData.lodgings[index] = result;
     await this.#saveInnData(innData);
   }
@@ -1367,12 +1364,12 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location     = this.#syncSelectedLocation();
     if (!location) return;
     const bankRaw      = location.typeData?.bank ?? {};
-    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
     const bankEntry    = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType      = bankEntry?.subTypeId
       ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
-    const src  = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const src  = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const dSrc = src.depositSettings ?? {};
 
     const result = await foundry.applications.api.DialogV2.prompt({
@@ -1432,7 +1429,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       minDepositDays:     result.minDepositDays,
       earlyWithdrawalFee: result.earlyWithdrawalFee
     };
-    bankData._settingsOverridden = true;
     location.typeData ??= {};
     location.typeData.bank = bankData;
     await this.#saveLocationData(location);
@@ -1442,8 +1438,12 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
     if (!location) return;
-    const bankData = foundry.utils.deepClone(location.typeData?.bank ?? {});
-    bankData._settingsOverridden = false;
+    const bankData  = foundry.utils.deepClone(location.typeData?.bank ?? {});
+    const bankEntry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
+    const subType   = bankEntry?.subTypeId
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      : null;
+    restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
     location.typeData ??= {};
     location.typeData.bank = bankData;
     await this.#saveLocationData(location);

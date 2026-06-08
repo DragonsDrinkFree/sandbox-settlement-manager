@@ -9,11 +9,18 @@
       <span class="attr-path-text">{{this.path}}</span>
       <input type="text" class="attr-label-input" value="{{this.defaultLabel}}"
              placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.attributePicker.labelPlaceholder'}}">
-      <button type="button" class="icon attr-add-btn" data-action="addAttribute"
+      <button type="button" class="icon attr-add-btn" data-action="toggleAttribute"
               aria-label="Add"><i class="fa-solid fa-plus"></i></button>
     </div>
     {{else}}
     <p class="attr-empty"><em>No attributes found for item type "{{systemType}}".</em></p>
     {{/each}}
+  </div>
+  <div class="attr-picker-footer">
+    <span class="attr-selected-count"></span>
+    <button type="button" data-action="cancelSelection">{{localize "SANDBOX_SETTLEMENT_MANAGER.dialog.cancel"}}</button>
+    <button type="button" class="attr-confirm-btn" data-action="confirmSelection">
+      <i class="fa-solid fa-check"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.attributePicker.addSelected"}}
+    </button>
   </div>
 </div>

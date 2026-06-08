@@ -18,15 +18,7 @@
   <div class="form-group">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.item.priceLabel"}}</label>
     <div class="price-row">
-      <input type="number" name="priceAmount" value="{{item.price.amount}}" min="0" step="0.01"
-             class="price-amount-input">
-      <select name="priceCurrencyId" class="price-currency-select">
-        {{#each currencies}}
-        <option value="{{this.id}}"{{#if (eq this.id ../item.price.currencyId)}} selected{{/if}}>
-          {{this.abbreviation}}
-        </option>
-        {{/each}}
-      </select>
+      {{> ssm-price-input attr="name" field="price" price=item.price currencies=currencies amountClass="price-amount-input" selectClass="price-currency-select"}}
     </div>
   </div>
   {{#if hasSettlementTypes}}

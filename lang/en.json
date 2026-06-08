@@ -81,6 +81,11 @@
       "daysPerWeek": {
         "name": "Days Per Week",
         "hint": "Number of in-game days in a week. Used to calculate weekly schedules."
+      },
+      "importExport": {
+        "name": "Import / Export",
+        "label": "Import / Export Configuration",
+        "hint": "Back up, share, or restore module configuration as a JSON file."
       }
     },
     "help": {
@@ -93,7 +98,29 @@
       "bankExchange": "Controls whether this bank converts between currencies and the percentage fee charged on each exchange.",
       "bankDeposits": "Configure player deposits: an optional fee taken when depositing, a minimum lock-in period before penalty-free withdrawal, and an early-withdrawal penalty. A Global bank shares one deposit ledger across every scene, so players can deposit and withdraw at any of its branches.",
       "merchantInventory": "Define the stock this merchant starts with and how it restocks over time. Availability and stock formulas can vary by settlement size. Drag items from the sidebar onto the drop zone to add them.",
-      "merchantPurchasing": "Set how this merchant buys items from players: the buy rate (percent of value paid) and how buyback pricing works, optionally overridden per item type."
+      "merchantPurchasing": "Set how this merchant buys items from players: the buy rate (percent of value paid) and how buyback pricing works, optionally overridden per item type.",
+      "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world."
+    },
+    "importExport": {
+      "title": "Import / Export Configuration",
+      "intro": "Choose which configuration sections to include, then export them to a JSON file or import them from one.",
+      "sectionsLegend": "Sections",
+      "sectionSettlementTypes": "Settlement Types",
+      "sectionCurrency": "Currency Configuration",
+      "sectionItem": "Item Settings",
+      "sectionLocationTemplates": "Location Templates",
+      "exportButton": "Export Selected",
+      "exportHint": "Download the checked sections as a JSON file.",
+      "importButton": "Import from File",
+      "importHint": "Choose a JSON file, check the sections to import above, then click Import. Only sections present in the file are imported.",
+      "nothingSelected": "Select at least one section first.",
+      "noFile": "Choose a file to import first.",
+      "invalidFile": "That file is not a valid configuration export.",
+      "nothingToImport": "None of the checked sections are present in that file.",
+      "importConfirmTitle": "Import Configuration",
+      "importConfirm": "Overwrite these sections with the imported data: <strong>{sections}</strong>? This cannot be undone.",
+      "importComplete": "Configuration imported.",
+      "sectionFailed": "Failed to import {section} — the data may be invalid."
     },
     "currency": {
       "addTitle": "Add Currency",
@@ -375,7 +402,10 @@
     },
     "merchant": {
       "inventory": "Inventory",
-      "dropHint": "Drag items here to add to inventory",
+      "dropHint": "Drag items or a folder of items here to add to inventory",
+      "dropFolderAdded": "Added {count} item(s) from folder.",
+      "dropFolderEmpty": "That folder contains no items.",
+      "dropFolderWrongType": "Only folders of Items can be added to inventory.",
       "colItem": "Item",
       "colPrice": "Price",
       "colSellPrice": "Sell Price",
@@ -460,7 +490,9 @@
     "attributePicker": {
       "title": "Browse Attributes",
       "filter": "Filter paths...",
-      "labelPlaceholder": "Label"
+      "labelPlaceholder": "Label",
+      "addSelected": "Add Selected",
+      "selectedCount": "{count} selected"
     },
     "keybinding": {},
     "dialog": {

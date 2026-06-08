@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../../constants.js";
+import { isOverridden, instanceFromTemplate, restoreFields, TEMPLATE_FIELDS } from "../template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -48,9 +49,9 @@ export class TemplateRestoreDialog extends HandlebarsApplicationMixin(Applicatio
     const rLodgings = this._innData.lodgings ?? [];
     const rCourses  = this._innData.menu?.courses ?? [];
 
-    const changedLodgings = rLodgings.filter(l => l.overridden && l.templateItemId);
+    const changedLodgings = rLodgings.filter(l => l.templateItemId && isOverridden(l, TEMPLATE_FIELDS.lodging));
     const missingLodgings = tLodgings.filter(tl => !rLodgings.some(l => l.templateItemId === tl.id));
-    const changedCourses  = rCourses.filter(c => c.overridden && c.templateItemId);
+    const changedCourses  = rCourses.filter(c => c.templateItemId && isOverridden(c, TEMPLATE_FIELDS.course));
     const missingCourses  = tCourses.filter(tc => !rCourses.some(c => c.templateItemId === tc.id));
     const hasAnyItems     = !!(changedLodgings.length || missingLodgings.length ||
                                changedCourses.length  || missingCourses.length);
@@ -81,26 +82,26 @@ export class TemplateRestoreDialog extends HandlebarsApplicationMixin(Applicatio
           if (!l) continue;
           const tl = (template?.typeData?.lodgings ?? []).find(x => x.id === l.templateItemId);
           if (!tl) continue;
-          Object.assign(l, { ...foundry.utils.deepClone(tl), id: l.id, templateItemId: l.templateItemId, overridden: false });
+          restoreFields(l, tl, TEMPLATE_FIELDS.lodging);
         } else {
           const tl = (template?.typeData?.lodgings ?? []).find(x => x.id === id);
           if (!tl) continue;
-          innData.lodgings.push({ ...foundry.utils.deepClone(tl), templateItemId: tl.id, overridden: false });
+          innData.lodgings.push(instanceFromTemplate(tl, TEMPLATE_FIELDS.lodging));
         }
       } else if (category === "course") {
         if (kind === "changed") {
           const courses = innData.menu?.courses ?? [];
-          const idx = courses.findIndex(x => x.id === id);
-          if (idx === -1) continue;
-          const tc = (template?.typeData?.menu?.courses ?? []).find(x => x.id === courses[idx].templateItemId);
+          const c = courses.find(x => x.id === id);
+          if (!c) continue;
+          const tc = (template?.typeData?.menu?.courses ?? []).find(x => x.id === c.templateItemId);
           if (!tc) continue;
-          courses[idx] = { ...foundry.utils.deepClone(tc), id: courses[idx].id, templateItemId: courses[idx].templateItemId, overridden: false };
+          restoreFields(c, tc, TEMPLATE_FIELDS.course);
         } else {
           const tc = (template?.typeData?.menu?.courses ?? []).find(x => x.id === id);
           if (!tc) continue;
           innData.menu ??= { courses: [] };
           innData.menu.courses ??= [];
-          innData.menu.courses.push({ ...foundry.utils.deepClone(tc), templateItemId: tc.id, overridden: false });
+          innData.menu.courses.push(instanceFromTemplate(tc, TEMPLATE_FIELDS.course));
         }
       }
     }

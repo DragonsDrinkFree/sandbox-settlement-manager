@@ -1,4 +1,5 @@
 import { MODULE_ID, SETTINGS } from "../../constants.js";
+import { snapshot, TEMPLATE_FIELDS } from "../template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -85,10 +86,9 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._resolve = null;
       resolve?.({
         ...foundry.utils.deepClone(t),
-        id:             this._lodging.id || foundry.utils.randomID(),
-        templateItemId: this._lodging.templateItemId ?? null,
-        overridden:     false,
-        _restored:      true
+        id:              this._lodging.id || foundry.utils.randomID(),
+        templateItemId:  this._lodging.templateItemId ?? null,
+        _templateValues: snapshot(t, TEMPLATE_FIELDS.lodging)
       });
       this.close();
     });
@@ -111,10 +111,10 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({
-      id:             this._lodging.id || foundry.utils.randomID(),
+      id:              this._lodging.id || foundry.utils.randomID(),
       name, beds, infinite, pricePerDay, pricePerWeek,
-      templateItemId: this._lodging.templateItemId ?? null,
-      overridden:     this._lodging.overridden ?? false
+      templateItemId:  this._lodging.templateItemId ?? null,
+      _templateValues: this._lodging._templateValues ?? null
     });
   }
 

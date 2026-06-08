@@ -3,6 +3,7 @@ import { SettlementTypeConfigApp } from "./settlement-type-config.js";
 import { LocationTypeConfigApp } from "./location-type-config.js";
 import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
 import { ItemConfigApp } from "./item-config.js";
+import { ImportExportApp } from "./import-export-app.js";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.SETTLEMENT_TYPES, {
@@ -30,14 +31,6 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: { inn: [], merchant: [], bank: [] }
-  });
-
-  // Persisted data schema version — drives one-time migrations (see migrate.js).
-  game.settings.register(MODULE_ID, SETTINGS.SCHEMA_VERSION, {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 0
   });
 
   game.settings.register(MODULE_ID, SETTINGS.CURRENCY_CONFIG, {
@@ -74,21 +67,32 @@ export function registerSettings() {
     restricted: true
   });
 
+  // Config menus render (in registration order) above the plain settings above.
+  // Order: Import/Export, Currency, Settlement Types, Item, Location Templates.
+  game.settings.registerMenu(MODULE_ID, "importExport", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.importExport.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.importExport.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.importExport.hint",
+    icon: "fa-solid fa-right-left",
+    type: ImportExportApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "currencyConfig", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.hint",
+    icon: "fa-solid fa-coins",
+    type: CurrencyConfigApp,
+    restricted: true
+  });
+
   game.settings.registerMenu(MODULE_ID, "settlementTypeConfig", {
     name: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.name",
     label: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.label",
     hint: "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.hint",
     icon: "fa-solid fa-house-chimney",
     type: SettlementTypeConfigApp,
-    restricted: true
-  });
-
-  game.settings.registerMenu(MODULE_ID, "locationTypeConfig", {
-    name: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.name",
-    label: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.label",
-    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.hint",
-    icon: "fa-solid fa-warehouse",
-    type: LocationTypeConfigApp,
     restricted: true
   });
 
@@ -101,12 +105,12 @@ export function registerSettings() {
     restricted: true
   });
 
-  game.settings.registerMenu(MODULE_ID, "currencyConfig", {
-    name: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.name",
-    label: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.label",
-    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.hint",
-    icon: "fa-solid fa-coins",
-    type: CurrencyConfigApp,
+  game.settings.registerMenu(MODULE_ID, "locationTypeConfig", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.hint",
+    icon: "fa-solid fa-warehouse",
+    type: LocationTypeConfigApp,
     restricted: true
   });
 }

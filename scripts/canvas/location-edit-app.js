@@ -1,4 +1,5 @@
 import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -226,14 +227,10 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       typeData = {
         ...typeData,
         inn: {
-          lodgings: foundry.utils.deepClone(subType?.typeData?.lodgings ?? []).map(l => ({
-            ...l, templateItemId: l.id, overridden: false
-          })),
+          lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
           ledger: [],
           menu: {
-            courses: foundry.utils.deepClone(subType?.typeData?.menu?.courses ?? []).map(c => ({
-              ...c, templateItemId: c.id, overridden: false
-            }))
+            courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course))
           }
         }
       };
@@ -245,13 +242,16 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const bankSubType = (subTypeMap[LOCATION_TYPE_IDS.BANK] ?? [])
         .find(s => s.id === bankEntry.subTypeId);
       const tpl = bankSubType?.typeData?.bank ?? {};
+      const bankSettings = {
+        doesExchange:    tpl.doesExchange ?? true,
+        exchangeFee:     tpl.exchangeFee  ?? 0,
+        depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
+      };
       typeData = {
         ...typeData,
         bank: {
-          _settingsOverridden: false,
-          doesExchange:        tpl.doesExchange ?? true,
-          exchangeFee:         tpl.exchangeFee  ?? 0,
-          depositSettings:     tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 },
+          ...bankSettings,
+          _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank),
           deposits: [],
           loans: []
         }

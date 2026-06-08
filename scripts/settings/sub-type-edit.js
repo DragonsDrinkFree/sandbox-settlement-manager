@@ -9,6 +9,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
   _subType;
   _typeId = null;
+  _selectedType = null;   // tracks the templateType <select> across re-renders (add-template flow)
   _lodgings = [];
   _menu = { courses: [] };
   _templateInventory = [];
@@ -42,7 +43,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
       switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
       addPurchasingRule:          SubTypeEditApp.#onAddPurchasingRule,
-      removePurchasingRule:       SubTypeEditApp.#onRemovePurchasingRule
+      removePurchasingRule:       SubTypeEditApp.#onRemovePurchasingRule,
+      cancel:                     SubTypeEditApp.#onCancel
     }
   };
 
@@ -132,6 +134,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       bankData,
       showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection,
       coreTypes: CORE_LOCATION_TYPES,
+      selectedType: this._selectedType,
       lodgings,
       currencies,
       courses,
@@ -143,7 +146,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       purchasingProfile: this._purchasingProfile,
       systemItemTypes,
       buybackTypeOptions,
-      buttons: [{ type: "submit", icon: "fa-solid fa-save", label: "Save" }]
+      buttons: [
+        { type: "submit", icon: "fa-solid fa-save",   label: "Save" },
+        { type: "button", action: "cancel", icon: "fa-solid fa-xmark", label: "SANDBOX_SETTLEMENT_MANAGER.dialog.cancel" }
+      ]
     };
   }
 
@@ -255,6 +261,26 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
   }
 
+  /** Build a template inventory entry from an Item document. */
+  #makeInventoryEntry(item, currencies) {
+    return {
+      id:                foundry.utils.randomID(),
+      name:              readItemName(item),
+      price:             readItemPrice(item, currencies),
+      itemId:            item.uuid,
+      itemType:          item.type ?? null,
+      minSettlementSize: "",
+      stockAvailability: 100,
+      stockFormula:      ""
+    };
+  }
+
+  /** Collect all Item documents in a folder, including nested subfolders. */
+  #collectFolderItems(folder) {
+    const folders = [folder, ...(folder.getSubfolders?.(true) ?? [])];
+    return folders.flatMap(f => [...(f.contents ?? [])]);
+  }
+
   #wireMerchantDragDrop() {
     const dropZone = this.element.querySelector('.merchant-template-drop-zone');
     if (!dropZone) return;
@@ -266,30 +292,45 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dropZone.classList.remove('drag-over');
       let data;
       try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
-      if (data?.type !== 'Item') return;
-      const item = await fromUuid(data.uuid).catch(() => null);
-      if (!item) return;
+      if (data?.type !== 'Item' && data?.type !== 'Folder') return;
+
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       const currencies = currencyConfig.currencies ?? [];
+
+      // Capture current DOM state before re-rendering.
       this.#syncSubTypeName();
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
-      this._templateInventory.push({
-        id:                foundry.utils.randomID(),
-        name:              readItemName(item),
-        price:             readItemPrice(item, currencies),
-        itemId:            item.uuid,
-        itemType:          item.type ?? null,
-        minSettlementSize:       "",
-        stockAvailability: 100,
-        stockFormula:      ""
-      });
+
+      if (data.type === 'Item') {
+        const item = await fromUuid(data.uuid).catch(() => null);
+        if (!item) return;
+        this._templateInventory.push(this.#makeInventoryEntry(item, currencies));
+      } else {
+        const folder = await fromUuid(data.uuid).catch(() => null);
+        if (folder?.type !== 'Item') {
+          ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderWrongType"));
+          return;
+        }
+        const items = this.#collectFolderItems(folder);
+        if (!items.length) {
+          ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderEmpty"));
+          return;
+        }
+        for (const item of items) this._templateInventory.push(this.#makeInventoryEntry(item, currencies));
+        ui.notifications.info(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderAdded", { count: items.length }));
+      }
       this.render({ parts: ['form'] });
     });
   }
 
   #syncSubTypeName() {
     this._subType.name = this.element.querySelector('[name="name"]')?.value ?? this._subType.name;
+    // Preserve the chosen template type across re-renders (add-template flow only).
+    if (!this._typeId) {
+      const v = this.element?.querySelector('[name="templateType"]')?.value;
+      if (v) this._selectedType = v;
+    }
   }
 
   static #onAddLodging() {
@@ -401,6 +442,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const index = parseInt(target.dataset.index);
     this._purchasingProfile.splice(index, 1);
     this.render({ parts: ["form"] });
+  }
+
+  static #onCancel() {
+    this.close();
   }
 
   static async #onSubmit(event, form, formData) {

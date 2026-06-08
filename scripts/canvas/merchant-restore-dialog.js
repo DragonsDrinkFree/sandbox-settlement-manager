@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../constants.js";
+import { isOverridden, instanceFromTemplate, restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -46,19 +47,9 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
     const templateItems = this._template?.typeData?.merchant?.inventory ?? [];
     const locationItems = this._merchantData.inventory ?? [];
 
-    const changedItems = locationItems.filter(item => {
-      if (!item.templateItemId || !item._templateValues) return false;
-      const tv = item._templateValues;
-      return (
-        item.name              !== tv.name              ||
-        item.itemId            !== tv.itemId            ||
-        item.minSettlementSize       !== tv.minSettlementSize       ||
-        item.stockAvailability !== tv.stockAvailability ||
-        item.stockFormula      !== tv.stockFormula      ||
-        item.price?.amount     !== tv.price?.amount     ||
-        item.price?.currencyId !== tv.price?.currencyId
-      );
-    });
+    const changedItems = locationItems.filter(
+      item => item.templateItemId && isOverridden(item, TEMPLATE_FIELDS.merchantItem)
+    );
 
     const missingItems = templateItems.filter(
       ti => !locationItems.some(ri => ri.templateItemId === ti.id)
@@ -85,34 +76,15 @@ export class MerchantRestoreDialog extends HandlebarsApplicationMixin(Applicatio
 
       if (kind === "changed") {
         const item = merchantData.inventory?.find(x => x.id === id);
-        if (!item?._templateValues) continue;
-        const tv = item._templateValues;
-        Object.assign(item, {
-          name:              tv.name,
-          itemId:            tv.itemId,
-          minSettlementSize:       tv.minSettlementSize,
-          stockAvailability: tv.stockAvailability,
-          stockFormula:      tv.stockFormula,
-          price:             foundry.utils.deepClone(tv.price)
-        });
+        if (!item) continue;
+        const ti = templateItems.find(x => x.id === item.templateItemId);
+        if (!ti) continue;
+        restoreFields(item, ti, TEMPLATE_FIELDS.merchantItem);
       } else {
         const ti = templateItems.find(x => x.id === id);
         if (!ti) continue;
         merchantData.inventory ??= [];
-        merchantData.inventory.push({
-          ...foundry.utils.deepClone(ti),
-          id:             foundry.utils.randomID(),
-          templateItemId: ti.id,
-          quantity:       null,
-          _templateValues: {
-            name:              ti.name,
-            itemId:            ti.itemId            ?? null,
-            minSettlementSize:       ti.minSettlementSize       ?? "",
-            stockAvailability: ti.stockAvailability ?? 100,
-            stockFormula:      ti.stockFormula      ?? "",
-            price:             { ...(ti.price ?? {}) }
-          }
-        });
+        merchantData.inventory.push(instanceFromTemplate(ti, TEMPLATE_FIELDS.merchantItem, { quantity: null }));
       }
     }
 

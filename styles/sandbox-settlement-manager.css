@@ -1291,6 +1291,34 @@
   margin-left: 0.2rem;
 }
 
+/* Sub-type edit — internal scroll with a pinned Save/Cancel footer */
+#sandbox-settlement-manager-sub-type-edit {
+  max-height: 90vh;
+}
+
+#sandbox-settlement-manager-sub-type-edit .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#sandbox-settlement-manager-sub-type-edit [data-application-part="form"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#sandbox-settlement-manager-sub-type-edit [data-application-part="footer"] {
+  flex: 0 0 auto;
+}
+
+#sandbox-settlement-manager-sub-type-edit .form-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light-secondary, #ccc);
+}
+
 /* Sub-type edit — template name row */
 #sandbox-settlement-manager-sub-type-edit .template-name-row {
   display: flex;
@@ -1372,6 +1400,14 @@
 #sandbox-settlement-manager-sub-type-edit .lodging-price-input {
   width: 3.6rem;
   flex-shrink: 0;
+}
+
+/* Keep the merchant inventory price amount + denomination on one line. */
+#sandbox-settlement-manager-sub-type-edit td.col-mprice {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
 }
 
 #sandbox-settlement-manager-sub-type-edit .price-currency-select {
@@ -2105,6 +2141,34 @@
   font-size: var(--font-size-12, 12px);
 }
 
+#sandbox-settlement-manager-attribute-picker .attr-path-row.is-selected {
+  background: rgba(212, 175, 55, 0.25);
+  box-shadow: inset 3px 0 0 var(--ssm-gold, #d4af37);
+}
+
+#sandbox-settlement-manager-attribute-picker .attr-path-row.is-selected:hover {
+  background: rgba(212, 175, 55, 0.32);
+}
+
+#sandbox-settlement-manager-attribute-picker .attr-path-row.is-selected .attr-add-btn {
+  color: #9a7d1f;
+}
+
+#sandbox-settlement-manager-attribute-picker .attr-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light-secondary, #ccc);
+}
+
+#sandbox-settlement-manager-attribute-picker .attr-selected-count {
+  margin-right: auto;
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #555);
+}
+
 /* -------------------------------------------- */
 /*  Item Type Edit Dialog                       */
 /* -------------------------------------------- */
@@ -2140,6 +2204,10 @@
   display: flex;
   gap: 0.4rem;
   margin-top: 0.25rem;
+}
+
+#sandbox-settlement-manager-item-type-edit .form-footer {
+  margin-top: 0.75rem;
 }
 
 /* -------------------------------------------- */
@@ -3009,5 +3077,42 @@
 .ssm-help:hover {
   color: var(--color-text-hyperlink, #5e0000);
   opacity: 1;
+}
+
+/* -------------------------------------------- */
+/*  Settings: divider before time settings      */
+/* -------------------------------------------- */
+hr.ssm-settings-divider {
+  border: none;
+  border-top: 2px groove var(--color-border-light-primary, #b5b3a4);
+  margin: 0.75rem 0;
+}
+
+/* -------------------------------------------- */
+/*  Import / Export configuration dialog         */
+/* -------------------------------------------- */
+.ssm-import-export .ssm-ie-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.ssm-import-export .ssm-ie-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.ssm-import-export .ssm-ie-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.ssm-import-export .ssm-ie-block .hint {
+  margin: 0;
 }
 

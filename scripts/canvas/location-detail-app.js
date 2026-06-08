@@ -10,6 +10,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal } from "../socket.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice, computeBuybackPrice } from "./purchasing-utils.js";
+import { isOverridden, restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 
@@ -247,6 +248,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       const avail     = l.availability ?? null;
       return {
         ...l,
+        overridden:          isOverridden(l, TEMPLATE_FIELDS.lodging),
         pricePerDayLabel:    dayLabel,
         pricePerWeekLabel:   weekLabel,
         availabilityDisplay: avail === null ? "∞" : String(avail),
@@ -312,6 +314,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       }
       return {
         ...course,
+        overridden: isOverridden(course, TEMPLATE_FIELDS.course),
         isRandom,
         priceLabel,
         visibleItems: visibleItems.map(item => {
@@ -551,13 +554,13 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const standardCurrency = currencies.find(c => c.isStandard) ?? null;
 
     // Resolve effective settings: template when not overridden, stored values when overridden
-    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
     const bankEntry = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType = bankEntry?.subTypeId
       ? ((game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES))[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
     const hasTemplate = !!subType;
-    const src = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const src = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const doesExchange    = src.doesExchange ?? false;
     const exchangeFee     = src.exchangeFee  ?? 0;
     const depositSettings = src.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
@@ -593,7 +596,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       depositSettings,
       processedDeposits,
       depositsTotal,
-      isOverridden,
+      isOverridden: settingsOverridden,
       hasTemplate,
       isGM: game.user.isGM
     };
@@ -703,8 +706,6 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       : null;
     const result = await LodgingEditApp.open(lodging, templateLodging);
     if (!result) return;
-    if (result.templateItemId && !result._restored) result.overridden = true;
-    delete result._restored;
     innData.lodgings[index] = result;
     await this.#saveInnData(innData);
   }
@@ -1092,12 +1093,12 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onOverrideBankSettings() {
     if (!game.user.isGM) return;
     const bankRaw      = this._location.typeData?.bank ?? {};
-    const isOverridden = bankRaw._settingsOverridden ?? false;
+    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
     const bankEntry    = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
     const subType      = bankEntry?.subTypeId
       ? ((game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES))[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
       : null;
-    const src  = (isOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
+    const src  = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const dSrc = src.depositSettings ?? {};
 
     const result = await foundry.applications.api.DialogV2.prompt({
@@ -1157,14 +1158,17 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       minDepositDays:     result.minDepositDays,
       earlyWithdrawalFee: result.earlyWithdrawalFee
     };
-    bankData._settingsOverridden = true;
     await this.#saveBankData(bankData);
   }
 
   static async #onResetBankSettings() {
     if (!game.user.isGM) return;
-    const bankData = foundry.utils.deepClone(this._location.typeData?.bank ?? {});
-    bankData._settingsOverridden = false;
+    const bankData  = foundry.utils.deepClone(this._location.typeData?.bank ?? {});
+    const bankEntry = getTypeEntries(this._location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
+    const subType   = bankEntry?.subTypeId
+      ? ((game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES))[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+      : null;
+    restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
     await this.#saveBankData(bankData);
   }
 

@@ -78,8 +78,6 @@ export class MenuConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : null;
     const result = await CourseEditApp.open(course, templateCourse);
     if (!result) return;
-    if (result.templateItemId && !result._restored) result.overridden = true;
-    delete result._restored;
     this._menu.courses[index] = result;
     await this._onSave(foundry.utils.deepClone(this._menu));
     this.render();

@@ -4,7 +4,7 @@
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.typeLabel"}}</label>
     <select name="templateType">
       {{#each coreTypes}}
-      <option value="{{this.id}}">{{this.name}}</option>
+      <option value="{{this.id}}"{{#if (eq this.id ../selectedType)}} selected{{/if}}>{{this.name}}</option>
       {{/each}}
     </select>
   </div>
@@ -49,13 +49,7 @@
                      class="lodging-num-input">
             </td>
             <td class="col-price">
-              <input type="number" data-field="pricePerDayAmount" value="{{this.pricePerDay.amount}}"
-                     min="0" step="0.01" class="lodging-price-input">
-              <select data-field="pricePerDayCurrencyId" class="price-currency-select">
-                {{#each ../currencies}}
-                <option value="{{this.id}}"{{#if (eq this.id ../pricePerDay.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
-                {{/each}}
-              </select>
+              {{> ssm-price-input attr="data-field" field="pricePerDay" price=this.pricePerDay currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
             </td>
             <td class="col-auto">
               <input type="checkbox" data-field="autoWeekly" {{#if this.autoWeekly}}checked{{/if}} hidden>
@@ -222,13 +216,7 @@
               {{/if}}
             </td>
             <td class="col-mprice">
-              <input type="number" data-field="priceAmount" value="{{this.price.amount}}" min="0" step="0.01"
-                     class="lodging-price-input">
-              <select data-field="priceCurrencyId" class="price-currency-select">
-                {{#each ../currencies}}
-                <option value="{{this.id}}"{{#if (eq this.id ../price.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
-                {{/each}}
-              </select>
+              {{> ssm-price-input attr="data-field" field="price" price=this.price currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
             </td>
             <td class="col-msize">
               <select data-field="minSettlementSize">

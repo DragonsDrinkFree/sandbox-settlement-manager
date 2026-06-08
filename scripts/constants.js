@@ -4,9 +4,6 @@
 export const MODULE_ID = "sandbox-settlement-manager";
 export const MODULE_TITLE = "Sandbox Settlement Manager";
 
-/** Persisted data schema version. Bump when adding a migration step in migrate.js. */
-export const SCHEMA_VERSION = 1;
-
 /** Flag keys stored on Documents. Usage: document.setFlag(MODULE_ID, FLAGS.KEY, value) */
 export const FLAGS = {
   IS_SETTLEMENT: "isSettlement",
@@ -23,8 +20,7 @@ export const SETTINGS = {
   CURRENCY_CONFIG: "currencyConfig",
   HOURS_PER_DAY: "hoursPerDay",
   DAYS_PER_WEEK:  "daysPerWeek",
-  ITEM_CONFIG:    "itemConfig",
-  SCHEMA_VERSION: "schemaVersion"
+  ITEM_CONFIG:    "itemConfig"
 };
 
 export const LOCATION_TYPE_IDS = {

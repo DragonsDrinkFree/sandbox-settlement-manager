@@ -19,7 +19,11 @@ export class AttributePickerApp extends HandlebarsApplicationMixin(ApplicationV2
     id: `${MODULE_ID}-attribute-picker`,
     position: { width: 440, height: 500 },
     window: { resizable: true },
-    actions: { addAttribute: AttributePickerApp.#onAddAttribute }
+    actions: {
+      toggleAttribute:  AttributePickerApp.#onToggleAttribute,
+      confirmSelection: AttributePickerApp.#onConfirmSelection,
+      cancelSelection:  AttributePickerApp.#onCancelSelection
+    }
   };
 
   static PARTS = {
@@ -82,18 +86,47 @@ export class AttributePickerApp extends HandlebarsApplicationMixin(ApplicationV2
         row.hidden = q.length > 0 && !row.dataset.path.toLowerCase().includes(q);
       });
     });
+    this.#updateSelectedCount();
     filterInput?.focus();
   }
 
-  static #onAddAttribute(event, target) {
+  /** Refresh the "{n} selected" footer label and toggle the confirm button's enabled state. */
+  #updateSelectedCount() {
+    const count = this.element?.querySelectorAll(".attr-path-row.is-selected").length ?? 0;
+    const countEl = this.element?.querySelector(".attr-selected-count");
+    if (countEl) {
+      countEl.textContent = game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.attributePicker.selectedCount", { count });
+    }
+    const confirmBtn = this.element?.querySelector(".attr-confirm-btn");
+    if (confirmBtn) confirmBtn.disabled = count === 0;
+  }
+
+  static #onToggleAttribute(event, target) {
     const row = target.closest(".attr-path-row");
-    const path = row?.dataset.path ?? "";
-    if (!path) return;
-    const labelInput = row?.querySelector(".attr-label-input");
-    const label = (labelInput?.value ?? "").trim() || path.split(".").pop();
+    if (!row?.dataset.path) return;
+    const selected = row.classList.toggle("is-selected");
+    const icon = target.querySelector("i");
+    if (icon) icon.className = selected ? "fa-solid fa-check" : "fa-solid fa-plus";
+    this.#updateSelectedCount();
+  }
+
+  static #onConfirmSelection() {
+    const rows = this.element?.querySelectorAll(".attr-path-row.is-selected") ?? [];
+    const attributes = [...rows].map(row => {
+      const path = row.dataset.path;
+      const label = (row.querySelector(".attr-label-input")?.value ?? "").trim() || path.split(".").pop();
+      return { id: foundry.utils.randomID(), label, path };
+    });
     const resolve = this._resolve;
     this._resolve = null;
-    resolve?.({ id: foundry.utils.randomID(), label, path });
+    resolve?.(attributes);
+    this.close();
+  }
+
+  static #onCancelSelection() {
+    const resolve = this._resolve;
+    this._resolve = null;
+    resolve?.(null);
     this.close();
   }
 

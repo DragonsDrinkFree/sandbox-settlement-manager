@@ -4,7 +4,9 @@ import {
   costInStandard,
   totalOfferedInStandard,
   calculateChange,
-  formatAmounts
+  formatAmounts,
+  readActorBalance,
+  settlePayment
 } from "../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -86,15 +88,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #readActorBalance(currency) {
-    if (!this._actor) return 0;
-    if (this._mode === "attribute" && currency.attributePath) {
-      return foundry.utils.getProperty(this._actor, currency.attributePath) ?? 0;
-    }
-    if (this._mode === "item" && currency.itemName) {
-      const item = this._actor.items.find(i => i.name === currency.itemName);
-      return foundry.utils.getProperty(item ?? {}, "system.quantity") ?? 0;
-    }
-    return 0;
+    return readActorBalance(this._actor, currency, this._mode);
   }
 
   async _onRender(context, options) {
@@ -232,12 +226,10 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     try {
-      if (this._mode === "attribute") {
-        await this.#executeAttributeTransaction(payment, change);
-      } else if (this._mode === "item") {
-        await this.#executeItemTransaction(payment, change);
-      } else {
+      if (this._mode === "loose") {
         await this.#executeLooseTransaction(payment, change);
+      } else {
+        await settlePayment(this._actor, { payment, change }, this._currencies, this._mode);
       }
     } catch (err) {
       // Transaction aborted (e.g. last-moment insufficient funds guard)
@@ -248,53 +240,6 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.({ actorId: this._actor?.id ?? null });
-  }
-
-  async #executeAttributeTransaction(payment, change) {
-    const updates = {};
-    const collect = (currencyId, delta) => {
-      const c = this._currencies.find(x => x.id === currencyId);
-      if (!c?.attributePath) return;
-      const current = updates[c.attributePath] ?? foundry.utils.getProperty(this._actor, c.attributePath) ?? 0;
-      updates[c.attributePath] = current + delta;
-    };
-    for (const [id, coins] of Object.entries(payment)) if (coins > 0) collect(id, -coins);
-    for (const [id, coins] of Object.entries(change)) if (coins > 0) collect(id, coins);
-    if (Object.keys(updates).length) await this._actor.update(updates);
-  }
-
-  async #executeItemTransaction(payment, change) {
-    for (const [id, coins] of Object.entries(payment)) if (coins > 0) await this.#applyItemDelta(id, -coins);
-    for (const [id, coins] of Object.entries(change)) if (coins > 0) await this.#applyItemDelta(id, coins);
-  }
-
-  async #applyItemDelta(currencyId, delta) {
-    const c = this._currencies.find(x => x.id === currencyId);
-    if (!c) return;
-    const existing = this._actor.items.find(i => i.name === c.itemName);
-
-    if (existing) {
-      const qty = foundry.utils.getProperty(existing, "system.quantity") ?? 0;
-      // Guard: never allow negative quantity when paying
-      if (delta < 0 && qty + delta < 0) {
-        ui.notifications.warn(`${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.error.insufficientFunds")}: ${c.name}`);
-        throw new Error("Insufficient item quantity");
-      }
-      await existing.update({ "system.quantity": qty + delta });
-      return;
-    }
-
-    // Item not on actor — only relevant when giving change (delta > 0)
-    if (delta <= 0) return;
-    const source = game.items.find(i => i.name === c.itemName)
-      ?? (c.itemId ? await fromUuid(c.itemId).catch(() => null) : null);
-    if (source) {
-      const data = source.toObject();
-      foundry.utils.setProperty(data, "system.quantity", delta);
-      await this._actor.createEmbeddedDocuments("Item", [data]);
-    } else {
-      ui.notifications.warn(`Cannot give change: no world item found for "${c.itemName}"`);
-    }
   }
 
   async #executeLooseTransaction(payment, change) {

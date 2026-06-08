@@ -113,8 +113,8 @@ export class ItemTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncFormFromDOM();
     this.#syncAttributesFromDOM();
     const result = await AttributePickerApp.open(systemType);
-    if (!result) return;
-    this._attributes.push(result);
+    if (!result?.length) return;
+    this._attributes.push(...result);
     this.render({ parts: ["form"] });
   }
 
