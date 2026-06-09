@@ -12,7 +12,7 @@ export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(Applica
   constructor(location, options = {}) {
     super(options);
     this._location  = location;
-    this._overrides = foundry.utils.deepClone(location.typeData?.merchant?.purchasingOverrides ?? []);
+    this._overrides = foundry.utils.deepClone(location.purchasingOverrides ?? []);
   }
 
   get title() { return game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.editProfile"); }
@@ -124,9 +124,7 @@ export class PurchasingProfileEditApp extends HandlebarsApplicationMixin(Applica
     const location = locations.find(r => r.id === this._location.id);
     if (!location) { this._resolve?.(null); return; }
 
-    location.typeData ??= {};
-    location.typeData.merchant ??= {};
-    location.typeData.merchant.purchasingOverrides = this._overrides;
+    location.purchasingOverrides = this._overrides;
 
     if (game.user.isGM) {
       await canvas.scene?.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);

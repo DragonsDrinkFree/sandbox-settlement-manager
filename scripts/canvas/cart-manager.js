@@ -9,13 +9,14 @@ class CartManager {
   get items() { return foundry.utils.deepClone(this.#items); }
 
   /** Add a lodging to the cart. Multiple entries for the same lodging are allowed (separate bookings). */
-  addLodging({ sceneId, locationId, locationName, lodging }) {
+  addLodging({ sceneId, locationId, locationName, entryId, lodging }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'lodging',
       sceneId,
       locationId,
       locationName,
+      entryId: entryId ?? null,
       lodgingId: lodging.id,
       lodgingName: lodging.name,
       beds: lodging.beds ?? 1,
@@ -28,13 +29,14 @@ class CartManager {
   }
 
   /** Add a merchant inventory item to the cart. */
-  addMerchantItem({ sceneId, locationId, locationName, item }) {
+  addMerchantItem({ sceneId, locationId, locationName, entryId, item }) {
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'merchantItem',
       sceneId,
       locationId,
       locationName,
+      entryId: entryId ?? null,
       inventoryItemId: item.id,
       itemName: item.name,
       itemLinkedId: item.itemId ?? null,

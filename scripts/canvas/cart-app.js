@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, FLAGS } from '../constants.js';
+import { MODULE_ID, SETTINGS, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from '../constants.js';
 import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
 import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue, grantStandardToActor, removeCoinsFromActor, readActorBalance } from '../utils/currency-utils.js';
@@ -254,7 +254,14 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
       for (const cartItem of sceneItems) {
         const location = locations.find(r => r.id === cartItem.locationId);
-        const inn = location?.typeData?.inn;
+        const inn = cartItem.entryId
+          ? location?.typeData?.[cartItem.entryId]
+          : (() => {
+              const e = getTypeEntries(location ?? {}).find(
+                en => en.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[en.id]?.lodgings ?? []).some(l => l.id === cartItem.lodgingId)
+              );
+              return e ? location?.typeData?.[e.id] : null;
+            })();
         if (!inn) continue;
 
         const durationSeconds = cartItem.unit === 'weeks'
@@ -347,17 +354,19 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
     }
 
-    // Save buyback entries to merchant data on the appropriate scenes
+    // Save buyback entries to the first merchant entry's buybackItems for the location
     for (const { sceneId, locationId, entries } of buybackByLocation.values()) {
       const scene = game.scenes.get(sceneId);
       if (!scene) continue;
       const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
       const location  = locations.find(r => r.id === locationId);
       if (!location) continue;
+      const merchantEntryId = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
+      if (!merchantEntryId) continue;
       location.typeData ??= {};
-      location.typeData.merchant ??= {};
-      location.typeData.merchant.buybackItems = [
-        ...(location.typeData.merchant.buybackItems ?? []),
+      location.typeData[merchantEntryId] ??= {};
+      location.typeData[merchantEntryId].buybackItems = [
+        ...(location.typeData[merchantEntryId].buybackItems ?? []),
         ...entries
       ];
       if (game.user.isGM) {

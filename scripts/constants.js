@@ -20,7 +20,8 @@ export const SETTINGS = {
   CURRENCY_CONFIG: "currencyConfig",
   HOURS_PER_DAY: "hoursPerDay",
   DAYS_PER_WEEK:  "daysPerWeek",
-  ITEM_CONFIG:    "itemConfig"
+  ITEM_CONFIG:    "itemConfig",
+  GLOBAL_DEPOSITS: "globalDeposits"
 };
 
 export const LOCATION_TYPE_IDS = {
@@ -31,13 +32,57 @@ export const LOCATION_TYPE_IDS = {
 
 /**
  * Migration helper — reads typeEntries from any location regardless of storage generation.
- * Returns [{ typeId, subTypeId }]. Remove once all persisted data uses typeEntries format.
+ * Returns [{ typeId, subTypeId }]. The returned entries may lack an `id` field on old data;
+ * call migrateLocation() to normalise before use.
  */
 export function getTypeEntries(location) {
   if (location.typeEntries) return location.typeEntries;
   if (location.typeIds) return location.typeIds.map(id => ({ typeId: id, subTypeId: null }));
   if (location.typeId) return [{ typeId: location.typeId, subTypeId: location.subTypeId ?? null }];
   return [];
+}
+
+/**
+ * One-time data-model migration. Mutates `location` in place and returns it.
+ * Safe to call repeatedly — already-migrated locations are left unchanged.
+ *
+ * What it does:
+ *   1. Ensures every typeEntry has a stable `id` field.
+ *   2. Moves legacy flat typeData keys ("inn", "merchant", "bank") to typeData[entry.id]
+ *      for the first entry of each type that doesn't yet have keyed data.
+ */
+export function migrateLocation(location) {
+  const entries = getTypeEntries(location);
+
+  // Step 1 — add ids to entries that lack them
+  const seenTypes = {};
+  for (const entry of entries) {
+    if (!entry.id) entry.id = foundry.utils.randomID();
+    seenTypes[entry.typeId] ??= entry.id;
+  }
+  location.typeEntries = entries;
+
+  // Step 2 — lift flat typeData keys up to entryId-keyed form
+  const typeData = location.typeData ?? {};
+  for (const [typeId, firstEntryId] of Object.entries(seenTypes)) {
+    if (typeData[typeId] !== undefined && typeData[firstEntryId] === undefined) {
+      typeData[firstEntryId] = typeData[typeId];
+      delete typeData[typeId];
+    }
+  }
+  location.typeData = typeData;
+
+  // Step 3 — lift purchasingOverrides from first merchant entry up to location level
+  if (!location.purchasingOverrides) {
+    const firstMerchantId = seenTypes["merchant"];
+    const merchantData = firstMerchantId ? typeData[firstMerchantId] : null;
+    if (merchantData?.purchasingOverrides) {
+      location.purchasingOverrides = merchantData.purchasingOverrides;
+      delete merchantData.purchasingOverrides;
+    }
+  }
+
+  return location;
 }
 
 /** Hardcoded core location types. Sub-types are configured in SETTINGS.LOCATION_TYPES. */

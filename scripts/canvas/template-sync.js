@@ -51,7 +51,7 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
           e => e.typeId === LOCATION_TYPE_IDS.INN && e.subTypeId === newTemplate.id
         );
         if (!entry) continue;
-        const inn = location.typeData?.inn;
+        const inn = location.typeData?.[entry.id];
         if (!inn) continue;
 
         if (addedLodgings.length) {
@@ -80,12 +80,12 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
           e => e.typeId === LOCATION_TYPE_IDS.MERCHANT && e.subTypeId === newTemplate.id
         );
         if (!entry) continue;
-        const currentMerchant = location.typeData?.merchant;
+        const currentMerchant = location.typeData?.[entry.id];
         if (!currentMerchant) continue;
 
         const syncedMerchant = syncMerchant(currentMerchant, templateMerchant);
         if (JSON.stringify(currentMerchant) !== JSON.stringify(syncedMerchant)) {
-          location.typeData.merchant = syncedMerchant;
+          location.typeData[entry.id] = syncedMerchant;
           dirty = true;
         }
       }

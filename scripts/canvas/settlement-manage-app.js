@@ -15,7 +15,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { instanceFromTemplate, isOverridden, restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
+import { instanceFromTemplate, isOverridden, restoreFields, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -176,37 +176,39 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       return { typeId: t.id, name: t.name, icon: t.icon, typeItselfAvailable, subTypes: availSubTypes };
     }).filter(g => g.typeItselfAvailable || g.subTypes.length > 0);
 
-    const typeIds = [...new Set(rawEntries.map(e => e.typeId))];
-    const activeTab = this._activeTab ?? typeIds[0] ?? null;
-    const tabs = await Promise.all(typeIds.map(async id => {
-      const coreType       = CORE_LOCATION_TYPES.find(t => t.id === id);
-      const isInn          = id === LOCATION_TYPE_IDS.INN;
-      const isMerchant     = id === LOCATION_TYPE_IDS.MERCHANT;
-      const isBank         = id === LOCATION_TYPE_IDS.BANK;
-      const firstEntry     = rawEntries.find(e => e.typeId === id);
-      const subType        = firstEntry?.subTypeId
-        ? (subTypeMap[id] ?? []).find(s => s.id === firstEntry.subTypeId) ?? null
+    if (!this._activeTab || !rawEntries.some(e => e.id === this._activeTab)) {
+      this._activeTab = rawEntries[0]?.id ?? null;
+    }
+    const tabs = await Promise.all(rawEntries.map(async entry => {
+      const coreType   = CORE_LOCATION_TYPES.find(t => t.id === entry.typeId);
+      const isInn      = entry.typeId === LOCATION_TYPE_IDS.INN;
+      const isMerchant = entry.typeId === LOCATION_TYPE_IDS.MERCHANT;
+      const isBank     = entry.typeId === LOCATION_TYPE_IDS.BANK;
+      const subType    = entry.subTypeId
+        ? (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId) ?? null
         : null;
       return {
-        id, active: id === activeTab,
-        name:        coreType?.name ?? id,
+        id: entry.id, active: entry.id === this._activeTab,
+        name:        coreType?.name ?? entry.typeId,
         subTypeName: subType?.name ?? null,
         icon:        coreType?.icon ?? "fa-solid fa-question",
-        typeId: id, isInn, isMerchant, isBank,
+        typeId: entry.typeId, isInn, isMerchant, isBank,
         isOther: !isInn && !isMerchant && !isBank,
-        innData:      isInn ? this.#buildInnData(location, currencies, isGM) : null,
-        bankData:     isBank ? this.#buildBankData(location, currencies) : null,
+        innData:      isInn ? this.#buildInnData(entry, location, currencies, isGM) : null,
+        bankData:     isBank ? this.#buildBankData(entry, location, currencies) : null,
         merchantData: await (async () => {
           if (!isMerchant) return null;
-          const merchantResult = await this.#buildMerchantData(location, currencies, isGM);
-          if (merchantResult._needsSave && isGM) this.#saveMerchantData(merchantResult._updatedMerchant).catch(() => {});
+          const merchantResult = await this.#buildMerchantData(entry, location, currencies, isGM);
+          if (merchantResult._needsSave && isGM) this.#saveEntryData(entry.id, merchantResult._updatedMerchant).catch(() => {});
           return merchantResult;
         })()
       };
     }));
 
-    const innTemplate      = isGM ? this.#getTemplateForLocation(location)         : null;
-    const merchantTemplate = isGM ? this.#getMerchantTemplateForLocation(location) : null;
+    const activeEntry = rawEntries.find(e => e.id === this._activeTab);
+    const activeTemplate = isGM && activeEntry ? this.#getTemplateForEntry(activeEntry) : null;
+    const innTemplate      = activeEntry?.typeId === LOCATION_TYPE_IDS.INN      ? activeTemplate : null;
+    const merchantTemplate = activeEntry?.typeId === LOCATION_TYPE_IDS.MERCHANT ? activeTemplate : null;
 
     const effectiveProfile = mergePurchasingProfiles(location);
     const hasSellTab = effectiveProfile.length > 0;
@@ -235,22 +237,20 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     };
   }
 
-  #getTemplateForLocation(location) {
-    const entry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.INN);
+  #getTemplateForEntry(entry) {
     if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
-    return (subTypes[LOCATION_TYPE_IDS.INN] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+    const subTypes = this.#getSubTypeMap();
+    return (subTypes[entry.typeId] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
-  #getMerchantTemplateForLocation(location) {
-    const entry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
-    if (!entry?.subTypeId) return null;
-    const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
-    return (subTypes[LOCATION_TYPE_IDS.MERCHANT] ?? []).find(t => t.id === entry.subTypeId) ?? null;
+  #getActiveEntry() {
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return null;
+    return getTypeEntries(location).find(e => e.id === this._activeTab) ?? null;
   }
 
-  #buildBankData(location, currencies) {
-    const bankRaw    = location.typeData?.bank ?? {};
+  #buildBankData(entry, location, currencies) {
+    const bankRaw    = location.typeData?.[entry.id] ?? {};
     const ownedActors = game.actors
       .filter(a => a.isOwner && a.hasPlayerOwner)
       .map(a => ({ id: a.id, name: a.name }));
@@ -272,9 +272,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
     // Resolve effective settings: template when not overridden, stored values when overridden
     const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
-    const bankEntry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
-    const subType = bankEntry?.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+    const subType = entry.subTypeId
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === entry.subTypeId)
       : null;
     const hasTemplate = !!subType;
     const src = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
@@ -283,7 +282,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const depositSettings = src.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
 
     const rawDeposits = depositSettings.global
-      ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
+      ? (game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [])
       : (bankRaw.deposits ?? []);
     const actorDeposits = this._bankActorId ? rawDeposits.filter(d => d.actorId === this._bankActorId) : [];
     const { hoursPerDay } = getWorldTimeConfig();
@@ -365,8 +364,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     toSel?.addEventListener('change', update);
   }
 
-  #buildInnData(location, currencies, isGM = true) {
-    const innRaw    = location.typeData?.inn ?? { lodgings: [], ledger: [] };
+  #buildInnData(entry, location, currencies, isGM = true) {
+    const innRaw    = location.typeData?.[entry.id] ?? { lodgings: [], ledger: [] };
     const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
     const worldTime = game.time.worldTime;
 
@@ -405,7 +404,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (menuData._needsSave && isGM) {
       const updatedInn = foundry.utils.deepClone(innRaw);
       updatedInn.menu = menuData._updatedMenu;
-      this.#saveInnData(updatedInn).catch(() => {});
+      this.#saveEntryData(entry.id, updatedInn).catch(() => {});
     }
 
     return { lodgings, ledger, isGM, menuData };
@@ -594,28 +593,66 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
     dropdown.querySelectorAll(".picker-item").forEach(item => {
       item.addEventListener("click", async () => {
-        const location = this.#syncSelectedLocation();
+        const location  = this.#syncSelectedLocation();
         if (!location) return;
-        const typeId   = item.dataset.typeId;
+        const typeId    = item.dataset.typeId;
         const subTypeId = item.dataset.subTypeId || null;
-        const entries  = getTypeEntries(location);
-        entries.push({ typeId, subTypeId });
+        const newEntry  = { id: foundry.utils.randomID(), typeId, subTypeId };
+        const entries   = getTypeEntries(location);
+        entries.push(newEntry);
         location.typeEntries = entries;
-        if (typeId === LOCATION_TYPE_IDS.INN && !location.typeData?.inn) {
+        location.typeData ??= {};
+
+        if (typeId === LOCATION_TYPE_IDS.INN) {
           const subType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
-          location.typeData ??= {};
-          location.typeData.inn = {
+          location.typeData[newEntry.id] = {
             lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
             ledger: [],
-            menu: {
-              courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course))
-            }
+            menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) }
           };
         }
-        if (typeId === LOCATION_TYPE_IDS.MERCHANT && !location.typeData?.merchant) {
-          location.typeData ??= {};
-          location.typeData.merchant = { inventory: [] };
+        if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
+          const merchantSubType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.MERCHANT] ?? []).find(s => s.id === subTypeId);
+          const tpl = merchantSubType?.typeData?.merchant ?? {};
+          const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
+          location.typeData[newEntry.id] = {
+            stockType:            tpl.stockType        ?? "percent",
+            restockFrequency:     tpl.restockFrequency ?? "weekly",
+            _tplStockType:        tpl.stockType        ?? "percent",
+            _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
+            lastRestocked:        null,
+            inventory: templateItems.map(i => ({
+              ...i,
+              templateItemId: i.id,
+              quantity: null,
+              _templateValues: {
+                name:              i.name,
+                itemId:            i.itemId            ?? null,
+                minSettlementSize: i.minSettlementSize ?? "",
+                stockAvailability: i.stockAvailability ?? 100,
+                stockFormula:      i.stockFormula      ?? "",
+                price:             { ...(i.price ?? {}) }
+              }
+            }))
+          };
         }
+        if (typeId === LOCATION_TYPE_IDS.BANK) {
+          const bankSubType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === subTypeId);
+          const tpl = bankSubType?.typeData?.bank ?? {};
+          const bankSettings = {
+            doesExchange:    tpl.doesExchange ?? true,
+            exchangeFee:     tpl.exchangeFee  ?? 0,
+            depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
+          };
+          location.typeData[newEntry.id] = {
+            ...bankSettings,
+            _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank),
+            deposits: [],
+            loans: []
+          };
+        }
+
+        this._activeTab = newEntry.id;
         dropdown.classList.remove("is-open");
         await this.#saveLocationData(location);
       }, { signal });
@@ -656,16 +693,16 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     }
   }
 
-  async #saveInnData(innData) {
+  async #saveEntryData(entryId, data) {
     const location = this.#syncSelectedLocation();
     if (!location) return;
     location.typeData ??= {};
-    location.typeData.inn = innData;
+    location.typeData[entryId] = data;
     await this.#saveLocationData(location);
   }
 
-  async #buildMerchantData(location, currencies, isGM = true) {
-    const merchant       = location.typeData?.merchant ?? {};
+  async #buildMerchantData(entry, location, currencies, isGM = true) {
+    const merchant       = location.typeData?.[entry.id] ?? {};
     const rawInventory   = merchant.inventory ?? [];
     const stockType        = merchant.stockType        ?? "percent";
     const restockFrequency = merchant.restockFrequency ?? "weekly";
@@ -823,7 +860,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       }
     }
 
-    const rawBuyback = location.typeData?.merchant?.buybackItems ?? [];
+    const merchantEntries = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
+    const rawBuyback = merchantEntries.flatMap(me =>
+      (location.typeData?.[me.id]?.buybackItems ?? []).map(b => ({ ...b, _entryId: me.id }))
+    );
     const buybackItems = rawBuyback.map(entry => {
       const curr = currencies.find(c => c.id === entry.buybackPrice?.currencyId);
       return {
@@ -835,14 +875,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     });
 
     return { effectiveProfile, hasConflicts, actors: actorOptions, selectedActorId: defaultActor?.id ?? null, sellableItems, buybackItems };
-  }
-
-  async #saveMerchantData(merchantData) {
-    const location = this.#syncSelectedLocation();
-    if (!location) return;
-    location.typeData ??= {};
-    location.typeData.merchant = merchantData;
-    await this.#saveLocationData(location);
   }
 
   async #onMerchantDrop(event) {
@@ -859,12 +891,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const price = readItemPrice(item, currencies);
 
     const location = this.#syncSelectedLocation();
-    if (!location) return;
-    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
+    if (!location || !this._activeTab) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
     merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
-    location.typeData ??= {};
-    location.typeData.merchant = merchant;
-    await this.#saveLocationData(location);
+    await this.#saveEntryData(this._activeTab, merchant);
   }
 
   // ------------------------------------------------------------------ left pane actions
@@ -933,20 +963,27 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
   static async #onDeleteTypeEntry(event, target) {
     if (!game.user.isGM) return;
-    const typeId = target.dataset.typeId;
+    const entryId = target.dataset.entryId;
     const location = this.#syncSelectedLocation();
     if (!location) return;
-    const coreType = CORE_LOCATION_TYPES.find(t => t.id === typeId);
+    const entries = getTypeEntries(location);
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) return;
+    const coreType = CORE_LOCATION_TYPES.find(t => t.id === entry.typeId);
+    const subType = entry.subTypeId
+      ? (this.#getSubTypeMap()[entry.typeId] ?? []).find(s => s.id === entry.subTypeId)
+      : null;
+    const typeName = subType?.name ?? coreType?.name ?? entry.typeId;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.removeTypeTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.location.removeTypeConfirm", { type: coreType?.name ?? typeId, location: location.name })}</p>`,
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.location.removeTypeConfirm", { type: typeName, location: location.name })}</p>`,
       yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
-    location.typeEntries = getTypeEntries(location).filter(e => e.typeId !== typeId);
-    if (location.typeData?.[typeId]) delete location.typeData[typeId];
-    if (this._activeTab === typeId) this._activeTab = null;
+    location.typeEntries = entries.filter(e => e.id !== entryId);
+    if (location.typeData?.[entryId]) delete location.typeData[entryId];
+    if (this._activeTab === entryId) this._activeTab = null;
     await this.#saveLocationData(location);
   }
 
@@ -975,9 +1012,11 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const result = await LodgingEditApp.open({});
     if (!result) return;
     result.id ??= foundry.utils.randomID();
-    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     innData.lodgings.push(result);
-    await this.#saveInnData(innData);
+    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onEditLodging(event, target) {
@@ -985,25 +1024,29 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
     const location = this.#syncSelectedLocation();
-    const innData  = foundry.utils.deepClone(location?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    if (!location || !this._activeTab) return;
+    const innData  = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     const index    = innData.lodgings.findIndex(l => l.id === lodgingId);
     if (index === -1) return;
     const lodging = innData.lodgings[index];
-    const template = lodging.templateItemId ? this.#getTemplateForLocation(location) : null;
+    const activeEntry = this.#getActiveEntry();
+    const template = lodging.templateItemId ? this.#getTemplateForEntry(activeEntry) : null;
     const templateLodging = template
       ? (template.typeData?.lodgings ?? []).find(l => l.id === lodging.templateItemId) ?? null
       : null;
     const result = await LodgingEditApp.open(lodging, templateLodging);
     if (!result) return;
     innData.lodgings[index] = result;
-    await this.#saveInnData(innData);
+    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onDeleteLodging(event, target) {
     if (!game.user.isGM) return;
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     const lodging = innData.lodgings.find(l => l.id === lodgingId);
     if (!lodging) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -1014,19 +1057,20 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     });
     if (!confirmed) return;
     innData.lodgings = innData.lodgings.filter(l => l.id !== lodgingId);
-    await this.#saveInnData(innData);
+    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onRentLodging(event, target) {
     const lodgingId = target.dataset.lodgingId;
     if (!lodgingId) return;
     const location = this.#syncSelectedLocation();
-    const lodging  = location?.typeData?.inn?.lodgings?.find(l => l.id === lodgingId);
+    const lodging  = location?.typeData?.[this._activeTab]?.lodgings?.find(l => l.id === lodgingId);
     if (!lodging) return;
     cartManager.addLodging({
       sceneId: canvas.scene?.id,
       locationId: location.id,
       locationName: location.name,
+      entryId: this._activeTab,
       lodging
     });
     CartApp.open();
@@ -1034,34 +1078,37 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
   static async #onDismissLedgerEntry(event, target) {
     if (!game.user.isGM) return;
-    const entryId = target.dataset.entryId;
-    if (!entryId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
-    const entry = innData.ledger.find(e => e.id === entryId);
-    if (!entry) return;
+    const ledgerId = target.dataset.entryId;
+    if (!ledgerId) return;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
+    const ledgerEntry = innData.ledger.find(e => e.id === ledgerId);
+    if (!ledgerEntry) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: entry.actorName ?? "?", lodging: entry.lodgingName ?? "?" })}</p>`,
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: ledgerEntry.actorName ?? "?", lodging: ledgerEntry.lodgingName ?? "?" })}</p>`,
       yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle"), icon: "fa-solid fa-times" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
-    innData.ledger = innData.ledger.filter(e => e.id !== entryId);
-    await this.#saveInnData(innData);
+    innData.ledger = innData.ledger.filter(e => e.id !== ledgerId);
+    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onConfigureMenu() {
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
-    if (!location) return;
-    const inn      = location.typeData?.inn ?? { lodgings: [], ledger: [], menu: { courses: [] } };
-    const template = this.#getTemplateForLocation(location);
+    if (!location || !this._activeTab) return;
+    const entryId  = this._activeTab;
+    const inn      = location.typeData?.[entryId] ?? { lodgings: [], ledger: [], menu: { courses: [] } };
+    const template = this.#getTemplateForEntry(this.#getActiveEntry());
     await MenuConfigApp.open(
       inn.menu ?? { courses: [] },
       async (updatedMenu) => {
-        const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+        const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.[entryId] ?? { lodgings: [], ledger: [] });
         innData.menu = updatedMenu;
-        await this.#saveInnData(innData);
+        await this.#saveEntryData(entryId, innData);
       },
       template
     );
@@ -1070,43 +1117,49 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   static async #onRestoreFromTemplate() {
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
-    const template = this.#getTemplateForLocation(location);
-    if (!location || !template) return;
-    const innData = foundry.utils.deepClone(location.typeData?.inn ?? { lodgings: [], ledger: [] });
+    if (!location || !this._activeTab) return;
+    const entryId  = this._activeTab;
+    const template = this.#getTemplateForEntry(this.#getActiveEntry());
+    if (!template) return;
+    const innData = foundry.utils.deepClone(location.typeData?.[entryId] ?? { lodgings: [], ledger: [] });
     await TemplateRestoreDialog.open(innData, template, async (updatedInn) => {
-      await this.#saveInnData(updatedInn);
+      await this.#saveEntryData(entryId, updatedInn);
     });
   }
 
   static async #onRestoreFromMerchantTemplate() {
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
-    const template = this.#getMerchantTemplateForLocation(location);
-    if (!location || !template) return;
-    const merchantData = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
+    if (!location || !this._activeTab) return;
+    const entryId  = this._activeTab;
+    const template = this.#getTemplateForEntry(this.#getActiveEntry());
+    if (!template) return;
+    const merchantData = foundry.utils.deepClone(location.typeData?.[entryId] ?? { inventory: [] });
     await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
-      await this.#saveMerchantData(updated);
+      await this.#saveEntryData(entryId, updated);
     });
   }
 
   static async #onRefreshCourse(event, target) {
     if (!game.user.isGM) return;
     const courseId = target.dataset.courseId;
-    if (!courseId) return;
-    const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.inn ?? { lodgings: [], ledger: [] });
+    if (!courseId || !this._activeTab) return;
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course || course.mode !== "random") return;
     const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
     course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
     course.lastRefreshed = game.time.worldTime;
-    await this.#saveInnData(innData);
+    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onBuyMenuItem(event, target) {
     const { courseId, itemId } = target.dataset;
     if (!courseId || !itemId) return;
     const location = this.#syncSelectedLocation();
-    const inn = location?.typeData?.inn;
+    const inn = location?.typeData?.[this._activeTab];
     if (!inn) return;
     const course = (inn.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course) return;
@@ -1127,12 +1180,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const itemId = target.dataset.itemId;
     if (!itemId) return;
     const location = this.#syncSelectedLocation();
-    const item = (location?.typeData?.merchant?.inventory ?? []).find(i => i.id === itemId);
+    const item = (location?.typeData?.[this._activeTab]?.inventory ?? []).find(i => i.id === itemId);
     if (!item) return;
     cartManager.addMerchantItem({
       sceneId: canvas.scene?.id,
       locationId: location.id,
       locationName: location.name,
+      entryId: this._activeTab,
       item
     });
     CartApp.open();
@@ -1141,10 +1195,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   static async #onDeleteMerchantItem(event, target) {
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
-    if (!itemId) return;
+    if (!itemId || !this._activeTab) return;
     const location = this.#syncSelectedLocation();
     if (!location) return;
-    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
     const item = merchant.inventory.find(i => i.id === itemId);
     if (!item) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -1155,21 +1209,22 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     });
     if (!confirmed) return;
     merchant.inventory = merchant.inventory.filter(i => i.id !== itemId);
-    await this.#saveMerchantData(merchant);
+    await this.#saveEntryData(this._activeTab, merchant);
   }
 
   static async #onEditMerchantItem(event, target) {
     if (!game.user.isGM) return;
     const itemId = target.dataset.itemId;
+    if (!this._activeTab) return;
     const location = this.#syncSelectedLocation();
-    const merchant = foundry.utils.deepClone(location?.typeData?.merchant ?? { inventory: [] });
+    const merchant = foundry.utils.deepClone(location?.typeData?.[this._activeTab] ?? { inventory: [] });
     const existing = merchant.inventory.find(i => i.id === itemId);
     if (!existing) return;
     const result = await MerchantItemEditApp.open(existing);
     if (!result) return;
     const idx = merchant.inventory.findIndex(i => i.id === itemId);
     if (idx !== -1) merchant.inventory[idx] = result;
-    await this.#saveMerchantData(merchant);
+    await this.#saveEntryData(this._activeTab, merchant);
   }
 
   static async #onAddManualInventoryItem() {
@@ -1177,12 +1232,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const result = await MerchantItemEditApp.open({});
     if (!result) return;
     const location = this.#syncSelectedLocation();
-    if (!location) return;
-    const merchant = foundry.utils.deepClone(location.typeData?.merchant ?? { inventory: [] });
+    if (!location || !this._activeTab) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
     merchant.inventory.push(result);
-    location.typeData ??= {};
-    location.typeData.merchant = merchant;
-    await this.#saveLocationData(location);
+    await this.#saveEntryData(this._activeTab, merchant);
   }
 
   static #onSwitchToSellTab() {
@@ -1228,18 +1281,25 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const buybackId = target.dataset.buybackId;
     if (!buybackId) return;
     const location = this.#syncSelectedLocation();
-    const buybackItems = location?.typeData?.merchant?.buybackItems ?? [];
-    const entry = buybackItems.find(b => b.id === buybackId);
-    if (!entry || !entry.buybackPrice) return;
+    if (!location) return;
+    const merchantEntries = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
+    let buybackEntry = null;
+    let buybackEntryId = null;
+    for (const me of merchantEntries) {
+      const found = (location.typeData?.[me.id]?.buybackItems ?? []).find(b => b.id === buybackId);
+      if (found) { buybackEntry = found; buybackEntryId = me.id; break; }
+    }
+    if (!buybackEntry || !buybackEntry.buybackPrice) return;
     cartManager.addMerchantItem({
       sceneId:      canvas.scene?.id,
       locationId:   location.id,
       locationName: location.name,
+      entryId:      buybackEntryId,
       item: {
-        id:     entry.id,
-        name:   entry.itemName,
-        itemId: entry.itemLinkedUuid,
-        price:  entry.buybackPrice
+        id:     buybackEntry.id,
+        name:   buybackEntry.itemName,
+        itemId: buybackEntry.itemLinkedUuid,
+        price:  buybackEntry.buybackPrice
       }
     });
     CartApp.open();
@@ -1264,7 +1324,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location = this.#syncSelectedLocation();
     if (!location) return;
     const currencies   = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const bankData     = location.typeData?.bank ?? {};
+    const bankData     = location.typeData?.[this._activeTab] ?? {};
     const actor        = game.actors.get(this._bankActorId);
     if (!actor) return;
 
@@ -1302,7 +1362,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const currencies      = currencyConfig.currencies ?? [];
     const location        = this.#syncSelectedLocation();
     if (!location) return;
-    const bankRaw         = location.typeData?.bank ?? {};
+    const bankRaw         = location.typeData?.[this._activeTab] ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const feeRate         = depositSettings.depositFee ?? 0;
 
@@ -1345,6 +1405,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const payload = {
       deposit,
       locationId: location.id,
+      entryId:    this._activeTab,
       sceneId:    canvas.scene?.id,
       isGlobal:   depositSettings.global ?? false
     };
@@ -1362,12 +1423,12 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   static async #onOverrideBankSettings() {
     if (!game.user.isGM) return;
     const location     = this.#syncSelectedLocation();
-    if (!location) return;
-    const bankRaw      = location.typeData?.bank ?? {};
+    if (!location || !this._activeTab) return;
+    const bankRaw      = location.typeData?.[this._activeTab] ?? {};
     const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
-    const bankEntry    = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
-    const subType      = bankEntry?.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+    const activeEntry  = this.#getActiveEntry();
+    const subType      = activeEntry?.subTypeId
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === activeEntry.subTypeId)
       : null;
     const src  = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
     const dSrc = src.depositSettings ?? {};
@@ -1420,33 +1481,29 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     });
     if (!result) return;
 
-    const bankData = foundry.utils.deepClone(location.typeData?.bank ?? {});
-    bankData.doesExchange        = result.doesExchange;
-    bankData.exchangeFee         = result.exchangeFee;
-    bankData.depositSettings     = {
+    const bankData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
+    bankData.doesExchange    = result.doesExchange;
+    bankData.exchangeFee     = result.exchangeFee;
+    bankData.depositSettings = {
       global:             result.depositGlobal,
       depositFee:         result.depositFee,
       minDepositDays:     result.minDepositDays,
       earlyWithdrawalFee: result.earlyWithdrawalFee
     };
-    location.typeData ??= {};
-    location.typeData.bank = bankData;
-    await this.#saveLocationData(location);
+    await this.#saveEntryData(this._activeTab, bankData);
   }
 
   static async #onResetBankSettings() {
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
-    if (!location) return;
-    const bankData  = foundry.utils.deepClone(location.typeData?.bank ?? {});
-    const bankEntry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.BANK);
-    const subType   = bankEntry?.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === bankEntry.subTypeId)
+    if (!location || !this._activeTab) return;
+    const bankData    = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
+    const activeEntry = this.#getActiveEntry();
+    const subType     = activeEntry?.subTypeId
+      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === activeEntry.subTypeId)
       : null;
     restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
-    location.typeData ??= {};
-    location.typeData.bank = bankData;
-    await this.#saveLocationData(location);
+    await this.#saveEntryData(this._activeTab, bankData);
   }
 
   static async #onWithdrawDeposit(event, target) {
@@ -1462,10 +1519,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const currencies      = currencyConfig.currencies ?? [];
     const location        = this.#syncSelectedLocation();
     if (!location) return;
-    const bankRaw         = location.typeData?.bank ?? {};
+    const bankRaw         = location.typeData?.[this._activeTab] ?? {};
     const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
     const allDeposits     = depositSettings.global
-      ? (game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [])
+      ? (game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [])
       : (bankRaw.deposits ?? []);
 
     const matching = allDeposits.filter(d => depositIds.includes(d.id));
@@ -1496,6 +1553,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       actorId:        actor.id,
       earlyFeeRate:   depositSettings.earlyWithdrawalFee ?? 0,
       locationId:     location.id,
+      entryId:        this._activeTab,
       sceneId:        canvas.scene?.id,
       isGlobal:       depositSettings.global ?? false
     };

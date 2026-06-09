@@ -683,14 +683,17 @@
   padding: 0.2rem 0.5rem;
 }
 
-/* Body-mounted picker dropdown — not scoped to app ID since it lives on document.body */
+/* Body-mounted picker dropdown — not scoped to app ID since it lives on document.body.
+   Uses explicit colors because Dolmenwood's dark theme keeps --color-bg-primary as parchment
+   while flipping text vars to gold/light — so we can't rely on CSS variables here. */
 .type-picker-dropdown {
   position: fixed;
   z-index: 9999;
   min-width: 200px;
   max-height: 240px;
   background: var(--color-bg-primary, #f0ede0);
-  border: 1px solid var(--color-border-light-secondary, #aaa);
+  color: #2a2a2a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 4px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
   display: none;
@@ -704,11 +707,12 @@
 
 .type-picker-filter {
   border: none;
-  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   padding: 0.3rem 0.5rem;
   font-size: var(--font-size-12, 12px);
   outline: none;
   background: transparent;
+  color: inherit;
   width: 100%;
 }
 
@@ -730,7 +734,8 @@
   gap: 0.3rem;
   padding: 0.25rem 0.5rem;
   font-size: var(--font-size-12, 12px);
-  color: rgba(0, 0, 0, 0.45);
+  color: inherit;
+  opacity: 0.5;
   font-style: italic;
 }
 
@@ -745,16 +750,32 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--color-text-dark-primary, inherit);
+  color: inherit;
 }
 
 .picker-item:hover {
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+  background: rgba(0, 0, 0, 0.07);
 }
 
 .picker-subtype-item {
   padding-left: 1.4rem;
-  color: var(--color-text-dark-secondary, #555);
+  opacity: 0.75;
+}
+
+/* Dark mode: give the dropdown a proper dark background with light text */
+@media (prefers-color-scheme: dark) {
+  .type-picker-dropdown {
+    background: #2a2a2a;
+    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+  }
+  .type-picker-filter {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  .picker-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
 }
 
 /* -------------------------------------------- */

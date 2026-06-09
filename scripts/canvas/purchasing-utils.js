@@ -13,7 +13,7 @@ export function mergePurchasingProfiles(location) {
   const entries        = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
   const subTypeMap     = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
   const merchantList   = subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? [];
-  const overrides      = location.typeData?.merchant?.purchasingOverrides ?? [];
+  const overrides      = location.purchasingOverrides ?? [];
 
   // Collect all template rules grouped by itemType
   const byType = new Map(); // itemType → [rule, ...]

@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAGS } from "./constants.js";
+import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
 import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInStandard } from "./utils/currency-utils.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
@@ -42,18 +42,18 @@ async function _handleSaveLocation({ sceneId, location }) {
   await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
 }
 
-/** GM-side: record a new deposit into either world flag (global) or scene flag. */
-export async function _handleRecordDeposit({ deposit, locationId, sceneId, isGlobal }) {
+/** GM-side: record a new deposit into either world setting (global) or scene flag. */
+export async function _handleRecordDeposit({ deposit, locationId, entryId, sceneId, isGlobal }) {
   if (isGlobal) {
-    const existing = game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? [];
-    await game.world.setFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS, [...existing, deposit]);
+    const existing = game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [];
+    await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, [...existing, deposit]);
   } else {
     const scene = game.scenes.get(sceneId);
     if (!scene) return;
     const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
     const location  = locations.find(r => r.id === locationId);
-    if (!location?.typeData?.bank) return;
-    location.typeData.bank.deposits = [...(location.typeData.bank.deposits ?? []), deposit];
+    if (!location?.typeData?.[entryId]) return;
+    location.typeData[entryId].deposits = [...(location.typeData[entryId].deposits ?? []), deposit];
     await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
   _refreshBankApps();
@@ -66,7 +66,7 @@ export async function _handleRecordDeposit({ deposit, locationId, sceneId, isGlo
  */
 export async function _handleProcessWithdrawal({
   depositIds, withdrawCoins, actorId, earlyFeeRate,
-  locationId, sceneId, isGlobal
+  locationId, entryId, sceneId, isGlobal
 }) {
   const currencyConfig = game.settings.get(MODULE_ID, "currencyConfig");
   const currencies     = currencyConfig.currencies ?? [];
@@ -78,13 +78,13 @@ export async function _handleProcessWithdrawal({
   let allDeposits;
   let scene, locations, location;
   if (isGlobal) {
-    allDeposits = foundry.utils.deepClone(game.world.getFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS) ?? []);
+    allDeposits = foundry.utils.deepClone(game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? []);
   } else {
     scene     = game.scenes.get(sceneId);
     if (!scene) return;
     locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
     location  = locations.find(r => r.id === locationId);
-    allDeposits = foundry.utils.deepClone(location?.typeData?.bank?.deposits ?? []);
+    allDeposits = foundry.utils.deepClone(location?.typeData?.[entryId]?.deposits ?? []);
   }
 
   // Deduct withdrawCoins from target deposit records
@@ -104,9 +104,9 @@ export async function _handleProcessWithdrawal({
 
   // Save back
   if (isGlobal) {
-    await game.world.setFlag(MODULE_ID, FLAGS.GLOBAL_DEPOSITS, consolidated);
-  } else if (location?.typeData?.bank) {
-    location.typeData.bank.deposits = consolidated;
+    await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, consolidated);
+  } else if (location?.typeData?.[entryId]) {
+    location.typeData[entryId].deposits = consolidated;
     await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
 

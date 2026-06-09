@@ -47,6 +47,13 @@ export function registerSettings() {
     default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "", itemTypes: [] }
   });
 
+  game.settings.register(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: []
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.HOURS_PER_DAY, {
     name: "SANDBOX_SETTLEMENT_MANAGER.setting.hoursPerDay.name",
     hint: "SANDBOX_SETTLEMENT_MANAGER.setting.hoursPerDay.hint",
