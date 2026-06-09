@@ -1,3 +1,24 @@
 # Long term
 ## Currency exchange:
 Limited currency by settlement.
+
+Stock system: If we switch from % to X-in-6 can we make the availability a dropdown with
+
+1-in-6, 2-in-6, 3-in-6, etc, etc. 
+
+Also a add a little badge/hover text situation for Stock Formula header that explains that a blank stock formula = Infinite stock.
+
+Add a info badge to Settlement Size Header for "Minimum Settlement size this item will appear in a stock for merchants using this template".
+
+Add an info badge for Availability header: "Chance that this item will be present in a merchant, rechecked according to the restock period."
+
+
+## Error: Global Banks
+Uncaught (in promise) TypeError: game.world.getFlag is not a function
+    at #buildBankData (settlement-manage-app.js:286:21)
+    at settlement-manage-app.js:198:51
+    at Array.map (<anonymous>)
+    at #buildSelectedLocationContext (settlement-manage-app.js:181:44)
+    at SettlementManageApp._prepareContext (settlement-manage-app.js:125:72)
+    at async #render (foundry.mjs:30419:21)
+    at async #try (foundry.mjs:7635:17)

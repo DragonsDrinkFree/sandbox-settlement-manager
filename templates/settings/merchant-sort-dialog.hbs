@@ -1,0 +1,29 @@
+<div class="ssm-merchant-sort">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sort.priorityHint"}}</p>
+
+  <ul class="ssm-sort-list">
+    {{#each rows}}
+    <li class="ssm-sort-row{{#unless this.enabled}} is-disabled{{/unless}}" data-key="{{this.key}}">
+      <span class="ssm-sort-priority">
+        <button type="button" class="icon" data-action="moveUp" aria-label="Up"{{#if @first}} disabled{{/if}}><i class="fa-solid fa-chevron-up"></i></button>
+        <button type="button" class="icon" data-action="moveDown" aria-label="Down"{{#if @last}} disabled{{/if}}><i class="fa-solid fa-chevron-down"></i></button>
+      </span>
+      <label class="ssm-sort-enable">
+        <input type="checkbox" data-field="enabled" {{#if this.enabled}}checked{{/if}}>
+        <span>{{this.label}}</span>
+      </label>
+      <select data-field="dir" class="ssm-sort-dir">
+        <option value="asc"{{#if (eq this.dir "asc")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sort.dirAsc"}}</option>
+        <option value="desc"{{#if (eq this.dir "desc")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sort.dirDesc"}}</option>
+      </select>
+    </li>
+    {{/each}}
+  </ul>
+
+  <footer class="form-footer">
+    <button type="button" data-action="cancelSort">{{localize "SANDBOX_SETTLEMENT_MANAGER.dialog.cancel"}}</button>
+    <button type="button" data-action="confirmSort" class="ssm-sort-apply">
+      <i class="fa-solid fa-check"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sort.apply"}}
+    </button>
+  </footer>
+</div>

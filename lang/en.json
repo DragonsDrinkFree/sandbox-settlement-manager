@@ -99,6 +99,9 @@
       "bankDeposits": "Configure player deposits: an optional fee taken when depositing, a minimum lock-in period before penalty-free withdrawal, and an early-withdrawal penalty. A Global bank shares one deposit ledger across every scene, so players can deposit and withdraw at any of its branches.",
       "merchantInventory": "Define the stock this merchant starts with and how it restocks over time. Availability and stock formulas can vary by settlement size. Drag items from the sidebar onto the drop zone to add them.",
       "merchantPurchasing": "Set how this merchant buys items from players: the buy rate (percent of value paid) and how buyback pricing works, optionally overridden per item type.",
+      "merchantSettlementSize": "Minimum settlement size this item will appear in stock for merchants using this template.",
+      "merchantAvailability": "Chance that this item will be present in a merchant, re-checked each restock period.",
+      "merchantStockFormula": "Dice/number formula rolled to set quantity when in stock (e.g. 2d6). Leave blank for infinite stock.",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world."
     },
     "importExport": {
@@ -437,6 +440,18 @@
       "stockType": "Stock System",
       "stockTypePercent": "Percent (%)",
       "stockTypeXin6": "x-in-6",
+      "xInSixOption": "{n}-in-6",
+      "sortButton": "Sort",
+      "sort": {
+        "title": "Sort Inventory",
+        "priorityHint": "Check the criteria to sort by and order them by priority (top = first). Each can be ascending or descending.",
+        "byItemType": "Item Type",
+        "byItemName": "Item Name",
+        "byPrice": "Price",
+        "dirAsc": "Ascending",
+        "dirDesc": "Descending",
+        "apply": "Apply Sort"
+      },
       "restockFrequency": "Restock Period",
       "restockDaily": "Daily",
       "restockWeekly": "Weekly",
@@ -453,6 +468,9 @@
       "buybackMarkupPct": "Markup %",
       "merchantPrice": "Merchant Price",
       "merchantPriceHint": "The merchant will pay this percentage of the item's listed cost when players sell items.",
+      "ruleItemTypeHeader": "Item Type",
+      "ruleMerchantPriceHeader": "Merchant Price %",
+      "ruleBuybackHeader": "Buyback Price",
       "addRule": "Add Rule",
       "noRules": "No purchasing rules defined.",
       "sellItems": "Sell Items",

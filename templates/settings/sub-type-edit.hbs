@@ -196,9 +196,9 @@
           <tr>
             <th class="col-mname">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colItem"}}</th>
             <th class="col-mprice">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.colPrice"}}</th>
-            <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}}</th>
-            <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}}</th>
-            <th class="col-mformula">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}}</th>
+            <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantSettlementSize'}}"></i></th>
+            <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantAvailability'}}"></i></th>
+            <th class="col-mformula">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantStockFormula'}}"></i></th>
             <th class="col-del"></th>
           </tr>
         </thead>
@@ -227,8 +227,16 @@
               </select>
             </td>
             <td class="col-mavail">
+              {{#if ../isXInSix}}
+              <select data-field="stockAvailability" class="ssm-xin6-select">
+                {{#each this.xin6Options}}
+                <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+              {{else}}
               <input type="number" data-field="stockAvailability" value="{{this.stockAvailability}}"
                      min="0" max="100" step="1" class="lodging-num-input">
+              {{/if}}
             </td>
             <td class="col-mformula">
               <input type="text" data-field="stockFormula" value="{{this.stockFormula}}"
@@ -250,9 +258,14 @@
           {{/each}}
         </tbody>
       </table>
-      <button type="button" data-action="addTemplateInventoryItem" class="lodging-add-btn">
-        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addTemplateItem"}}
-      </button>
+      <div class="merchant-inventory-actions">
+        <button type="button" data-action="addTemplateInventoryItem" class="lodging-add-btn">
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addTemplateItem"}}
+        </button>
+        <button type="button" data-action="sortInventory" class="lodging-add-btn">
+          <i class="fa-solid fa-arrow-down-short-wide"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sortButton"}}
+        </button>
+      </div>
     </fieldset>
     {{/if}}
 
@@ -261,27 +274,35 @@
       <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.purchasingProfile"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantPurchasing'}}"></i></legend>
 
       <div class="purchasing-add-row">
-        <select data-field="ruleItemType" class="ssm-rule-type-select">
-          <option value="">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
-          {{#each systemItemTypes}}
-          <option value="{{this.value}}">{{this.label}}</option>
-          {{/each}}
-        </select>
-        <label class="ssm-rule-rate-label"
-               title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">
-          {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPrice"}}
-        </label>
-        <input type="number" data-field="ruleBuyRate" value="50" min="0" max="100" step="1"
-               class="lodging-num-input">
-        <span>%</span>
-        <select data-field="ruleBuybackType" class="ssm-rule-buyback-select">
-          {{#each buybackTypeOptions}}
-          <option value="{{this.value}}">{{this.label}}</option>
-          {{/each}}
-        </select>
-        <button type="button" data-action="addPurchasingRule" class="lodging-add-btn">
-          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}
-        </button>
+        <div class="ssm-rule-field ssm-rule-field-type">
+          <label class="ssm-rule-header">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleItemTypeHeader"}}</label>
+          <select data-field="ruleItemType" class="ssm-rule-type-select">
+            <option value="">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</option>
+            {{#each systemItemTypes}}
+            <option value="{{this.value}}">{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="ssm-rule-field">
+          <label class="ssm-rule-header" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleMerchantPriceHeader"}}</label>
+          <div class="ssm-rule-rate-wrap">
+            <input type="number" data-field="ruleBuyRate" value="50" min="0" max="100" step="1" class="lodging-num-input">
+            <span>%</span>
+          </div>
+        </div>
+        <div class="ssm-rule-field">
+          <label class="ssm-rule-header">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleBuybackHeader"}}</label>
+          <select data-field="ruleBuybackType" class="ssm-rule-buyback-select">
+            {{#each buybackTypeOptions}}
+            <option value="{{this.value}}">{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="ssm-rule-field ssm-rule-field-action">
+          <button type="button" data-action="addPurchasingRule" class="lodging-add-btn">
+            <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}
+          </button>
+        </div>
       </div>
 
       <table class="ssm-purchasing-profile-table">

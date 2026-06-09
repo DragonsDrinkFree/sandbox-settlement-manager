@@ -2,8 +2,28 @@ import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES } from "../
 import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
 import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
+import { costInStandard } from "../utils/currency-utils.js";
+import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+
+/** Reorder a merchant inventory by an ordered sort spec `[{ key, dir }, …]`. Returns a new array. */
+function sortMerchantInventory(inventory, spec, currencies) {
+  const typeKey  = it => (CONFIG.Item?.typeLabels?.[it.itemType] ?? it.itemType ?? "").toLowerCase();
+  const nameKey  = it => (it.name ?? "").toLowerCase();
+  const priceKey = it => costInStandard(it.price ?? { amount: 0, currencyId: "" }, currencies);
+  return [...inventory].sort((a, b) => {
+    for (const { key, dir } of spec) {
+      let cmp = 0;
+      if (key === "itemType") cmp = typeKey(a).localeCompare(typeKey(b));
+      else if (key === "itemName") cmp = nameKey(a).localeCompare(nameKey(b));
+      else if (key === "price") cmp = priceKey(a) - priceKey(b);
+      if (dir === "desc") cmp = -cmp;
+      if (cmp) return cmp;
+    }
+    return 0;
+  });
+}
 
 export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
@@ -15,6 +35,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _templateInventory = [];
   _merchantTab = "inventory";
   _purchasingProfile = [];
+  _stockType = null;        // tracks merchantStockType <select> across re-renders
+  _restockFrequency = null; // tracks merchantRestockFrequency <select> across re-renders
+  _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
 
   constructor(subType, options = {}) {
     super(options);
@@ -41,6 +64,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteCourse:               SubTypeEditApp.#onDeleteCourse,
       addTemplateInventoryItem:   SubTypeEditApp.#onAddTemplateInventoryItem,
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
+      sortInventory:              SubTypeEditApp.#onSortInventory,
       switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
       addPurchasingRule:          SubTypeEditApp.#onAddPurchasingRule,
       removePurchasingRule:       SubTypeEditApp.#onRemovePurchasingRule,
@@ -74,6 +98,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const showInnSections     = isInn || showTypeSelect;
     const showMerchantSection = isMerchant || showTypeSelect;
     const showBankSection     = isBank || showTypeSelect;
+    const merchantData     = this._subType.typeData?.merchant ?? {};
+    const stockType        = this._stockType        ?? merchantData.stockType        ?? "percent";
+    const restockFrequency = this._restockFrequency ?? merchantData.restockFrequency ?? "weekly";
+    const isXInSix         = stockType === "x-in-6";
+
     let lodgings = [];
     let currencies = [];
     let courses = [];
@@ -97,20 +126,29 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }));
       }
       if (showMerchantSection) {
-        templateInventory = await Promise.all(this._templateInventory.map(async item => ({
-          ...item,
-          price: item.price ?? { currencyId: defaultCurrencyId, amount: 0 },
-          enrichedName: item.itemId
-            ? await TextEditor.enrichHTML(`@UUID[${item.itemId}]{${item.name}}`, { async: true })
-            : null
-        })));
+        templateInventory = await Promise.all(this._templateInventory.map(async item => {
+          const entry = {
+            ...item,
+            price: item.price ?? { currencyId: defaultCurrencyId, amount: 0 },
+            enrichedName: item.itemId
+              ? await TextEditor.enrichHTML(`@UUID[${item.itemId}]{${item.name}}`, { async: true })
+              : null
+          };
+          if (isXInSix) {
+            const v   = parseInt(item.stockAvailability);
+            const cur = (Number.isInteger(v) && v >= 1 && v <= 6) ? v : 6;
+            entry.xin6Options = [1, 2, 3, 4, 5, 6].map(n => ({
+              value: n,
+              label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.xInSixOption", { n }),
+              selected: n === cur
+            }));
+          }
+          return entry;
+        }));
       }
     }
     const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
     const bankData     = this._subType.typeData?.bank ?? {};
-    const merchantData = this._subType.typeData?.merchant ?? {};
-    const stockType       = merchantData.stockType        ?? "percent";
-    const restockFrequency = merchantData.restockFrequency ?? "weekly";
 
     const rawTypes = game.system.documentTypes?.Item ?? [];
     const systemItemTypes = (Array.isArray(rawTypes) ? rawTypes : Object.keys(rawTypes))
@@ -142,6 +180,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       settlementTypes,
       stockType,
       restockFrequency,
+      isXInSix,
       merchantTab: this._merchantTab,
       purchasingProfile: this._purchasingProfile,
       systemItemTypes,
@@ -159,6 +198,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._typeId) this.#wireTypeSelect();
     this.#wireWeeklyLinks();
     this.#wireMerchantDragDrop();
+
+    // Switching stock type swaps the Availability field (number ↔ X-in-6 dropdown), so re-render.
+    this.element.querySelector('[name="merchantStockType"]')?.addEventListener('change', () => {
+      this.#syncSubTypeName();
+      this.#syncLodgingsFromDOM();
+      this.#syncTemplateInventoryFromDOM();
+      this.render({ parts: ["form"] });
+    });
   }
 
   #wireTypeSelect() {
@@ -331,6 +378,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const v = this.element?.querySelector('[name="templateType"]')?.value;
       if (v) this._selectedType = v;
     }
+    // Preserve the merchant stock config across re-renders.
+    const st = this.element?.querySelector('[name="merchantStockType"]')?.value;
+    if (st) this._stockType = st;
+    const rf = this.element?.querySelector('[name="merchantRestockFrequency"]')?.value;
+    if (rf) this._restockFrequency = rf;
   }
 
   static #onAddLodging() {
@@ -411,6 +463,20 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncTemplateInventoryFromDOM();
     const index = parseInt(target.dataset.index);
     this._templateInventory.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onSortInventory() {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    this.#syncTemplateInventoryFromDOM();
+    const spec = await MerchantSortDialog.open(this._inventorySort);
+    if (!spec) return;
+    this._inventorySort = spec;
+    if (spec.length) {
+      const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+      this._templateInventory = sortMerchantInventory(this._templateInventory, spec, currencies);
+    }
     this.render({ parts: ["form"] });
   }
 

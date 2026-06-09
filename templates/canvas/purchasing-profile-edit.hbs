@@ -41,26 +41,34 @@
   <fieldset class="purchasing-add-override">
     <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}</legend>
     <div class="purchasing-add-row">
-      <select data-field="overrideItemType" class="ssm-rule-type-select">
-        {{#each systemItemTypes}}
-        <option value="{{this.value}}">{{this.label}}</option>
-        {{/each}}
-      </select>
-      <label class="ssm-rule-rate-label"
-             title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">
-        {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPrice"}}
-      </label>
-      <input type="number" data-field="overrideBuyRate" value="50" min="0" max="100" step="1"
-             class="lodging-num-input">
-      <span>%</span>
-      <select data-field="overrideBuybackType" class="ssm-rule-buyback-select">
-        {{#each buybackTypeOptions}}
-        <option value="{{this.value}}">{{this.label}}</option>
-        {{/each}}
-      </select>
-      <button type="button" data-action="addOverride" class="lodging-add-btn">
-        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}
-      </button>
+      <div class="ssm-rule-field ssm-rule-field-type">
+        <label class="ssm-rule-header">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleItemTypeHeader"}}</label>
+        <select data-field="overrideItemType" class="ssm-rule-type-select">
+          {{#each systemItemTypes}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ssm-rule-field">
+        <label class="ssm-rule-header" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleMerchantPriceHeader"}}</label>
+        <div class="ssm-rule-rate-wrap">
+          <input type="number" data-field="overrideBuyRate" value="50" min="0" max="100" step="1" class="lodging-num-input">
+          <span>%</span>
+        </div>
+      </div>
+      <div class="ssm-rule-field">
+        <label class="ssm-rule-header">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleBuybackHeader"}}</label>
+        <select data-field="overrideBuybackType" class="ssm-rule-buyback-select">
+          {{#each buybackTypeOptions}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="ssm-rule-field ssm-rule-field-action">
+        <button type="button" data-action="addOverride" class="lodging-add-btn">
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.addRule"}}
+        </button>
+      </div>
     </div>
   </fieldset>
 </div>
