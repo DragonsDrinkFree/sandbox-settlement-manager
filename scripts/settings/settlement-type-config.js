@@ -4,10 +4,8 @@ import { SettlementTypeEditApp } from "./settlement-type-edit.js";
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 export const DEFAULT_SETTLEMENT_TYPES = [
-  { name: "Hamlet" },
   { name: "Village" },
-  { name: "Small Town" },
-  { name: "Large Town" },
+  { name: "Town" },
   { name: "City" }
 ];
 

@@ -1,0 +1,149 @@
+<div class="ssm-setup-wizard">
+
+  <!-- Step progress indicator -->
+  <div class="wizard-steps">
+    <div class="wizard-step {{#if step0}}wizard-step--active{{else if step0done}}wizard-step--done{{/if}}">
+      <span class="step-num">{{#if step0done}}<i class="fa-solid fa-check"></i>{{else}}1{{/if}}</span>
+      <span class="step-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step0Label"}}</span>
+    </div>
+    <div class="wizard-step-connector"></div>
+    <div class="wizard-step {{#if step1}}wizard-step--active{{else if step1done}}wizard-step--done{{/if}}">
+      <span class="step-num">{{#if step1done}}<i class="fa-solid fa-check"></i>{{else}}2{{/if}}</span>
+      <span class="step-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step1Label"}}</span>
+    </div>
+    <div class="wizard-step-connector"></div>
+    <div class="wizard-step {{#if step2}}wizard-step--active{{else if step2done}}wizard-step--done{{/if}}">
+      <span class="step-num">{{#if step2done}}<i class="fa-solid fa-check"></i>{{else}}3{{/if}}</span>
+      <span class="step-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step2Label"}}</span>
+    </div>
+    <div class="wizard-step-connector"></div>
+    <div class="wizard-step {{#if step3}}wizard-step--active{{else if step3done}}wizard-step--done{{/if}}">
+      <span class="step-num">{{#if step3done}}<i class="fa-solid fa-check"></i>{{else}}4{{/if}}</span>
+      <span class="step-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step3Label"}}</span>
+    </div>
+    <div class="wizard-step-connector"></div>
+    <div class="wizard-step {{#if step4}}wizard-step--active{{/if}}">
+      <span class="step-num">5</span>
+      <span class="step-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step4Label"}}</span>
+    </div>
+  </div>
+
+  <!-- Step content -->
+  <div class="wizard-content">
+
+    {{#if step0}}
+    <h3 class="wizard-step-title"><i class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step0Title"}}</h3>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step0Desc"}}</p>
+
+    <div class="wizard-preset-section">
+      <p class="wizard-config-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.presetSectionTitle"}}</p>
+      <div class="wizard-preset-row">
+        <select name="preset" class="wizard-preset-select">
+          <option value="">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.presetSelectPlaceholder"}}</option>
+          {{#each presets}}
+          <option value="{{this.file}}">{{this.name}}</option>
+          {{/each}}
+        </select>
+        <button type="button" data-action="applyPreset">
+          <i class="fa-solid fa-check"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnApplyPreset"}}
+        </button>
+      </div>
+    </div>
+
+    {{#if presetApplied}}
+    <div class="wizard-preset-applied">
+      <p><i class="fa-solid fa-circle-check"></i>
+        <strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.presetAppliedMsg"}}</strong>
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.presetAppliedSub"}}</p>
+      <div class="wizard-preset-choices">
+        <button type="button" data-action="continueCustomizing">
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnContinueCustomizing"}} <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button type="button" class="wizard-btn-primary" data-action="jumpToFinish">
+          {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnJumpToFinish"}} <i class="fa-solid fa-forward"></i>
+        </button>
+      </div>
+    </div>
+    {{/if}}
+    {{/if}}
+
+    {{#if step1}}
+    <h3 class="wizard-step-title"><i class="fa-solid fa-coins"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step1Title"}}</h3>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step1Desc"}}</p>
+    <div class="wizard-current-config">
+      <p class="wizard-config-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.currentConfig"}}</p>
+      <p><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}}:</strong> {{currencyModeLabel}}</p>
+      {{#if currencies.length}}
+      <ul class="wizard-config-list">
+        {{#each currencies}}<li>{{this.name}} ({{this.abbreviation}})</li>{{/each}}
+      </ul>
+      {{else}}
+      <p class="wizard-config-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.empty"}}</p>
+      {{/if}}
+    </div>
+    <button type="button" class="wizard-configure-btn" data-action="openCurrencyConfig">
+      <i class="fa-solid fa-coins"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.currencyConfig.label"}}
+    </button>
+    {{/if}}
+
+    {{#if step2}}
+    <h3 class="wizard-step-title"><i class="fa-solid fa-house-chimney"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step2Title"}}</h3>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step2Desc"}}</p>
+    <div class="wizard-current-config">
+      <p class="wizard-config-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.currentConfig"}}</p>
+      {{#if settlementTypes.length}}
+      <ul class="wizard-config-list">
+        {{#each settlementTypes}}<li>{{this.name}}</li>{{/each}}
+      </ul>
+      {{else}}
+      <p class="wizard-config-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.settlementType.empty"}}</p>
+      {{/if}}
+    </div>
+    <button type="button" class="wizard-configure-btn" data-action="openSettlementTypeConfig">
+      <i class="fa-solid fa-house-chimney"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.settlementTypeConfig.label"}}
+    </button>
+    {{/if}}
+
+    {{#if step3}}
+    <h3 class="wizard-step-title"><i class="fa-solid fa-box"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step3Title"}}</h3>
+    <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step3Desc"}}</p>
+    <div class="wizard-current-config">
+      <p class="wizard-config-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.currentConfig"}}</p>
+      <p><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.priceFormatLabel"}}:</strong> {{priceFormat}}</p>
+      <p><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.itemTypes"}}:</strong> {{itemTypeCount}}</p>
+    </div>
+    <button type="button" class="wizard-configure-btn" data-action="openItemConfig">
+      <i class="fa-solid fa-box"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.setting.itemConfig.label"}}
+    </button>
+    {{/if}}
+
+    {{#if step4}}
+    <div class="wizard-finish">
+      <i class="fa-solid fa-circle-check wizard-finish-icon"></i>
+      <h3 class="wizard-step-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step4Title"}}</h3>
+      <p>{{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.step4Desc"}}</p>
+      <button type="button" class="wizard-configure-btn" data-action="openGameSettings">
+        <i class="fa-solid fa-gear"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnOpenSettings"}}
+      </button>
+    </div>
+    {{/if}}
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="wizard-nav">
+    <button type="button" data-action="back" {{#if isFirstStep}}disabled{{/if}}>
+      <i class="fa-solid fa-chevron-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnBack"}}
+    </button>
+    {{#if isLastStep}}
+    <button type="button" class="wizard-btn-primary" data-action="finish">
+      {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnFinish"}} <i class="fa-solid fa-check"></i>
+    </button>
+    {{else}}
+    <button type="button" class="wizard-btn-primary" data-action="next">
+      {{localize "SANDBOX_SETTLEMENT_MANAGER.wizard.btnNext"}} <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    {{/if}}
+  </div>
+
+</div>

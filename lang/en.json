@@ -86,12 +86,25 @@
         "name": "Import / Export",
         "label": "Import / Export Configuration",
         "hint": "Back up, share, or restore module configuration as a JSON file."
+      },
+      "presetsMenu": {
+        "name": "Presets",
+        "label": "Load a Preset",
+        "hint": "Apply a bundled configuration preset to quickly set up currencies, settlement types, and item settings."
+      },
+      "setupWizard": {
+        "name": "Setup Wizard",
+        "label": "Setup Wizard",
+        "hint": "Step-by-step guided setup for currency, settlement sizes, and item configuration."
       }
     },
     "help": {
       "settlementTypes": "Settlement types are the size tiers of your settlements (e.g. Hamlet → City), ordered smallest to largest. A location's settlement type can gate which goods are available and cap the largest coin denomination traded locally.",
       "locationTemplates": "Location templates are reusable blueprints for the establishments players visit — inns, merchants, banks. Configure a template once here, then place instances of it on any settlement scene; instance changes can later be overridden or reset back to the template.",
       "currencyMode": "Choose how currency is tracked. Loose: untracked — purchase totals are whispered to the GM and buyer to record manually. Attribute: a number stored on the actor sheet. Item: a world item document carried in inventory. The fields below depend on this choice.",
+      "currencyModeLoose": "Untracked — purchase totals are whispered to the GM and buyer to record manually.",
+      "currencyModeAttribute": "A number stored on the actor sheet. Each currency must have a dot-notation attribute path configured.",
+      "currencyModeItem": "A world item document carried in inventory. Each currency must be linked to a specific item.",
       "currencyList": "Define each denomination and its exchange rate relative to the standard (1:1) currency. Order them however you like — drag the handle to reorder. The standard currency is the base all prices are converted through.",
       "itemGlobal": "Tell the module how to read names and prices from this game system's item documents, using dot-notation paths. Set these once so merchants can import items and price them correctly.",
       "itemTypes": "Map this system's item types so merchants can group their inventory and apply per-type buy/sell rules in purchasing profiles.",
@@ -517,6 +530,51 @@
       "cancel": "Cancel",
       "deleteTitle": "Delete",
       "deleteConfirm": "Delete <strong>{name}</strong>? This cannot be undone."
+    },
+    "presets": {
+      "title": "Load a Preset",
+      "intro": "Select a preset to apply a ready-made configuration for a supported game system. This will overwrite your current currency, settlement type, and item settings.",
+      "none": "No presets available.",
+      "applyButton": "Apply Preset",
+      "confirmTitle": "Apply Preset",
+      "confirm": "Apply the <strong>{name}</strong> preset? This will overwrite your currency, settlement type, and item settings. This cannot be undone.",
+      "applied": "Preset \"{name}\" applied.",
+      "noneSelected": "Select a preset first."
+    },
+    "wizard": {
+      "title": "Setup Wizard",
+      "step0Label": "Welcome",
+      "step1Label": "Currency",
+      "step2Label": "Settlements",
+      "step3Label": "Items",
+      "step4Label": "Finish",
+      "step0Title": "Welcome to Sandbox Settlement Manager",
+      "step0Desc": "Let's get you set up quickly. Load a preset to configure everything for your game system at once, or step through the configuration manually.",
+      "step1Title": "Configure Currency",
+      "step1Desc": "Choose how currency is tracked in your world and define your denominations.",
+      "step2Title": "Configure Settlement Types",
+      "step2Desc": "Define the size tiers for your settlements, ordered from smallest to largest.",
+      "step3Title": "Configure Item Settings",
+      "step3Desc": "Tell the module how to read item names and prices from your game system's item documents.",
+      "step4Title": "You're all set!",
+      "step4Desc": "Core configuration is done. To enable merchants, inns, and banks in your settlements, configure Location Templates from Game Settings.",
+      "currentConfig": "Current configuration:",
+      "presetSectionTitle": "Load a Preset (Optional)",
+      "presetSelectPlaceholder": "— Select a preset —",
+      "presetAppliedMsg": "Preset applied!",
+      "presetAppliedSub": "What would you like to do next?",
+      "btnApplyPreset": "Apply Preset",
+      "btnContinueCustomizing": "Continue Customizing",
+      "btnJumpToFinish": "Go to Finish",
+      "btnConfigure": "Configure {label}",
+      "btnOpenSettings": "Open Game Settings",
+      "btnBack": "Back",
+      "btnNext": "Next",
+      "btnFinish": "Finish",
+      "closeTitle": "Close Setup Wizard?",
+      "closeNotice": "The Setup Wizard can be opened again at any time from the module's section in Game Settings.",
+      "closeConfirm": "Close Wizard",
+      "closeCancel": "Continue Setup"
     },
     "error": {}
   }

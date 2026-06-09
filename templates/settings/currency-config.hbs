@@ -1,6 +1,15 @@
 ﻿<div class="currency-config">
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.currencyMode'}}"></i></label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.modeLabel"}}
+      <details class="ssm-help-details">
+        <summary><i class="fa-solid fa-circle-question ssm-help"></i></summary>
+        <ul class="ssm-help-list">
+          <li><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.loose"}}:</strong> {{localize "SANDBOX_SETTLEMENT_MANAGER.help.currencyModeLoose"}}</li>
+          <li><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.attribute"}}:</strong> {{localize "SANDBOX_SETTLEMENT_MANAGER.help.currencyModeAttribute"}}</li>
+          <li><strong>{{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.item"}}:</strong> {{localize "SANDBOX_SETTLEMENT_MANAGER.help.currencyModeItem"}}</li>
+        </ul>
+      </details>
+    </label>
     <select name="mode">
       <option value="loose"{{#if (eq currentMode "loose")}} selected{{/if}}>
         {{localize "SANDBOX_SETTLEMENT_MANAGER.currency.mode.loose"}}

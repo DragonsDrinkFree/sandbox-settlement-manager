@@ -3,7 +3,7 @@ import { MODULE_ID, SETTINGS } from "../constants.js";
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 /** Exportable configuration sections (checkbox key → world setting). */
-const SECTIONS = [
+export const SECTIONS = [
   { key: "settlementTypes", setting: SETTINGS.SETTLEMENT_TYPES, labelKey: "SANDBOX_SETTLEMENT_MANAGER.importExport.sectionSettlementTypes" },
   { key: "currencyConfig",  setting: SETTINGS.CURRENCY_CONFIG,  labelKey: "SANDBOX_SETTLEMENT_MANAGER.importExport.sectionCurrency" },
   { key: "itemConfig",      setting: SETTINGS.ITEM_CONFIG,      labelKey: "SANDBOX_SETTLEMENT_MANAGER.importExport.sectionItem" },

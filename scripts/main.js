@@ -8,9 +8,10 @@
  *   "ready" — world data loaded; safe to access game.actors, game.scenes, etc.
  */
 
-import { MODULE_ID, FLAGS, migrateLocation } from "./constants.js";
+import { MODULE_ID, FLAGS, SETTINGS, migrateLocation } from "./constants.js";
 import { registerSettings } from "./settings/settings.js";
 import { registerSettingsUI } from "./settings/settings-ui.js";
+import { SetupWizardApp } from "./settings/setup-wizard-app.js";
 import { SandboxSceneConfig } from "./scene/scene-config.js";
 import { registerSettlementControls } from "./canvas/settlement-controls.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
@@ -41,13 +42,18 @@ Hooks.once("ready", async () => {
   console.log(`${MODULE_ID} | Ready`);
   registerSocketHandlers();
 
-  // Migrate location data: add entryId to typeEntries, move flat typeData keys to entryId-keyed form.
   if (game.user.isGM) {
+    // Migrate location data: add entryId to typeEntries, move flat typeData keys to entryId-keyed form.
     for (const scene of game.scenes) {
       const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
       if (!locations?.length) continue;
       const migrated = locations.map(migrateLocation);
       await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, migrated);
+    }
+
+    // Auto-open setup wizard on first run.
+    if (!game.settings.get(MODULE_ID, SETTINGS.WIZARD_SHOWN)) {
+      new SetupWizardApp().render(true);
     }
   }
 });

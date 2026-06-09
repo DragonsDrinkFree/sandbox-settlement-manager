@@ -3181,6 +3181,289 @@ hr.ssm-settings-divider {
 }
 
 /* -------------------------------------------- */
+/*  Expandable help badge (<details>)            */
+/* -------------------------------------------- */
+.ssm-help-details {
+  display: inline;
+  position: relative;
+}
+
+.ssm-help-details summary {
+  display: inline;
+  list-style: none;
+  cursor: pointer;
+}
+
+.ssm-help-details summary::-webkit-details-marker { display: none; }
+
+.ssm-help-details .ssm-help-list {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  background: #1a1c1e;
+  color: #ddd8cc;
+  border: 1px solid #3d3f43;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+  margin: 0;
+  font-size: var(--font-size-12, 12px);
+  list-style: disc;
+  list-style-position: outside;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+}
+
+.ssm-help-details .ssm-help-list li {
+  margin-bottom: 0.3rem;
+  line-height: 1.35;
+}
+
+/* -------------------------------------------- */
+/*  Presets dialog                               */
+/* -------------------------------------------- */
+#sandbox-settlement-manager-presets .ssm-presets {
+  padding: 0.25rem 0;
+}
+
+#sandbox-settlement-manager-presets .preset-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-presets .preset-item {
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 4px;
+  background: var(--color-bg-option, rgba(0,0,0,0.05));
+}
+
+#sandbox-settlement-manager-presets .preset-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+}
+
+#sandbox-settlement-manager-presets .preset-label:has(input:checked) {
+  background: var(--color-bg-btn-minor-hover, rgba(0,0,0,0.1));
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-presets .preset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+#sandbox-settlement-manager-presets .preset-name {
+  font-weight: 600;
+  font-size: var(--font-size-14, 14px);
+}
+
+#sandbox-settlement-manager-presets .preset-desc {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-presets .preset-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* -------------------------------------------- */
+/*  Setup Wizard                                 */
+/* -------------------------------------------- */
+#sandbox-settlement-manager-setup-wizard .ssm-setup-wizard {
+  padding: 0.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0.5rem 0 0.25rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+}
+
+#sandbox-settlement-manager-setup-wizard .step-num {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-12, 12px);
+  font-weight: 700;
+  border: 2px solid var(--color-border-light-tertiary, #ccc);
+  background: var(--color-bg-btn, #f0ede2);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-setup-wizard .step-label {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-secondary, #555);
+  text-align: center;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step--active .step-num {
+  border-color: var(--color-text-hyperlink, #5e0000);
+  background: var(--color-text-hyperlink, #5e0000);
+  color: #fff;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step--active .step-label {
+  color: var(--color-text-hyperlink, #5e0000);
+  font-weight: 600;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step--done .step-num {
+  border-color: var(--color-text-dark-secondary, #555);
+  background: var(--color-text-dark-secondary, #555);
+  color: #fff;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border-light-tertiary, #ccc);
+  margin: 0 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-content {
+  min-height: 200px;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-step-title {
+  margin: 0 0 0.4rem;
+  font-size: var(--font-size-16, 16px);
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-current-config {
+  background: var(--color-bg-option, rgba(0,0,0,0.05));
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0 0.75rem;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-current-config p {
+  margin: 0.15rem 0;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-config-label {
+  font-weight: 600;
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #555);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.4rem !important;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-config-list {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-config-empty {
+  font-style: italic;
+  color: var(--color-text-dark-secondary, #777);
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-configure-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-finish {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-finish-icon {
+  font-size: 3rem;
+  color: var(--color-text-hyperlink, #5e0000);
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-btn-primary {
+  background: var(--color-text-hyperlink, #5e0000);
+  color: #fff;
+  border-color: transparent;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-btn-primary:hover {
+  background: color-mix(in srgb, var(--color-text-hyperlink, #5e0000) 85%, #000);
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-section {
+  margin: 0.75rem 0 0.5rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-select {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-applied {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-bg-option, rgba(0,0,0,0.05));
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 4px;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-applied i.fa-circle-check {
+  color: #3a7d44;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-applied p {
+  margin: 0 0 0.5rem;
+}
+
+#sandbox-settlement-manager-setup-wizard .wizard-preset-choices {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* -------------------------------------------- */
 /*  Merchant inventory actions + sort dialog     */
 /* -------------------------------------------- */
 #sandbox-settlement-manager-sub-type-edit .merchant-inventory-actions {

@@ -1,0 +1,29 @@
+<div class="ssm-presets">
+  <p class="hint">{{localize "SANDBOX_SETTLEMENT_MANAGER.presets.intro"}}</p>
+
+  {{#if presets.length}}
+  <ul class="preset-list">
+    {{#each presets}}
+    <li class="preset-item">
+      <label class="preset-label">
+        <input type="radio" name="preset" value="{{this.file}}">
+        <div class="preset-info">
+          <span class="preset-name">{{this.name}}</span>
+          {{#if this.description}}
+          <span class="preset-desc">{{this.description}}</span>
+          {{/if}}
+        </div>
+      </label>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.presets.none"}}</p>
+  {{/if}}
+
+  <div class="preset-actions">
+    <button type="button" data-action="applyPreset">
+      <i class="fa-solid fa-check"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.presets.applyButton"}}
+    </button>
+  </div>
+</div>

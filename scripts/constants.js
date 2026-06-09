@@ -21,7 +21,8 @@ export const SETTINGS = {
   HOURS_PER_DAY: "hoursPerDay",
   DAYS_PER_WEEK:  "daysPerWeek",
   ITEM_CONFIG:    "itemConfig",
-  GLOBAL_DEPOSITS: "globalDeposits"
+  GLOBAL_DEPOSITS: "globalDeposits",
+  WIZARD_SHOWN:   "wizardShown"
 };
 
 export const LOCATION_TYPE_IDS = {

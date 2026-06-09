@@ -4,6 +4,8 @@ import { LocationTypeConfigApp } from "./location-type-config.js";
 import { CurrencyConfigApp, DEFAULT_CURRENCIES } from "./currency-config.js";
 import { ItemConfigApp } from "./item-config.js";
 import { ImportExportApp } from "./import-export-app.js";
+import { PresetsApp } from "./presets-app.js";
+import { SetupWizardApp } from "./setup-wizard-app.js";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.SETTLEMENT_TYPES, {
@@ -16,10 +18,8 @@ export function registerSettings() {
       })
     ),
     default: [
-      { name: "Hamlet" },
       { name: "Village" },
-      { name: "Small Town" },
-      { name: "Large Town" },
+      { name: "Town" },
       { name: "City" }
     ]
   });
@@ -74,8 +74,15 @@ export function registerSettings() {
     restricted: true
   });
 
-  // Config menus render (in registration order) above the plain settings above.
-  // Order: Import/Export, Currency, Settlement Types, Item, Location Templates.
+  game.settings.register(MODULE_ID, SETTINGS.WIZARD_SHOWN, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  // Config menus render (in registration order) above the plain settings.
+  // Order: Import/Export, Currency, Settlement Types, Item, Location Templates, Presets, Setup Wizard.
   game.settings.registerMenu(MODULE_ID, "importExport", {
     name: "SANDBOX_SETTLEMENT_MANAGER.setting.importExport.name",
     label: "SANDBOX_SETTLEMENT_MANAGER.setting.importExport.label",
@@ -118,6 +125,24 @@ export function registerSettings() {
     hint: "SANDBOX_SETTLEMENT_MANAGER.setting.locationTypeConfig.hint",
     icon: "fa-solid fa-warehouse",
     type: LocationTypeConfigApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "presetsMenu", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.presetsMenu.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.presetsMenu.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.presetsMenu.hint",
+    icon: "fa-solid fa-layer-group",
+    type: PresetsApp,
+    restricted: true
+  });
+
+  game.settings.registerMenu(MODULE_ID, "setupWizard", {
+    name: "SANDBOX_SETTLEMENT_MANAGER.setting.setupWizard.name",
+    label: "SANDBOX_SETTLEMENT_MANAGER.setting.setupWizard.label",
+    hint: "SANDBOX_SETTLEMENT_MANAGER.setting.setupWizard.hint",
+    icon: "fa-solid fa-wand-magic-sparkles",
+    type: SetupWizardApp,
     restricted: true
   });
 }
