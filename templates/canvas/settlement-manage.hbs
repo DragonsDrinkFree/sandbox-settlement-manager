@@ -116,7 +116,7 @@
         <div class="location-detail-tab{{#if this.active}} active{{/if}}">
           <button type="button" class="tab-switch-btn" data-action="switchTab" data-tab-id="{{this.id}}">
             <i class="{{this.icon}}" inert></i>
-            {{this.name}}{{#if this.subTypeName}} &middot; {{this.subTypeName}}{{/if}}
+            {{#if this.subTypeName}}{{this.subTypeName}}{{else}}{{this.name}}{{/if}}
           </button>
           {{#if ../selectedLocation.isGM}}
           <button type="button" class="tab-remove-btn icon" data-action="deleteTypeEntry"
@@ -320,6 +320,9 @@
             <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>
           </div>
           {{/if}}
+          <div class="merchant-filter-row">
+            <input type="text" class="merchant-filter-input" placeholder="Filter items…" autocomplete="off" />
+          </div>
           {{#if this.merchantData.hasGroups}}
           {{#each this.merchantData.groups}}
           <div class="merchant-type-group">
@@ -337,7 +340,7 @@
               </thead>
               <tbody>
                 {{#each this.items}}
-                <tr>
+                <tr{{#if this.isSoldOut}} class="is-sold-out"{{/if}}>
                   {{#if ../../merchantData.isGM}}
                   <td class="ssm-col-controls">
                     <button type="button" class="icon lodging-ctrl-btn" data-action="editMerchantItem"
@@ -383,7 +386,7 @@
             </thead>
             <tbody>
               {{#each this.merchantData.flatInventory}}
-              <tr>
+              <tr{{#if this.isSoldOut}} class="is-sold-out"{{/if}}>
                 {{#if ../merchantData.isGM}}
                 <td class="ssm-col-controls">
                   <button type="button" class="icon lodging-ctrl-btn" data-action="editMerchantItem"

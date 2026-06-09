@@ -522,13 +522,38 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const exchangeSection = this.element.querySelector('.ssm-bank-exchange');
     if (exchangeSection) this.#wireExchangePreview(exchangeSection);
 
-    // Wire merchant drop zone
-    const dropZone = this.element.querySelector(".merchant-drop-zone");
-    if (dropZone) {
+    // Wire merchant drop zone(s)
+    this.element.querySelectorAll(".merchant-drop-zone").forEach(dropZone => {
       dropZone.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dropZone.classList.add("drag-over"); });
       dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
       dropZone.addEventListener("drop",      e => { dropZone.classList.remove("drag-over"); this.#onMerchantDrop(e); });
-    }
+    });
+
+    // Wire merchant inventory filter
+    this.element.querySelectorAll(".merchant-filter-input").forEach(input => {
+      input.addEventListener("input", () => {
+        const q = input.value.trim().toLowerCase();
+        const section = input.closest(".inn-section");
+        if (!section) return;
+        section.querySelectorAll(".merchant-type-group").forEach(group => {
+          let anyVisible = false;
+          group.querySelectorAll("tbody tr").forEach(row => {
+            const name = (row.querySelector(".col-name")?.textContent ?? "").toLowerCase();
+            const match = !q || name.includes(q);
+            row.hidden = !match;
+            if (match) anyVisible = true;
+          });
+          group.hidden = !anyVisible;
+        });
+        section.querySelectorAll(".merchant-inventory-table").forEach(table => {
+          if (table.closest(".merchant-type-group")) return;
+          table.querySelectorAll("tbody tr").forEach(row => {
+            const name = (row.querySelector(".col-name")?.textContent ?? "").toLowerCase();
+            row.hidden = !q || !name.includes(q);
+          });
+        });
+      });
+    });
   }
 
   async _onClose(options) {
@@ -725,7 +750,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
     if (restockDue) {
       for (const item of workingInventory) {
-        if (!(item.stockFormula ?? "").trim()) continue;
+        const hasFormula = !!(item.stockFormula ?? "").trim();
         let avail;
         if (stockType === "x-in-6") {
           const roll = await new Roll("1d6").evaluate();
@@ -733,9 +758,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         } else {
           avail = Math.random() * 100 < (item.stockAvailability ?? 100);
         }
-        item.quantity = avail
-          ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total)
-          : 0;
+        if (hasFormula) {
+          item.quantity = avail
+            ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total)
+            : 0;
+        } else {
+          item.quantity = avail ? null : 0;
+        }
       }
       _needsSave = true;
     }
@@ -770,11 +799,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         id: a.id, label: a.label, value: attrValues[a.id] ?? "—"
       }));
 
-      const hasFormula = !!(item.stockFormula ?? "").trim();
-      const isSoldOut  = hasFormula && item.quantity === 0;
-      const stockLabel = hasFormula
-        ? (item.quantity == null ? "∞" : String(item.quantity))
-        : "∞";
+      const isSoldOut  = item.quantity === 0;
+      const stockLabel = item.quantity == null ? "∞" : String(item.quantity);
 
       if (!groupMap.has(groupKey)) {
         groupMap.set(groupKey, {
@@ -792,25 +818,35 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       ...(groupMap.has(null) ? [groupMap.get(null)] : [])
     ];
 
-    const flatInventory = displayInventory.map(item => {
+    const soldOutLast = (a, b) => (a.isSoldOut ? 1 : 0) - (b.isSoldOut ? 1 : 0);
+    for (const group of groups) {
+      if (isGM) {
+        group.items.sort(soldOutLast);
+      } else {
+        group.items = group.items.filter(i => !i.isSoldOut);
+      }
+    }
+    const visibleGroups = isGM ? groups : groups.filter(g => g.items.length > 0);
+
+    const builtFlat = displayInventory.map(item => {
       let priceLabel = "—";
       if (item.price) {
         const curr = currencies.find(c => c.id === item.price.currencyId);
         priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
       }
-      const hasFormula = !!(item.stockFormula ?? "").trim();
-      const isSoldOut  = hasFormula && item.quantity === 0;
-      const stockLabel = hasFormula
-        ? (item.quantity == null ? "∞" : String(item.quantity))
-        : "∞";
+      const isSoldOut  = item.quantity === 0;
+      const stockLabel = item.quantity == null ? "∞" : String(item.quantity);
       return { ...item, priceLabel, attrCells: [], stockLabel, isSoldOut };
     });
+    const flatInventory = isGM
+      ? builtFlat.sort(soldOutLast)
+      : builtFlat.filter(i => !i.isSoldOut);
 
     const updatedMerchant = { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime };
     if (_needsSave) updatedMerchant.buybackItems = [];
 
     return {
-      groups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,
+      groups: visibleGroups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,
       _needsSave,
       _updatedMerchant: updatedMerchant
     };

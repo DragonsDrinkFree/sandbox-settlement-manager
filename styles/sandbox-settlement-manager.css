@@ -2096,6 +2096,28 @@
 }
 
 /* -------------------------------------------- */
+/*  Merchant Out-of-Stock Rows                  */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-settlement-manage .merchant-inventory-table tr.is-sold-out > td,
+#sandbox-settlement-manager-location-detail .merchant-inventory-table tr.is-sold-out > td {
+  opacity: 0.4;
+}
+
+/* -------------------------------------------- */
+/*  Merchant Inventory Filter                   */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-settlement-manage .merchant-filter-row {
+  padding: 4px 6px 2px;
+}
+
+#sandbox-settlement-manager-settlement-manage .merchant-filter-input {
+  width: 100%;
+  font-size: var(--font-size-12, 12px);
+}
+
+/* -------------------------------------------- */
 /*  Merchant Type Groups                        */
 /* -------------------------------------------- */
 
