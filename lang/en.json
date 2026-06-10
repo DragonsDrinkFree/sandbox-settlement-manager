@@ -576,6 +576,14 @@
       "closeConfirm": "Close Wizard",
       "closeCancel": "Continue Setup"
     },
+    "ledger": {
+      "btn": "Ledger",
+      "title": "Settlement Ledger",
+      "export": "Export CSV",
+      "clear": "Clear Ledger",
+      "total": "Total Transacted",
+      "empty": "No transactions recorded yet."
+    },
     "error": {}
   }
 }

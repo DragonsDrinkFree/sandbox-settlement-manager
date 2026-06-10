@@ -2,8 +2,8 @@
 
   {{!-- LEFT PANE --}}
   <div class="settlement-left-pane">
-    {{#if isGM}}
     <div class="settlement-controls">
+      {{#if isGM}}
       <input type="text" name="settlementName" value="{{settlementName}}"
              placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.manage.settlementNamePlaceholder'}}"
              class="settlement-name-input">
@@ -13,12 +13,24 @@
         <option value="{{value}}"{{#if (eq value ../selectedType)}} selected{{/if}}>{{label}}</option>
         {{/each}}
       </select>
-      <button type="button" data-action="addLocation" class="settlement-add-location-btn">
-        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.add"}}
-      </button>
+      <div class="settlement-action-btns">
+        <button type="button" data-action="addLocation" class="settlement-add-location-btn">
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.add"}}
+        </button>
+        <button type="button" data-action="settlementLedger" class="settlement-ledger-btn">
+          <i class="fa-solid fa-book"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.btn"}}
+        </button>
+      </div>
+      {{else}}
+      {{#if settlementName}}
+      <p class="settlement-name-readonly">{{settlementName}}</p>
+      {{/if}}
+      {{#if selectedType}}
+      <p class="settlement-type-readonly">{{selectedType}}</p>
+      {{/if}}
+      {{/if}}
     </div>
     <hr class="settlement-pane-divider">
-    {{/if}}
     <ul class="settlement-location-list">
       {{#each locations}}
       <li class="settlement-location-row{{#if this.selected}} selected{{/if}}"
@@ -47,7 +59,41 @@
 
   {{!-- RIGHT PANE --}}
   <div class="settlement-right-pane">
-    {{#if selectedLocation}}
+    {{#if showLedger}}
+    <div class="settlement-ledger-view">
+      <div class="settlement-ledger-header">
+        <h3>{{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.title"}}</h3>
+        {{#if hasLedgerEntries}}
+        <div class="settlement-ledger-actions">
+          <button type="button" data-action="exportLedgerCsv">
+            <i class="fa-solid fa-file-csv"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.export"}}
+          </button>
+          <button type="button" data-action="clearLedger">
+            <i class="fa-solid fa-trash"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.clear"}}
+          </button>
+        </div>
+        {{/if}}
+      </div>
+      {{#if ledgerGroups.length}}
+      {{#each ledgerGroups}}
+      <div class="ledger-location-group">
+        <p class="ledger-location-name">{{this.locationName}}</p>
+        {{#each this.entries}}
+        <div class="ledger-row ledger-row--{{this.transactionType}}">
+          <span class="ledger-day">{{this.dayLabel}}</span>
+          <span class="ledger-actor">{{this.actorName}}</span>
+          <span class="ledger-item">{{this.itemName}}{{#if this.qtyLabel}} ({{this.qtyLabel}}){{/if}}</span>
+          <span class="ledger-amount">{{this.amountLabel}}</span>
+        </div>
+        {{/each}}
+      </div>
+      {{/each}}
+      <div class="ledger-total">{{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.total"}}: {{ledgerTotalLabel}}</div>
+      {{else}}
+      <p class="ledger-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.ledger.empty"}}</p>
+      {{/if}}
+    </div>
+    {{else if selectedLocation}}
     <div data-location-id="{{selectedLocation.id}}">
 
       <div class="location-header-row">
@@ -353,7 +399,7 @@
                     </button>
                   </td>
                   {{/if}}
-                  <td class="col-name">{{this.name}}</td>
+                  <td class="col-name">{{#if this.itemId}}<button type="button" class="ssm-item-link" data-uuid="{{this.itemId}}">{{this.name}}</button>{{else}}{{this.name}}{{/if}}</td>
                   {{#each this.attrCells}}<td>{{this.value}}</td>{{/each}}
                   <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
                   <td class="col-stock ssm-col-right">{{this.stockLabel}}</td>
@@ -399,7 +445,7 @@
                   </button>
                 </td>
                 {{/if}}
-                <td class="col-name">{{this.name}}</td>
+                <td class="col-name">{{#if this.itemId}}<button type="button" class="ssm-item-link" data-uuid="{{this.itemId}}">{{this.name}}</button>{{else}}{{this.name}}{{/if}}</td>
                 <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
                 <td class="col-stock ssm-col-right">{{this.stockLabel}}</td>
                 <td class="ssm-col-action">

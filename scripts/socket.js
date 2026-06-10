@@ -4,9 +4,10 @@ import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInSt
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
 export const SOCKET_TYPES = {
-  SAVE_LOCATION:      "saveLocation",
-  RECORD_DEPOSIT:     "recordDeposit",
-  PROCESS_WITHDRAWAL: "processWithdrawal"
+  SAVE_LOCATION:          "saveLocation",
+  RECORD_DEPOSIT:         "recordDeposit",
+  PROCESS_WITHDRAWAL:     "processWithdrawal",
+  RECORD_LEDGER_ENTRIES:  "recordLedgerEntries"
 };
 
 export function registerSocketHandlers() {
@@ -23,6 +24,8 @@ export function registerSocketHandlers() {
       await _handleRecordDeposit(data);
     } else if (data.type === SOCKET_TYPES.PROCESS_WITHDRAWAL) {
       await _handleProcessWithdrawal(data);
+    } else if (data.type === SOCKET_TYPES.RECORD_LEDGER_ENTRIES) {
+      await _handleRecordLedgerEntries(data);
     }
   });
 }
@@ -128,6 +131,14 @@ export async function _handleProcessWithdrawal({
   }
 
   _refreshBankApps();
+}
+
+/** GM-side: append ledger entries to the scene flag. */
+async function _handleRecordLedgerEntries({ sceneId, entries }) {
+  const scene = game.scenes.get(sceneId);
+  if (!scene || !entries?.length) return;
+  const existing = scene.getFlag(MODULE_ID, FLAGS.LEDGER) ?? [];
+  await scene.setFlag(MODULE_ID, FLAGS.LEDGER, [...existing, ...entries]);
 }
 
 /** Consolidate multiple matured deposits for each actor into one record. */

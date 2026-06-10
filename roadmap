@@ -1,10 +1,2 @@
-
-## Error: Global Banks
-Uncaught (in promise) TypeError: game.world.getFlag is not a function
-    at #buildBankData (settlement-manage-app.js:286:21)
-    at settlement-manage-app.js:198:51
-    at Array.map (<anonymous>)
-    at #buildSelectedLocationContext (settlement-manage-app.js:181:44)
-    at SettlementManageApp._prepareContext (settlement-manage-app.js:125:72)
-    at async #render (foundry.mjs:30419:21)
-    at async #try (foundry.mjs:7635:17)
+User Player2 lacks permission to update Scene [5ewgBkd3iM14aRcH] foundry.mjs:144098:18
+Uncaught (in promise) Error: User Player2 lacks permission to update Scene [5ewgBkd3iM14aRcH]

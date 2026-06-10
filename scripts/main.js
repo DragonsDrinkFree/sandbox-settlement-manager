@@ -38,6 +38,10 @@ Hooks.once("init", () => {
   });
 });
 
+Hooks.on("canvasReady", () => {
+  foundry.applications.instances.get(`${MODULE_ID}-settlement-manage`)?.close({ animate: false });
+});
+
 Hooks.once("ready", async () => {
   console.log(`${MODULE_ID} | Ready`);
   registerSocketHandlers();

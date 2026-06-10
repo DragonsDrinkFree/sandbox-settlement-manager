@@ -62,6 +62,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   _bankActorId   = null;
   _sceneUpdateHook = null;
   _worldTimeHook   = null;
+  _showLedger = false;
   #pickerAbort = null;
   #pickerDropdown = null;
 
@@ -99,7 +100,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       depositCoins:           SettlementManageApp.#onDepositCoins,
       withdrawDeposit:        SettlementManageApp.#onWithdrawDeposit,
       overrideBankSettings:   SettlementManageApp.#onOverrideBankSettings,
-      resetBankSettings:      SettlementManageApp.#onResetBankSettings
+      resetBankSettings:      SettlementManageApp.#onResetBankSettings,
+      settlementLedger:       SettlementManageApp.#onSettlementLedger,
+      clearLedger:            SettlementManageApp.#onClearLedger,
+      exportLedgerCsv:        SettlementManageApp.#onExportLedgerCsv
     }
   };
 
@@ -122,7 +126,44 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       .map(t => ({ value: t.name, label: t.name }));
     context.selectedType = scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
     context.locations    = this.#enrichLocations(isGM);
-    context.selectedLocation = await this.#buildSelectedLocationContext(currencies, isGM);
+    context.showLedger = this._showLedger;
+    if (this._showLedger) {
+      const { hoursPerDay } = getWorldTimeConfig();
+      const secondsPerDay = hoursPerDay * 3600;
+      const rawLedger = scene?.getFlag(MODULE_ID, FLAGS.LEDGER) ?? [];
+      const byLoc = new Map();
+      for (const e of rawLedger) {
+        const key = e.locationId ?? '';
+        if (!byLoc.has(key)) byLoc.set(key, { locationName: e.locationName || '(Unknown)', entries: [] });
+        byLoc.get(key).entries.push(e);
+      }
+      const sc = currencies.find(c => c.isStandard);
+      const stdRate = parseExchangeRate(sc?.exchangeRate ?? "1:1");
+      context.ledgerGroups = [...byLoc.values()].map(g => ({
+        locationName: g.locationName,
+        entries: g.entries.map(e => {
+          const curr = currencies.find(c => c.id === e.currencyId);
+          const isSell = e.transactionType === 'sellItem';
+          const absAmt = Math.abs(e.amount);
+          const qtyLabel = e.quantityUnit
+            ? `${e.quantity} ${e.quantityUnit}`
+            : (e.quantity > 1 ? `×${e.quantity}` : '');
+          return {
+            ...e,
+            amountLabel: `${isSell ? '−' : ''}${absAmt} ${curr?.abbreviation ?? '?'}`,
+            dayLabel: `Day ${Math.floor(e.timestamp / secondsPerDay) + 1}`,
+            qtyLabel
+          };
+        })
+      }));
+      const totalStd = rawLedger.reduce((s, e) => s + e.standardAmount, 0);
+      const totalBreakdown = calculateChange(Math.abs(totalStd), currencies, stdRate);
+      context.ledgerTotalLabel = (totalBreakdown && Object.values(totalBreakdown).some(v => v > 0))
+        ? formatAmounts(totalBreakdown, currencies)
+        : (sc ? `${Math.ceil(Math.abs(totalStd))} ${sc.abbreviation}` : '—');
+      context.hasLedgerEntries = rawLedger.length > 0;
+    }
+    context.selectedLocation = this._showLedger ? null : await this.#buildSelectedLocationContext(currencies, isGM);
     return context;
   }
 
@@ -254,6 +295,12 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const ownedActors = game.actors
       .filter(a => a.isOwner && a.hasPlayerOwner)
       .map(a => ({ id: a.id, name: a.name }));
+    if (!this._bankActorId) {
+      const defaultActor = game.user.character
+        ?? game.actors.find(a => a.isOwner && a.hasPlayerOwner)
+        ?? null;
+      if (defaultActor) this._bankActorId = defaultActor.id;
+    }
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const mode = currencyConfig.mode ?? 'loose';
     const actor = this._bankActorId ? game.actors.get(this._bankActorId) : null;
@@ -521,6 +568,14 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     // Wire bank exchange live preview
     const exchangeSection = this.element.querySelector('.ssm-bank-exchange');
     if (exchangeSection) this.#wireExchangePreview(exchangeSection);
+
+    // Wire merchant item sheet links
+    this.element.querySelectorAll(".ssm-item-link[data-uuid]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const item = await fromUuid(btn.dataset.uuid).catch(() => null);
+        item?.sheet?.render(true);
+      });
+    });
 
     // Wire merchant drop zone(s)
     this.element.querySelectorAll(".merchant-drop-zone").forEach(dropZone => {
@@ -988,6 +1043,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     this._activeTab    = null;
     this._sellTabActive = false;
     this._sellActorId   = null;
+    this._showLedger    = false;
     this.render({ parts: ["content"] });
   }
 
@@ -1601,5 +1657,42 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     }
 
     this.render({ parts: ["content"] });
+  }
+
+  // ------------------------------------------------------------------ ledger actions
+
+  static #onSettlementLedger() {
+    this._showLedger = true;
+    this._selectedLocationId = null;
+    this.render({ parts: ["content"] });
+  }
+
+  static async #onClearLedger() {
+    await canvas.scene?.setFlag(MODULE_ID, FLAGS.LEDGER, []);
+    this.render({ parts: ["content"] });
+  }
+
+  static #onExportLedgerCsv() {
+    const rawLedger = canvas.scene?.getFlag(MODULE_ID, FLAGS.LEDGER) ?? [];
+    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+    const header = 'Day,Location,Actor,Type,Item,Qty,Amount,Currency\n';
+    const rows = rawLedger.map(e => {
+      const curr = currencies.find(c => c.id === e.currencyId);
+      const day = Math.floor(e.timestamp / secondsPerDay) + 1;
+      const qty = e.quantityUnit ? `${e.quantity} ${e.quantityUnit}` : e.quantity;
+      return [day, e.locationName, e.actorName, e.transactionType, e.itemName, qty, e.amount, curr?.abbreviation ?? e.currencyId]
+        .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`)
+        .join(',');
+    });
+    const csv = header + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'settlement-ledger.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

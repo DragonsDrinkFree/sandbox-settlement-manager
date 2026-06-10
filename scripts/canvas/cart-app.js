@@ -225,18 +225,57 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const expense = { id: 'cart-total', name: game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.cart.title'), ...total };
       const result = await PurchaseDialog.open({ expense, currencies, mode });
       if (!result) return;
+      await CartApp.#recordLedgerEntries(items, result.actorId, currencies);
       await CartApp.#processFulfillments(items, result.actorId, currencies, mode);
     } else if (netStd < -1e-9) {
       // Merchant owes player — grant currency constrained to settlement denomination
       await grantStandardToActor(game.actors.get(actorId), Math.abs(netStd), currencies, mode, maxDenomValue);
+      await CartApp.#recordLedgerEntries(items, actorId, currencies);
       await CartApp.#processFulfillments(items, actorId, currencies, mode);
     } else {
       // Balanced — just fulfill both sides
       if (!items.length) return;
+      await CartApp.#recordLedgerEntries(items, actorId, currencies);
       await CartApp.#processFulfillments(items, actorId, currencies, mode);
     }
 
     cartManager.clear();
+  }
+
+  static async #recordLedgerEntries(items, actorId, currencies) {
+    const scene = canvas.scene;
+    if (!scene) return;
+    const actorName = actorId ? (game.actors.get(actorId)?.name ?? '') : '';
+    const now = game.time.worldTime;
+    const entries = [];
+    for (const item of items) {
+      const lineTotal = cartManager.computeLineTotal(item, currencies);
+      if (!lineTotal) continue;
+      const std = costInStandard(lineTotal, currencies);
+      const isSell = item.type === 'sellItem';
+      entries.push({
+        id:             foundry.utils.randomID(),
+        timestamp:      now,
+        locationId:     item.locationId ?? null,
+        locationName:   item.locationName ?? '',
+        actorId:        isSell ? (item.actorId ?? actorId) : actorId,
+        actorName:      isSell ? (game.actors.get(item.actorId)?.name ?? actorName) : actorName,
+        itemName:       item.itemName ?? item.lodgingName ?? '',
+        quantity:       item.quantity ?? item.duration ?? 1,
+        quantityUnit:   item.unit ?? null,
+        amount:         lineTotal.amount,
+        currencyId:     lineTotal.currencyId,
+        standardAmount: isSell ? -std : std,
+        transactionType: item.type
+      });
+    }
+    if (!entries.length) return;
+    if (game.user.isGM) {
+      const existing = scene.getFlag(MODULE_ID, FLAGS.LEDGER) ?? [];
+      await scene.setFlag(MODULE_ID, FLAGS.LEDGER, [...existing, ...entries]);
+    } else {
+      game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.RECORD_LEDGER_ENTRIES, sceneId: scene.id, entries });
+    }
   }
 
   /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */

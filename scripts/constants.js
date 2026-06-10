@@ -10,7 +10,8 @@ export const FLAGS = {
   SETTLEMENT_NAME: "settlementName",
   SETTLEMENT_TYPE: "settlementType",
   LOCATIONS: "locations",
-  GLOBAL_DEPOSITS: "globalDeposits"
+  GLOBAL_DEPOSITS: "globalDeposits",
+  LEDGER: "ledger"
 };
 
 /** Setting keys registered via game.settings.register. Usage: game.settings.get(MODULE_ID, SETTINGS.KEY) */

@@ -329,10 +329,27 @@
   width: 100%;
 }
 
-#sandbox-settlement-manager-settlement-manage .settlement-add-location-btn {
+#sandbox-settlement-manager-settlement-manage .settlement-name-readonly {
+  margin: 0;
+  font-weight: bold;
+  font-size: var(--font-size-14, 14px);
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-type-readonly {
+  margin: 0;
   font-size: var(--font-size-12, 12px);
-  padding: 0.25rem 0.5rem;
-  align-self: flex-start;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-action-btns {
+  display: flex;
+  gap: 0.35rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-add-location-btn {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.2rem 0.4rem;
+  flex: 1;
 }
 
 #sandbox-settlement-manager-settlement-manage .settlement-pane-divider {
@@ -2515,10 +2532,16 @@
   margin-top: 0.2rem;
 }
 
-#sandbox-settlement-manager-cart .ssm-item-link {
+#sandbox-settlement-manager-cart .ssm-item-link,
+#sandbox-settlement-manager-settlement-manage .ssm-item-link {
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
   text-decoration: underline;
   color: var(--color-text-hyperlink, #6699cc);
+  font: inherit;
+  text-align: left;
 }
 
 /* -------------------------------------------- */
@@ -3517,5 +3540,111 @@ hr.ssm-settings-divider {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--color-border-light-secondary, #ccc);
+}
+
+/* -------------------------------------------- */
+/*  Settlement Ledger                            */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-settlement-manage .settlement-ledger-btn {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.2rem 0.4rem;
+  flex: 1;
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-ledger-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-ledger-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .settlement-ledger-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-location-group {
+  margin-bottom: 0.75rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-location-name {
+  margin: 0 0 0.25rem;
+  padding: 0.2rem 0.4rem;
+  font-weight: bold;
+  font-size: 0.85rem;
+  background: var(--color-bg-option, rgba(0,0,0,0.06));
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-row:nth-child(even) {
+  background: rgba(0,0,0,0.03);
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-day {
+  min-width: 4rem;
+  color: var(--color-text-light-secondary, #888);
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-actor {
+  min-width: 6rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-item {
+  flex: 1;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-amount {
+  min-width: 5rem;
+  text-align: right;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-row--sellItem .ledger-amount {
+  color: #4a8f4a;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-total {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light-secondary, #ccc);
+  font-weight: bold;
+  text-align: right;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .ledger-empty {
+  color: var(--color-text-light-secondary, #888);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
 }
 
