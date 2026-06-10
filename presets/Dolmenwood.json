@@ -1,7 +1,7 @@
 {
   "module": "sandbox-settlement-manager",
   "version": 1,
-  "exportedAt": "2026-06-09T16:22:25.626Z",
+  "exportedAt": "2026-06-10T16:17:11.722Z",
   "data": {
     "settlementTypes": [
       {
@@ -124,6 +124,11 @@
               "id": "aNJ1ThsOaZSlxZsU",
               "label": "bulk",
               "path": "system.bulk"
+            },
+            {
+              "id": "4jIolPz46MBOTCDA",
+              "label": "weightCoins",
+              "path": "system.weightCoins"
             }
           ]
         },
@@ -141,21 +146,6 @@
               "id": "yy3qt1CTgJu8GBEZ",
               "label": "qualities",
               "path": "system.qualities"
-            },
-            {
-              "id": "ds3XeP7OrrLRXfZ1",
-              "label": "rangeLong",
-              "path": "system.rangeLong"
-            },
-            {
-              "id": "Uus4zrWNSQivbpuZ",
-              "label": "rangeMedium",
-              "path": "system.rangeMedium"
-            },
-            {
-              "id": "2FnskwrWiAYjq7GS",
-              "label": "rangeShort",
-              "path": "system.rangeShort"
             },
             {
               "id": "mi12VOtCcp0pL6Y7",
