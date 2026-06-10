@@ -43,10 +43,20 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const settlementMaxDenomValue = getSettlementMaxDenomValue(currencies);
 
+    // Cap totals at the standard currency denomination unless an item is explicitly priced higher.
+    const standardRate = parseExchangeRate(currencies.find(c => c.isStandard)?.exchangeRate ?? "1:1");
+    let cartMaxDenomRate = standardRate;
+    for (const item of rawItems) {
+      if (item.type === 'sellItem' || item.type === 'exchange') continue;
+      const lt = cartManager.computeLineTotal(item, currencies);
+      if (!lt) continue;
+      const curr = currencies.find(c => c.id === lt.currencyId);
+      if (curr) cartMaxDenomRate = Math.max(cartMaxDenomRate, parseExchangeRate(curr.exchangeRate));
+    }
+
     const formatStandard = (std) => {
       if (std <= 0) return '—';
-      const maxRate = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
-      const breakdown = calculateChange(std, currencies, maxRate);
+      const breakdown = calculateChange(std, currencies, cartMaxDenomRate);
       if (breakdown && Object.values(breakdown).some(v => v > 0)) return formatAmounts(breakdown, currencies);
       const sc = currencies.find(c => c.isStandard);
       return sc ? `${Math.ceil(std)} ${sc.abbreviation}` : '—';

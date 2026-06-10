@@ -1,8 +1,8 @@
 {
   "id": "sandbox-settlement-manager",
   "title": "Sandbox Settlement Manager",
-  "description": "A GM toolkit for managing living settlements in sandbox campaigns — track factions, NPCs, rumours, and district events across sessions.",
-  "version": "0.1.0",
+  "description": "A GM toolkit for managing Settlements in A Sandbox Campaign.",
+  "version": "0.8.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14.363"
