@@ -21,8 +21,12 @@
 
   <div class="random-fields form-group-stack">
     <div class="form-group">
-      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.drawCount"}}</label>
-      <input type="number" name="drawCount" value="{{course.drawCount}}" min="1" step="1">
+      <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.drawCountRange"}}</label>
+      <div class="draw-count-range">
+        <input type="number" name="drawCountMin" value="{{course.drawCountMin}}" min="1" step="1">
+        <span>–</span>
+        <input type="number" name="drawCountMax" value="{{course.drawCountMax}}" min="1" step="1">
+      </div>
     </div>
     <div class="form-group">
       <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.refreshCadence"}}</label>

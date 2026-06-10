@@ -325,6 +325,7 @@
         "price": "Standard Price",
         "priceNone": "No default price",
         "drawCount": "Items Drawn",
+        "drawCountRange": "Draw Count (min – max)",
         "refreshCadence": "Refreshes",
         "cadenceDaily": "Daily",
         "cadenceWeekly": "Weekly",
@@ -332,7 +333,17 @@
         "noItems": "No items. Click Add Item to begin.",
         "addItem": "Add Item",
         "removeItemTitle": "Remove Item",
-        "removeItemConfirm": "Remove <strong>{name}</strong> from this course?"
+        "removeItemConfirm": "Remove <strong>{name}</strong> from this course?",
+        "copyFromTemplate": "Copy from Template",
+        "copyFromTemplateTitle": "Copy Courses from Template",
+        "copySource": "Source Template",
+        "copyBtn": "Copy Courses",
+        "noTemplateSources": "No other inn templates with courses found.",
+        "importFromTable": "Import from Table",
+        "importFromTableTitle": "Import Course from Roll Table",
+        "tableSource": "Roll Table",
+        "importBtn": "Import",
+        "noRollTables": "No roll tables found in this world."
       },
       "restore": {
         "title": "Restore from Template",

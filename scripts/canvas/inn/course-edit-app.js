@@ -61,7 +61,8 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       course: {
         name:            this._course.name            ?? "",
         mode:            this._course.mode            ?? "static",
-        drawCount:       this._course.drawCount       ?? 3,
+        drawCountMin:    this._course.drawCountMin    ?? this._course.drawCount ?? 1,
+        drawCountMax:    this._course.drawCountMax    ?? this._course.drawCount ?? 3,
         refreshCadence:  this._course.refreshCadence  ?? "daily",
         price: {
           currencyId: this._course.price?.currencyId ?? defaultCurrencyId,
@@ -124,7 +125,11 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!el) return;
     this._course.name           = (el.querySelector('[name="name"]')?.value ?? "").trim();
     this._course.mode           = el.querySelector('[name="mode"]:checked')?.value === "random" ? "random" : "static";
-    this._course.drawCount      = Math.max(1, parseInt(el.querySelector('[name="drawCount"]')?.value) || 1);
+    const dcMin = Math.max(1, parseInt(el.querySelector('[name="drawCountMin"]')?.value) || 1);
+    const dcMax = Math.max(dcMin, parseInt(el.querySelector('[name="drawCountMax"]')?.value) || dcMin);
+    this._course.drawCountMin   = dcMin;
+    this._course.drawCountMax   = dcMax;
+    this._course.drawCount      = dcMax;
     this._course.refreshCadence = el.querySelector('[name="refreshCadence"]:checked')?.value === "weekly" ? "weekly" : "daily";
     const hasCoursePrice        = !!el.querySelector('[name="hasCoursePrice"]')?.checked;
     this._course.price = hasCoursePrice ? {
@@ -194,7 +199,9 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       currencyId: formData.object.priceCurrencyId ?? "",
       amount:     parseFloat(formData.object.priceAmount) || 0
     } : null;
-    const drawCount      = Math.max(1, parseInt(formData.object.drawCount) || 1);
+    const drawCountMin   = Math.max(1, parseInt(formData.object.drawCountMin) || 1);
+    const drawCountMax   = Math.max(drawCountMin, parseInt(formData.object.drawCountMax) || drawCountMin);
+    const drawCount      = drawCountMax;
     const refreshCadence = formData.object.refreshCadence === "weekly" ? "weekly" : "daily";
 
     const resolve = this._resolve;
@@ -205,6 +212,8 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       mode,
       price,
       drawCount,
+      drawCountMin,
+      drawCountMax,
       refreshCadence,
       items:          mode === "static"  ? (this._course.items  ?? []) : [],
       pool:           mode === "random"  ? (this._course.pool   ?? []) : [],

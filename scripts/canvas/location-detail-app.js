@@ -301,7 +301,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         const due = (course.lastRefreshed ?? 0) + cadenceSecs;
         if (worldTime >= due && (course.pool ?? []).length > 0) {
           const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
-          course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
+          const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
+          const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
+          const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
+          course.drawnItems    = shuffled.slice(0, Math.min(dcCount, shuffled.length));
           course.lastRefreshed = worldTime;
           _needsSave = true;
         }
@@ -775,7 +778,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course || course.mode !== "random") return;
     const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
-    course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
+    const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
+    const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
+    const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
+    course.drawnItems    = shuffled.slice(0, Math.min(dcCount, shuffled.length));
     course.lastRefreshed = game.time.worldTime;
     await this.#saveEntryData(this._activeTab, innData);
   }
@@ -939,6 +945,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onEditPurchasingProfile() {
     if (!game.user.isGM) return;
     await PurchasingProfileEditApp.open(this._location);
+    this.render({ parts: ["content"] });
   }
 
   static async #onDepositCoins() {

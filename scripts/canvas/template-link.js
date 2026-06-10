@@ -11,7 +11,7 @@
 /** Template-authored field lists per linked record type (runtime-only fields excluded). */
 export const TEMPLATE_FIELDS = {
   lodging:      ["name", "beds", "infinite", "pricePerDay", "pricePerWeek", "autoWeekly"],
-  course:       ["name", "mode", "price", "drawCount", "refreshCadence", "items", "pool"],
+  course:       ["name", "mode", "price", "drawCount", "drawCountMin", "drawCountMax", "refreshCadence", "items", "pool"],
   merchantItem: ["name", "itemId", "minSettlementSize", "stockAvailability", "stockFormula", "price"],
   bank:         ["doesExchange", "exchangeFee", "depositSettings"]
 };

@@ -97,7 +97,7 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim();
     if (!name) return;
-    const beds = Math.max(1, parseInt(formData.object.beds) || 1);
+    const beds = parseInt(formData.object.beds) || 0;
     const infinite = !!formData.object.infinite;
     const pricePerDay = {
       currencyId: formData.object.pricePerDayCurrencyId ?? "",

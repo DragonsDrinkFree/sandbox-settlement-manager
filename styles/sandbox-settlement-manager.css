@@ -1543,6 +1543,16 @@
   margin-top: 0.2rem;
 }
 
+#sandbox-settlement-manager-course-edit .draw-count-range {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-course-edit .draw-count-range input {
+  width: 4rem;
+}
+
 /* Sub-type edit — type select row */
 #sandbox-settlement-manager-sub-type-edit .template-type-row {
   display: flex;

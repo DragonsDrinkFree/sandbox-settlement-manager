@@ -62,6 +62,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addCourse:                  SubTypeEditApp.#onAddCourse,
       editCourse:                 SubTypeEditApp.#onEditCourse,
       deleteCourse:               SubTypeEditApp.#onDeleteCourse,
+      copyCoursesFromTemplate:    SubTypeEditApp.#onCopyCoursesFromTemplate,
+      importFromRollTable:        SubTypeEditApp.#onImportFromRollTable,
       addTemplateInventoryItem:   SubTypeEditApp.#onAddTemplateInventoryItem,
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
       sortInventory:              SubTypeEditApp.#onSortInventory,
@@ -278,7 +280,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       id:           row.dataset.lodgingId || foundry.utils.randomID(),
       name:         (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-      beds:         Math.max(1, parseInt(row.querySelector('[data-field="beds"]')?.value) || 1),
+      beds:         parseInt(row.querySelector('[data-field="beds"]')?.value) || 0,
       availability: (avStr !== "" && Number.isFinite(avInt)) ? avInt : null,
       pricePerDay: {
         currencyId: pdCurrencyId,
@@ -293,6 +295,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #syncTemplateInventoryFromDOM() {
     const rows = this.element?.querySelectorAll('.merchant-inventory-row') ?? [];
+    if (!rows.length && this._templateInventory.length) return;
     this._templateInventory = [...rows].map(row => ({
       id:               row.dataset.inventoryItemId || foundry.utils.randomID(),
       name:             (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
@@ -438,6 +441,91 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static async #onCopyCoursesFromTemplate() {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const allTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? [];
+    const sourceTypes = allTypes.filter(t =>
+      t.id !== this._typeId &&
+      t._templateTypeId === LOCATION_TYPE_IDS.INN &&
+      (t.typeData?.menu?.courses?.length ?? 0) > 0
+    );
+    if (!sourceTypes.length) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.noTemplateSources"));
+      return;
+    }
+    const options = sourceTypes.map(t =>
+      `<option value="${t.id}">${t.name} (${t.typeData.menu.courses.length} courses)</option>`
+    ).join("");
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.copyFromTemplateTitle") },
+      content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.copySource")}</label><select name="sourceTypeId">${options}</select></div>`,
+      ok: {
+        label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.copyBtn"),
+        callback: (event, btn, html) => html.querySelector('[name="sourceTypeId"]')?.value
+      }
+    });
+    if (!result) return;
+    const source = sourceTypes.find(t => t.id === result);
+    if (!source) return;
+    const copies = (source.typeData.menu.courses ?? []).map(c => ({
+      ...foundry.utils.deepClone(c),
+      id: foundry.utils.randomID(),
+      templateItemId: null,
+      _templateValues: null
+    }));
+    this._menu.courses.push(...copies);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onImportFromRollTable() {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const tables = [...(game.tables ?? [])];
+    if (!tables.length) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.noRollTables"));
+      return;
+    }
+    const options = tables.map(t =>
+      `<option value="${t.id}">${t.name} (${t.results.size} results)</option>`
+    ).join("");
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.importFromTableTitle") },
+      content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.tableSource")}</label><select name="tableId">${options}</select></div>`,
+      ok: {
+        label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.importBtn"),
+        callback: (event, btn, html) => html.querySelector('[name="tableId"]')?.value
+      }
+    });
+    if (!result) return;
+    const table = game.tables.get(result);
+    if (!table?.results?.size) return;
+    const pool = [...table.results].map(r => ({
+      id:          foundry.utils.randomID(),
+      name:        r.text ?? "",
+      description: r.description ?? "",
+      price:       null
+    }));
+    const drawMax = Math.min(3, pool.length);
+    this._menu.courses.push({
+      id:             foundry.utils.randomID(),
+      name:           table.name,
+      mode:           "random",
+      drawCountMin:   1,
+      drawCountMax:   drawMax,
+      drawCount:      drawMax,
+      refreshCadence: "daily",
+      price:          null,
+      items:          [],
+      pool,
+      drawnItems:     [],
+      lastRefreshed:  null,
+      templateItemId: null,
+      _templateValues: null
+    });
+    this.render({ parts: ["form"] });
+  }
+
   static #onAddTemplateInventoryItem() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
@@ -547,23 +635,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
-      const rows = form.querySelectorAll('.merchant-inventory-row');
-      const inventory = [...rows]
-        .map(row => ({
-          id:                row.dataset.inventoryItemId || foundry.utils.randomID(),
-          name:              (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-          itemId:            row.dataset.itemUuid ?? null,
-          itemType:          row.dataset.itemType ?? null,
-          minSettlementSize:       (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
-          stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
-          stockFormula:      (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
-          price: {
-            currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? "",
-            amount:     parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
-          }
-        }))
-        .filter(item => item.name);
-      result.typeData = { merchant: { stockType, restockFrequency, inventory, purchasingProfile: this._purchasingProfile } };
+      this.#syncTemplateInventoryFromDOM();
+      result.typeData = { merchant: { stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile } };
     }
     result._templateTypeId = typeId;
 

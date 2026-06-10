@@ -45,7 +45,7 @@
                      title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.availabilityHint'}}">
             </td>
             <td class="col-num">
-              <input type="number" data-field="beds" value="{{this.beds}}" min="1" step="1"
+              <input type="number" data-field="beds" value="{{this.beds}}" step="1"
                      class="lodging-num-input">
             </td>
             <td class="col-price">
@@ -113,6 +113,12 @@
       {{/each}}
       <button type="button" data-action="addCourse" class="course-add-btn">
         <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.addTitle"}}
+      </button>
+      <button type="button" data-action="copyCoursesFromTemplate" class="course-add-btn">
+        <i class="fa-solid fa-copy"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.copyFromTemplate"}}
+      </button>
+      <button type="button" data-action="importFromRollTable" class="course-add-btn">
+        <i class="fa-solid fa-table-list"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.importFromTable"}}
       </button>
     </fieldset>
   </div>
