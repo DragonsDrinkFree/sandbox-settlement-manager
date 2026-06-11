@@ -25,7 +25,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this._currencies = currencies;
     this._mode = mode;
     this._actor = game.user.character
-      ?? game.actors.find(a => a.testUserPermission(game.user, "OWNER"))
+      ?? game.actors.find(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"))
       ?? null;
   }
 
@@ -54,7 +54,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const isAttributeOrItem = this._mode !== "loose";
-    const ownedActors = game.actors.filter(a => a.testUserPermission(game.user, "OWNER"));
+    const ownedActors = game.actors.filter(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"));
     const costCurrency = this._currencies.find(c => c.id === this._expense.currencyId);
     const balance = {};
     if (this._actor && isAttributeOrItem) {

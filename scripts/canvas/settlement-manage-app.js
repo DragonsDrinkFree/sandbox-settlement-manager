@@ -910,7 +910,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   async #buildSellData(location, currencies, isGM, effectiveProfile) {
     const hasConflicts = effectiveProfile.some(r => r._conflicted || r._buybackConflicted);
 
-    const ownedActors = game.actors.filter(a => a.testUserPermission(game.user, "OWNER"));
+    const ownedActors = game.actors.filter(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"));
     const defaultActor = (this._sellActorId ? game.actors.get(this._sellActorId) : null)
       ?? game.user.character
       ?? ownedActors[0]

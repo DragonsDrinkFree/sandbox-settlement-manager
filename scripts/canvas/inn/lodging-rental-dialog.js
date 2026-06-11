@@ -37,7 +37,7 @@ export class LodgingRentalDialog extends HandlebarsApplicationMixin(ApplicationV
   }
 
   async _prepareContext(options) {
-    const ownedActors = game.actors.filter(a => a.testUserPermission(game.user, "OWNER"));
+    const ownedActors = game.actors.filter(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"));
     const defaultActor = game.user.character ?? ownedActors[0] ?? null;
     const { daysPerWeek } = getWorldTimeConfig();
     const weeklyAmount = this._lodging.pricePerWeek?.amount
