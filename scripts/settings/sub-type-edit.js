@@ -444,10 +444,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCopyCoursesFromTemplate() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
-    const allTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? [];
-    const sourceTypes = allTypes.filter(t =>
+    const allTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+    const sourceTypes = (allTypes.inn ?? []).filter(t =>
       t.id !== this._typeId &&
-      t._templateTypeId === LOCATION_TYPE_IDS.INN &&
       (t.typeData?.menu?.courses?.length ?? 0) > 0
     );
     if (!sourceTypes.length) {
@@ -462,7 +461,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.copySource")}</label><select name="sourceTypeId">${options}</select></div>`,
       ok: {
         label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.copyBtn"),
-        callback: (event, btn, html) => html.querySelector('[name="sourceTypeId"]')?.value
+        callback: (event, btn) => btn.form.querySelector('[name="sourceTypeId"]')?.value
       }
     });
     if (!result) return;
@@ -494,7 +493,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.tableSource")}</label><select name="tableId">${options}</select></div>`,
       ok: {
         label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.importBtn"),
-        callback: (event, btn, html) => html.querySelector('[name="tableId"]')?.value
+        callback: (event, btn) => btn.form.querySelector('[name="tableId"]')?.value
       }
     });
     if (!result) return;
@@ -502,7 +501,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!table?.results?.size) return;
     const pool = [...table.results].map(r => ({
       id:          foundry.utils.randomID(),
-      name:        r.text ?? "",
+      name:        r.name ?? "",
       description: r.description ?? "",
       price:       null
     }));
