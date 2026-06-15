@@ -28,7 +28,8 @@
           "exchangeRate": "1:1",
           "attributePath": "",
           "itemId": "Item.r0bdxDhXyX27Ipdn",
-          "itemName": "[01.00] Gold (gp)"
+          "itemName": "[01.00] Gold (gp)",
+          "quantityPath": "system.quantity.value"
         },
         {
           "id": "silver",
@@ -38,7 +39,8 @@
           "exchangeRate": "1:10",
           "attributePath": "",
           "itemId": "Item.lsgrjKGf6TraxSha",
-          "itemName": "[00.10] Silver (sp)"
+          "itemName": "[00.10] Silver (sp)",
+          "quantityPath": "system.quantity.value"
         },
         {
           "id": "copper",
@@ -48,7 +50,8 @@
           "exchangeRate": "1:100",
           "attributePath": "",
           "itemId": "Item.qCuLtVVDBzFyVFtc",
-          "itemName": "[00.01] Copper (cp)"
+          "itemName": "[00.01] Copper (cp)",
+          "quantityPath": "system.quantity.value"
         },
         {
           "id": "YSURJEdhME6NX7Kk",
@@ -58,7 +61,8 @@
           "exchangeRate": "10:1",
           "attributePath": "",
           "itemId": "Item.7xig7YmC0NqcootP",
-          "itemName": "[10.00] Platinum (pp)"
+          "itemName": "[10.00] Platinum (pp)",
+          "quantityPath": "system.quantity.value"
         }
       ]
     },

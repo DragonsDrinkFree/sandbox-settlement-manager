@@ -167,6 +167,8 @@
       "itemSearchPlaceholder": "Search world items...",
       "itemHint": "Search and select the item document that represents this currency.",
       "itemClear": "Clear",
+      "quantityPathLabel": "Quantity Path Override",
+      "quantityPathHint": "Leave blank to use system.quantity. Set to e.g. system.quantity.value for systems that store quantity as a nested object.",
       "standardBadge": "Standard",
       "empty": "No currencies defined.",
       "add": "Add Currency",

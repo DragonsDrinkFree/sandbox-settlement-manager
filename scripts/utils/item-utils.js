@@ -18,13 +18,15 @@ export function readItemPrice(item, currencies) {
   const standardCurrency = currencies.find(c => c.isStandard) ?? currencies[0] ?? null;
 
   if (priceFormat === 'simple') {
-    const amount = parseFloat(foundry.utils.getProperty(item, priceAttribute)) || 0;
+    const raw = foundry.utils.getProperty(item, priceAttribute);
+    const amount = parseFloat(raw !== null && typeof raw === 'object' && 'value' in raw ? raw.value : raw) || 0;
     if (amount <= 0) return null;
     return { amount, currencyId: standardCurrency?.id ?? null };
   }
 
   if (priceFormat === 'denomination-field') {
-    const amount = parseFloat(foundry.utils.getProperty(item, priceAttribute)) || 0;
+    const raw = foundry.utils.getProperty(item, priceAttribute);
+    const amount = parseFloat(raw !== null && typeof raw === 'object' && 'value' in raw ? raw.value : raw) || 0;
     if (amount <= 0) return null;
     const abbr = priceDenominationAttribute
       ? foundry.utils.getProperty(item, priceDenominationAttribute)

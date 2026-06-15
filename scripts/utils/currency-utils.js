@@ -92,15 +92,16 @@ export async function grantCoinsToActor(actor, coins, currencies, mode) {
       await actor.update({ [currency.attributePath]: current + amount });
     } else if (mode === 'item' && currency.itemName) {
       const existing = actor.items.find(i => i.name === currency.itemName);
+      const qtyPath = currency.quantityPath || 'system.quantity';
       if (existing) {
-        const qty = foundry.utils.getProperty(existing, 'system.quantity') ?? 0;
-        await existing.update({ 'system.quantity': qty + amount });
+        const qty = foundry.utils.getProperty(existing, qtyPath) ?? 0;
+        await existing.update({ [qtyPath]: qty + amount });
       } else {
         const source = game.items.find(i => i.name === currency.itemName)
           ?? (currency.itemId ? await fromUuid(currency.itemId).catch(() => null) : null);
         if (source) {
           const data = source.toObject();
-          foundry.utils.setProperty(data, 'system.quantity', amount);
+          foundry.utils.setProperty(data, qtyPath, amount);
           await actor.createEmbeddedDocuments('Item', [data]);
         }
       }
@@ -123,9 +124,10 @@ export async function removeCoinsFromActor(actor, coins, currencies, mode) {
     } else if (mode === 'item' && currency.itemName) {
       const item = actor.items.find(i => i.name === currency.itemName);
       if (!item) continue;
-      const qty = foundry.utils.getProperty(item, 'system.quantity') ?? 0;
+      const qtyPath = currency.quantityPath || 'system.quantity';
+      const qty = foundry.utils.getProperty(item, qtyPath) ?? 0;
       if (qty <= amount) await item.delete();
-      else await item.update({ 'system.quantity': qty - amount });
+      else await item.update({ [qtyPath]: qty - amount });
     }
   }
 }
@@ -141,7 +143,7 @@ export function readActorBalance(actor, currency, mode) {
   }
   if (mode === "item" && currency.itemName) {
     const item = actor.items.find(i => i.name === currency.itemName);
-    return item ? (foundry.utils.getProperty(item, "system.quantity") ?? 0) : 0;
+    return item ? (foundry.utils.getProperty(item, currency.quantityPath || "system.quantity") ?? 0) : 0;
   }
   return 0;
 }
@@ -195,13 +197,14 @@ export async function settlePayment(actor, { payment = {}, change = {} }, curren
     const c = currencies.find(x => x.id === currencyId);
     if (!c) return;
     const existing = actor.items.find(i => i.name === c.itemName);
+    const qtyPath = c.quantityPath || "system.quantity";
     if (existing) {
-      const qty = foundry.utils.getProperty(existing, "system.quantity") ?? 0;
+      const qty = foundry.utils.getProperty(existing, qtyPath) ?? 0;
       if (delta < 0 && qty + delta < 0) {
         ui.notifications.warn(`${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.error.insufficientFunds")}: ${c.name}`);
         throw new Error("Insufficient item quantity");
       }
-      await existing.update({ "system.quantity": qty + delta });
+      await existing.update({ [qtyPath]: qty + delta });
       return;
     }
     if (delta <= 0) return; // only relevant when giving change
@@ -209,7 +212,7 @@ export async function settlePayment(actor, { payment = {}, change = {} }, curren
       ?? (c.itemId ? await fromUuid(c.itemId).catch(() => null) : null);
     if (source) {
       const data = source.toObject();
-      foundry.utils.setProperty(data, "system.quantity", delta);
+      foundry.utils.setProperty(data, qtyPath, delta);
       await actor.createEmbeddedDocuments("Item", [data]);
     } else {
       ui.notifications.warn(`Cannot give change: no world item found for "${c.itemName}"`);

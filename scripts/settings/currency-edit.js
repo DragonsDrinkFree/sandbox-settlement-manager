@@ -127,7 +127,8 @@ export class CurrencyEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       exchangeRate: (formData.object.exchangeRate ?? "1:1").trim() || "1:1",
       attributePath: (formData.object.attributePath ?? "").trim(),
       itemId: this._currency.itemId ?? "",
-      itemName: this._currency.itemName ?? ""
+      itemName: this._currency.itemName ?? "",
+      quantityPath: (formData.object.quantityPath ?? "").trim()
     });
   }
 
