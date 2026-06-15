@@ -59,6 +59,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   _bankActorId   = null;
   _sceneUpdateHook = null;
   _worldTimeHook   = null;
+  _bankActorFilter = { playerOwned: true, types: null };
+  _sellActorFilter = { playerOwned: true, types: null };
+  #actorWidgetAbort = null;
+  #actorDropdownEls = [];
 
   constructor(location, options = {}) {
     super(options);
@@ -131,23 +135,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       this._worldTimeHook = Hooks.on("updateWorldTime", () => this.render());
     }
 
-    // Wire sell actor select
-    const sellActorSelect = this.element.querySelector('.ssm-sell-actor-select');
-    if (sellActorSelect) {
-      sellActorSelect.addEventListener('change', () => {
-        this._sellActorId = sellActorSelect.value || null;
-        this.render();
-      });
-    }
-
-    // Wire bank actor select
-    const bankActorSelect = this.element.querySelector('.ssm-bank-actor-select');
-    if (bankActorSelect) {
-      bankActorSelect.addEventListener('change', () => {
-        this._bankActorId = bankActorSelect.value || null;
-        this.render();
-      });
-    }
+    this.#wireActorWidgets();
 
     // Wire bank exchange live preview
     const exchangeSection = this.element.querySelector('.ssm-bank-exchange');
@@ -166,6 +154,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   async _onClose(options) {
     await super._onClose(options);
+    this.#actorWidgetAbort?.abort();
+    for (const el of this.#actorDropdownEls) el.remove();
+    this.#actorDropdownEls = [];
+    document.querySelector('.ssm-actor-filter-menu')?.remove();
     if (this._sceneUpdateHook) {
       Hooks.off("updateScene", this._sceneUpdateHook);
       this._sceneUpdateHook = null;
@@ -470,7 +462,14 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   async #buildSellData(currencies, isGM, effectiveProfile) {
     const hasConflicts = effectiveProfile.some(r => r._conflicted || r._buybackConflicted);
 
-    const ownedActors = game.actors.filter(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"));
+    const sellFilter = !game.user.isGM
+      ? a => a.testUserPermission(game.user, "OWNER")
+      : a => {
+          if (this._sellActorFilter.playerOwned && !a.hasPlayerOwner) return false;
+          if (this._sellActorFilter.types?.size && !this._sellActorFilter.types.has(a.type)) return false;
+          return true;
+        };
+    const ownedActors = game.actors.filter(sellFilter);
     const defaultActor = (this._sellActorId ? game.actors.get(this._sellActorId) : null)
       ?? game.user.character
       ?? ownedActors[0]
@@ -525,14 +524,22 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       };
     });
 
-    return { effectiveProfile, hasConflicts, actors: actorOptions, selectedActorId: defaultActor?.id ?? null, sellableItems, buybackItems };
+    return {
+      effectiveProfile, hasConflicts, actors: actorOptions, selectedActorId: defaultActor?.id ?? null, sellableItems, buybackItems,
+      filterActive: game.user.isGM && (!this._sellActorFilter.playerOwned || this._sellActorFilter.types !== null)
+    };
   }
 
   #buildBankData(entry, currencies) {
     const bankRaw    = this._location.typeData?.[entry.id] ?? {};
-    const ownedActors = game.actors
-      .filter(a => a.isOwner && a.hasPlayerOwner)
-      .map(a => ({ id: a.id, name: a.name }));
+    const bankFilter = !game.user.isGM
+      ? a => a.testUserPermission(game.user, "OWNER")
+      : a => {
+          if (this._bankActorFilter.playerOwned && !a.hasPlayerOwner) return false;
+          if (this._bankActorFilter.types?.size && !this._bankActorFilter.types.has(a.type)) return false;
+          return true;
+        };
+    const ownedActors = game.actors.filter(bankFilter).map(a => ({ id: a.id, name: a.name }));
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const mode = currencyConfig.mode ?? 'loose';
     const actor = this._bankActorId ? game.actors.get(this._bankActorId) : null;
@@ -593,7 +600,9 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       depositsTotal,
       isOverridden: settingsOverridden,
       hasTemplate,
-      isGM: game.user.isGM
+      isGM: game.user.isGM,
+      selectedActorName: game.actors.get(this._bankActorId)?.name ?? null,
+      filterActive: game.user.isGM && (!this._bankActorFilter.playerOwned || this._bankActorFilter.types !== null)
     };
   }
 
@@ -1159,6 +1168,118 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       : null;
     restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
     await this.#saveEntryData(this._activeTab, bankData);
+  }
+
+  #wireActorWidgets() {
+    this.#actorWidgetAbort?.abort();
+    this.#actorWidgetAbort = new AbortController();
+    const { signal } = this.#actorWidgetAbort;
+
+    for (const el of this.#actorDropdownEls) el.remove();
+    this.#actorDropdownEls = [];
+    document.querySelector('.ssm-actor-filter-menu')?.remove();
+
+    const bankWidget = this.element.querySelector('.ssm-actor-dropdown-widget[data-actor-context="bank"]');
+    if (bankWidget) {
+      this.#wireActorDropdown(bankWidget, signal, id => {
+        this._bankActorId = id;
+        this.render();
+      });
+    }
+    const bankFilterBtn = this.element.querySelector('.ssm-actor-filter-btn[data-actor-context="bank"]');
+    if (bankFilterBtn) {
+      this.#wireActorFilterMenu(bankFilterBtn, this._bankActorFilter, signal, f => {
+        this._bankActorFilter = f;
+        this.render();
+      });
+    }
+
+    const sellWidget = this.element.querySelector('.ssm-actor-dropdown-widget[data-actor-context="sell"]');
+    if (sellWidget) {
+      this.#wireActorDropdown(sellWidget, signal, id => {
+        this._sellActorId = id;
+        this.render();
+      });
+    }
+    const sellFilterBtn = this.element.querySelector('.ssm-actor-filter-btn[data-actor-context="sell"]');
+    if (sellFilterBtn) {
+      this.#wireActorFilterMenu(sellFilterBtn, this._sellActorFilter, signal, f => {
+        this._sellActorFilter = f;
+        this.render();
+      });
+    }
+  }
+
+  #wireActorDropdown(widget, signal, onSelect) {
+    const trigger = widget.querySelector('.ssm-actor-dropdown-trigger');
+    const list    = widget.querySelector('.ssm-actor-dropdown-list');
+    if (!trigger || !list) return;
+
+    document.body.appendChild(list);
+    this.#actorDropdownEls.push(list);
+
+    const position = () => {
+      const r = trigger.getBoundingClientRect();
+      list.style.top      = `${r.bottom + 2}px`;
+      list.style.left     = `${r.left}px`;
+      list.style.minWidth = `${r.width}px`;
+    };
+    const open  = () => { position(); list.classList.add('is-open'); list.querySelector('.ssm-actor-dropdown-search')?.focus(); };
+    const close = () => list.classList.remove('is-open');
+
+    trigger.addEventListener('click', e => { e.stopPropagation(); list.classList.contains('is-open') ? close() : open(); }, { signal });
+    document.addEventListener('click', close, { signal });
+    list.addEventListener('click', e => e.stopPropagation(), { signal });
+
+    list.querySelector('.ssm-actor-dropdown-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      list.querySelectorAll('.ssm-actor-option').forEach(opt => {
+        if (opt.classList.contains('ssm-actor-option-empty')) { opt.style.display = ''; return; }
+        opt.style.display = (!q || opt.textContent.trim().toLowerCase().includes(q)) ? '' : 'none';
+      });
+    }, { signal });
+
+    list.querySelectorAll('.ssm-actor-option').forEach(opt => {
+      opt.addEventListener('click', () => { onSelect(opt.dataset.actorId || null); close(); }, { signal });
+    });
+  }
+
+  #wireActorFilterMenu(btn, actorFilter, signal, onApply) {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelector('.ssm-actor-filter-menu')?.remove();
+
+      const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
+        id,
+        label: typeof label === 'string' ? game.i18n.localize(label) : id,
+        checked: !actorFilter.types || actorFilter.types.has(id)
+      }));
+
+      const menu = document.createElement('div');
+      menu.className = 'ssm-actor-filter-menu';
+      menu.innerHTML = `
+        <label class="ssm-af-row"><input type="checkbox" class="ssm-af-player-owned"${actorFilter.playerOwned ? ' checked' : ''}> ${game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.actor.playerOwned')}</label>
+        <hr class="ssm-af-divider">
+        ${types.map(t => `<label class="ssm-af-row"><input type="checkbox" class="ssm-af-type" data-type="${t.id}"${t.checked ? ' checked' : ''}> ${t.label}</label>`).join('')}
+      `;
+
+      const rect = btn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top  = `${rect.bottom + 2}px`;
+      menu.style.left = `${rect.left}px`;
+      document.body.appendChild(menu);
+
+      menu.addEventListener('click', e => e.stopPropagation());
+      menu.addEventListener('change', () => {
+        const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
+        const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
+        const allChecked   = typeCbs.every(cb => cb.checked);
+        const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
+        onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
+      });
+
+      document.addEventListener('click', () => menu.remove(), { once: true, signal });
+    }, { signal });
   }
 
   static async #onAddExchangeToCart(event, target) {

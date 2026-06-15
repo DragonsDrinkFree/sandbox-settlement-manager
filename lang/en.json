@@ -384,6 +384,11 @@
       "netTotal": "Net Total",
       "youReceive": "You receive"
     },
+    "actor": {
+      "filterPlaceholder": "Filter…",
+      "filterBtn": "Filter Actors",
+      "playerOwned": "Player Owned"
+    },
     "bank": {
       "characterLabel": "Character",
       "selectCharacter": "Select a character",
@@ -466,6 +471,16 @@
       "stockTypeXin6": "x-in-6",
       "xInSixOption": "{n}-in-6",
       "sortButton": "Sort",
+      "importFromCompendium": "Import from Compendium",
+      "importFromCompendiumTitle": "Import Items from Compendium",
+      "compendiumSource": "Compendium",
+      "compendiumFilter": "Filter items…",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "noCompendiumItems": "No items found in this compendium.",
+      "noCompendiumPacks": "No item compendiums found in this world.",
+      "importedCount": "Imported {count} item(s) into inventory.",
+      "importBtn": "Import",
       "sort": {
         "title": "Sort Inventory",
         "priorityHint": "Check the criteria to sort by and order them by priority (top = first). Each can be ascending or descending.",

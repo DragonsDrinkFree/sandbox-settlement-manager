@@ -4,6 +4,7 @@ import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
 import { costInStandard } from "../utils/currency-utils.js";
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
+import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -67,6 +68,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addTemplateInventoryItem:   SubTypeEditApp.#onAddTemplateInventoryItem,
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
       sortInventory:              SubTypeEditApp.#onSortInventory,
+      importFromCompendium:       SubTypeEditApp.#onImportFromCompendium,
       switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
       addPurchasingRule:          SubTypeEditApp.#onAddPurchasingRule,
       removePurchasingRule:       SubTypeEditApp.#onRemovePurchasingRule,
@@ -564,6 +566,32 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
       this._templateInventory = sortMerchantInventory(this._templateInventory, spec, currencies);
     }
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onImportFromCompendium() {
+    if (!game.packs.filter(p => p.documentName === "Item").length) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.noCompendiumPacks"));
+      return;
+    }
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    this.#syncTemplateInventoryFromDOM();
+
+    const selected = await CompendiumItemPickerApp.open();
+    if (!selected?.length) return;
+
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+    const newEntries = await Promise.all(
+      selected.map(async ({ uuid }) => {
+        const item = await fromUuid(uuid).catch(() => null);
+        return item ? this.#makeInventoryEntry(item, currencies) : null;
+      })
+    );
+    const valid = newEntries.filter(Boolean);
+    if (!valid.length) return;
+    this._templateInventory.push(...valid);
+    ui.notifications.info(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.importedCount", { count: valid.length }));
     this.render({ parts: ["form"] });
   }
 

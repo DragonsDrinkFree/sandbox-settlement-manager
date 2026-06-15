@@ -1,0 +1,160 @@
+{
+  "module": "sandbox-settlement-manager",
+  "version": 1,
+  "exportedAt": "2026-06-15T18:39:52.820Z",
+  "data": {
+    "settlementTypes": [
+      {
+        "name": "Village",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "Town",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "City",
+        "maxCurrencyId": ""
+      }
+    ],
+    "currencyConfig": {
+      "mode": "item",
+      "currencies": [
+        {
+          "id": "gold",
+          "name": "Gold",
+          "abbreviation": "gp",
+          "isStandard": true,
+          "exchangeRate": "1:1",
+          "attributePath": "",
+          "itemId": "Compendium.osric-compendium.items.Item.I5ZaYKot8BQEfnMk",
+          "itemName": "Gold Coin"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "abbreviation": "sp",
+          "isStandard": false,
+          "exchangeRate": "1:10",
+          "attributePath": "",
+          "itemId": "Compendium.osric-compendium.items.Item.LAESltUN9GhhsGzS",
+          "itemName": "Silver Coin"
+        },
+        {
+          "id": "copper",
+          "name": "Copper",
+          "abbreviation": "cp",
+          "isStandard": false,
+          "exchangeRate": "1:100",
+          "attributePath": "",
+          "itemId": "Compendium.osric-compendium.items.Item.miTOMlL8ZbuyyU3r",
+          "itemName": "Copper Coin"
+        },
+        {
+          "id": "hiZy4TA3qARVTMTF",
+          "name": "Electrum",
+          "abbreviation": "ep",
+          "isStandard": false,
+          "exchangeRate": "1:5",
+          "attributePath": "",
+          "itemId": "Compendium.osric-compendium.items.Item.jqhuJTH5h9NiDJWr",
+          "itemName": "Electrum Coin"
+        },
+        {
+          "id": "6LqyUYBj5LOSub8K",
+          "name": "Platinum",
+          "abbreviation": "pp",
+          "isStandard": false,
+          "exchangeRate": "10:1",
+          "attributePath": "",
+          "itemId": "Compendium.osric-compendium.items.Item.RJKnx0mzNzaaB7wz",
+          "itemName": "Platinum Coin"
+        }
+      ]
+    },
+    "itemConfig": {
+      "nameAttribute": "name",
+      "priceFormat": "denomination-field",
+      "priceAttribute": "system.cost.value",
+      "priceDenominationAttribute": "system.cost.currency",
+      "itemTypes": [
+        {
+          "id": "HokoQ9oSm4gFz5RZ",
+          "systemType": "armor",
+          "label": "Armor",
+          "attributes": [
+            {
+              "id": "6pVV2tDUBgNfq8Tj",
+              "label": "armorstyle",
+              "path": "system.armorstyle"
+            },
+            {
+              "id": "FC3m4YbNI6kfLNt0",
+              "label": "ac",
+              "path": "system.protection.ac"
+            },
+            {
+              "id": "E0Of1GXdNoUMU8AQ",
+              "label": "bulk",
+              "path": "system.protection.bulk"
+            },
+            {
+              "id": "xQ5KXHGKt6pZzoO1",
+              "label": "modifier",
+              "path": "system.protection.modifier"
+            },
+            {
+              "id": "XyMPqlK4cxR5eH38",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        },
+        {
+          "id": "s5xH53hrKAfERTdJ",
+          "systemType": "weapon",
+          "label": "Weapons",
+          "attributes": [
+            {
+              "id": "jNfdg53wODEDcf4n",
+              "label": "type",
+              "path": "system.attack.type"
+            },
+            {
+              "id": "Fi8BVkgGiO0aGyvx",
+              "label": "normal",
+              "path": "system.damage.normal"
+            },
+            {
+              "id": "scXZPECiIZs7eSQn",
+              "label": "type",
+              "path": "system.damage.type"
+            }
+          ]
+        },
+        {
+          "id": "zVh2owP7JVodwnEO",
+          "systemType": "item",
+          "label": "Items",
+          "attributes": [
+            {
+              "id": "i674UWXjgyuVmoA7",
+              "label": "subtype",
+              "path": "system.attributes.subtype"
+            },
+            {
+              "id": "i0BHizFtnxjLqdG5",
+              "label": "type",
+              "path": "system.attributes.type"
+            },
+            {
+              "id": "FuTVu2CvcYJ9Pck3",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

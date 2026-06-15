@@ -1041,6 +1041,98 @@
   flex-shrink: 0;
 }
 
+#sandbox-settlement-manager-currency-edit .item-search-pack-tag {
+  margin-left: auto;
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+}
+
+/* -------------------------------------------- */
+/*  Compendium Item Picker                      */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-source-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-filter-input {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-select-btns {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-select-btns button {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.15rem 0.5rem;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-list {
+  overflow-y: auto;
+  max-height: 300px;
+  border: 1px solid var(--color-border-light-secondary, #aaa);
+  border-radius: 4px;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-row:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.07));
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-img {
+  object-fit: contain;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-name {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-item-type {
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-empty {
+  text-align: center;
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+  padding: 1rem;
+}
+
+#sandbox-settlement-manager-compendium-item-picker .ssm-cp-footer {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* -------------------------------------------- */
 /*  Currency Test Config (GM Expense Manager)   */
 /* -------------------------------------------- */
@@ -2102,7 +2194,7 @@
 #sandbox-settlement-manager-sub-type-edit .merchant-drop-zone {
   border: 2px dashed var(--color-border-light-secondary, #aaa);
   border-radius: 4px;
-  padding: 0.4rem 0.5rem;
+  padding: 0.75rem 1rem;
   text-align: center;
   color: var(--color-text-dark-inactive, #999);
   font-size: var(--font-size-12, 12px);
@@ -2112,6 +2204,9 @@
   justify-content: center;
   gap: 0.4rem;
   cursor: copy;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3rem;
 }
 
 #sandbox-settlement-manager-settlement-manage .merchant-drop-zone.drag-over,
@@ -2745,6 +2840,8 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+  row-gap: 0.3rem;
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-sell-actor-row label,
@@ -2818,9 +2915,218 @@
   font-weight: bold;
 }
 
-#sandbox-settlement-manager-settlement-manage .ssm-bank-actor-select,
-#sandbox-settlement-manager-location-detail .ssm-bank-actor-select {
+/* Actor dropdown widget + filter menu */
+#sandbox-settlement-manager-settlement-manage .ssm-actor-picker-row,
+#sandbox-settlement-manager-location-detail .ssm-actor-picker-row,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   flex: 1;
+  min-width: 0;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-widget,
+#sandbox-settlement-manager-location-detail .ssm-actor-dropdown-widget,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-widget {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-trigger,
+#sandbox-settlement-manager-location-detail .ssm-actor-dropdown-trigger,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.15rem 0.4rem;
+  height: 1.75rem;
+  background: var(--color-bg-primary, #f0ede0);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--font-size-13, 13px);
+  color: #2a2a2a;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
+#sandbox-settlement-manager-location-detail .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger .ssm-actor-selected-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Body-mounted — not scoped to app ID; uses explicit colors like .type-picker-dropdown */
+.ssm-actor-dropdown-list {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  min-width: 160px;
+  max-height: 240px;
+  background: var(--color-bg-primary, #f0ede0);
+  color: #2a2a2a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+  padding: 0.2rem 0;
+  margin: 0;
+  list-style: none;
+}
+
+.ssm-actor-dropdown-list.is-open {
+  display: flex;
+}
+
+.ssm-actor-dropdown-search-row {
+  position: sticky;
+  top: -0.2rem;
+  background: var(--color-bg-primary, #f0ede0);
+  z-index: 1;
+}
+
+.ssm-actor-dropdown-search {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  outline: none;
+  padding: 0.3rem 0.5rem;
+  font-size: var(--font-size-12, 12px);
+  background: transparent;
+  color: inherit;
+}
+
+.ssm-actor-option {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: var(--font-size-12, 12px);
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.ssm-actor-option:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.ssm-actor-option.selected {
+  background: rgba(0, 0, 0, 0.12);
+  font-weight: bold;
+}
+
+.ssm-actor-option-empty {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn,
+#sandbox-settlement-manager-location-detail .ssm-actor-filter-btn,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary, #f0ede0);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--font-size-12, 12px);
+  color: #2a2a2a;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn:hover,
+#sandbox-settlement-manager-location-detail .ssm-actor-filter-btn:hover,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn.active,
+#sandbox-settlement-manager-location-detail .ssm-actor-filter-btn.active,
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn.active {
+  background: rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Body-mounted filter menu — explicit colors, same as .type-picker-dropdown */
+.ssm-actor-filter-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: var(--color-bg-primary, #f0ede0);
+  color: #2a2a2a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ssm-af-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-12, 12px);
+  cursor: pointer;
+  padding: 0.1rem 0;
+  color: inherit;
+}
+
+.ssm-af-divider {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  margin: 0.2rem 0;
+}
+
+/* Dark mode overrides for body-mounted dropdowns */
+@media (prefers-color-scheme: dark) {
+  .ssm-actor-dropdown-list,
+  .ssm-actor-filter-menu {
+    background: #2a2a2a;
+    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+  }
+  .ssm-actor-dropdown-search-row {
+    background: #2a2a2a;
+  }
+  .ssm-actor-dropdown-search {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  .ssm-actor-option:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .ssm-actor-option.selected {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .ssm-af-divider {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  .ssm-af-apply {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .ssm-af-apply:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-bank-exchange,

@@ -5,19 +5,30 @@
   </header>
 
   {{#if isAttributeOrItem}}
-  <div class="form-group">
+  <div class="form-group ssm-purchase-actor-row">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.actorLabel"}}</label>
-    <select name="actorId">
-      {{#if ownedActors.length}}
-        {{#each ownedActors}}
-        <option value="{{this.value}}"{{#if (eq this.value ../selectedActorId)}} selected{{/if}}>
-          {{this.label}}
-        </option>
-        {{/each}}
-      {{else}}
-        <option value="">— No owned actors —</option>
+    <div class="ssm-actor-picker-row">
+      <div class="ssm-actor-dropdown-widget">
+        <button type="button" class="ssm-actor-dropdown-trigger">
+          <span class="ssm-actor-selected-name">{{#if selectedActorName}}{{selectedActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
+          <i class="fa-solid fa-caret-down" inert></i>
+        </button>
+        <ul class="ssm-actor-dropdown-list">
+          <li class="ssm-actor-dropdown-search-row">
+            <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+          </li>
+          {{#each ownedActors}}
+          <li class="ssm-actor-option{{#if (eq this.id ../selectedActorId)}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#if isGM}}
+      <button type="button" class="ssm-actor-filter-btn{{#if filterActive}} active{{/if}}"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+        <i class="fa-solid fa-filter" inert></i>
+      </button>
       {{/if}}
-    </select>
+    </div>
   </div>
   {{#if showBalance}}
   <div class="balance-display">

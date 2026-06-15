@@ -1,0 +1,162 @@
+{
+  "module": "sandbox-settlement-manager",
+  "version": 1,
+  "exportedAt": "2026-06-14T18:09:30.946Z",
+  "data": {
+    "settlementTypes": [
+      {
+        "name": "Village",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "Town",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "City",
+        "maxCurrencyId": ""
+      }
+    ],
+    "currencyConfig": {
+      "mode": "item",
+      "currencies": [
+        {
+          "id": "gold",
+          "name": "Gold",
+          "abbreviation": "gp",
+          "isStandard": true,
+          "exchangeRate": "1:1",
+          "attributePath": "",
+          "itemId": "Item.r0bdxDhXyX27Ipdn",
+          "itemName": "[01.00] Gold (gp)"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "abbreviation": "sp",
+          "isStandard": false,
+          "exchangeRate": "1:10",
+          "attributePath": "",
+          "itemId": "Item.lsgrjKGf6TraxSha",
+          "itemName": "[00.10] Silver (sp)"
+        },
+        {
+          "id": "copper",
+          "name": "Copper",
+          "abbreviation": "cp",
+          "isStandard": false,
+          "exchangeRate": "1:100",
+          "attributePath": "",
+          "itemId": "Item.qCuLtVVDBzFyVFtc",
+          "itemName": "[00.01] Copper (cp)"
+        },
+        {
+          "id": "YSURJEdhME6NX7Kk",
+          "name": "Platinum",
+          "abbreviation": "pp",
+          "isStandard": false,
+          "exchangeRate": "10:1",
+          "attributePath": "",
+          "itemId": "Item.7xig7YmC0NqcootP",
+          "itemName": "[10.00] Platinum (pp)"
+        }
+      ]
+    },
+    "itemConfig": {
+      "nameAttribute": "name",
+      "priceFormat": "simple",
+      "priceAttribute": "system.cost",
+      "priceDenominationAttribute": "",
+      "itemTypes": [
+        {
+          "id": "IREayiKOKXoNpuFs",
+          "systemType": "weapon",
+          "label": "Weapons",
+          "attributes": [
+            {
+              "id": "ctaP88vok00vGuTE",
+              "label": "damage",
+              "path": "system.damage"
+            },
+            {
+              "id": "6g8ZrZ5neiI0LTyM",
+              "label": "tags",
+              "path": "system.tags"
+            },
+            {
+              "id": "2DzPLsRi8zUulprm",
+              "label": "slow",
+              "path": "system.slow"
+            },
+            {
+              "id": "NJgXG66AZgQstD8o",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        },
+        {
+          "id": "i4Oae8qV2MOihI8m",
+          "systemType": "item",
+          "label": "Item",
+          "attributes": [
+            {
+              "id": "NZfssRXKgyuKlG8l",
+              "label": "tags",
+              "path": "system.tags"
+            },
+            {
+              "id": "oD9vuZiSpDSaiIed",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        },
+        {
+          "id": "ETlkjFZ7NfitBUKz",
+          "systemType": "armor",
+          "label": "Armor",
+          "attributes": [
+            {
+              "id": "uopgyA3xwofJoNYd",
+              "label": "value",
+              "path": "system.ac.value"
+            },
+            {
+              "id": "sb9zXxiNTMbL3m8S",
+              "label": "tags",
+              "path": "system.tags"
+            },
+            {
+              "id": "w8p10a3UKx3J5nwx",
+              "label": "type",
+              "path": "system.type"
+            },
+            {
+              "id": "7XsYfh7dyHqTNnAb",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        },
+        {
+          "id": "a4TlKTHkeQinsISY",
+          "systemType": "container",
+          "label": "TYPES.Item.container",
+          "attributes": [
+            {
+              "id": "0uiq8CklgpF5MXUj",
+              "label": "tags",
+              "path": "system.tags"
+            },
+            {
+              "id": "gKlC5COSwB9919bR",
+              "label": "weight",
+              "path": "system.weight"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

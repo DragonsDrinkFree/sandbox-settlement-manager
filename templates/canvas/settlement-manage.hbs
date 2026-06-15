@@ -470,12 +470,29 @@
       <div class="ssm-bank-detail">
         <div class="ssm-bank-actor-row">
           <label class="ssm-bank-actor-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.characterLabel"}}:</label>
-          <select class="ssm-bank-actor-select">
-            <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —</option>
-            {{#each this.bankData.ownedActors}}
-            <option value="{{this.id}}"{{#if (eq this.id ../bankData.selectedActorId)}} selected{{/if}}>{{this.name}}</option>
-            {{/each}}
-          </select>
+          <div class="ssm-actor-picker-row">
+            <div class="ssm-actor-dropdown-widget" data-actor-context="bank">
+              <button type="button" class="ssm-actor-dropdown-trigger">
+                <span class="ssm-actor-selected-name">{{#if this.bankData.selectedActorName}}{{this.bankData.selectedActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
+                <i class="fa-solid fa-caret-down" inert></i>
+              </button>
+              <ul class="ssm-actor-dropdown-list">
+                <li class="ssm-actor-dropdown-search-row">
+                  <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+                </li>
+                <li class="ssm-actor-option ssm-actor-option-empty" data-actor-id="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —</li>
+                {{#each this.bankData.ownedActors}}
+                <li class="ssm-actor-option{{#if (eq this.id ../bankData.selectedActorId)}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+                {{/each}}
+              </ul>
+            </div>
+            {{#if this.bankData.isGM}}
+            <button type="button" class="ssm-actor-filter-btn{{#if this.bankData.filterActive}} active{{/if}}"
+                    data-actor-context="bank" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+              <i class="fa-solid fa-filter" inert></i>
+            </button>
+            {{/if}}
+          </div>
           {{#if this.bankData.isGM}}
           <div class="ssm-bank-settings-bar">
             {{#if this.bankData.isOverridden}}
@@ -607,11 +624,28 @@
           {{#if selectedLocation.sellData.actors.length}}
           <div class="form-group ssm-sell-actor-row">
             <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.sellCharacter"}}</label>
-            <select class="ssm-sell-actor-select">
-              {{#each selectedLocation.sellData.actors}}
-              <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
-              {{/each}}
-            </select>
+            <div class="ssm-actor-picker-row">
+              <div class="ssm-actor-dropdown-widget" data-actor-context="sell">
+                <button type="button" class="ssm-actor-dropdown-trigger">
+                  <span class="ssm-actor-selected-name">{{#each selectedLocation.sellData.actors}}{{#if this.selected}}{{this.name}}{{/if}}{{/each}}</span>
+                  <i class="fa-solid fa-caret-down" inert></i>
+                </button>
+                <ul class="ssm-actor-dropdown-list">
+                  <li class="ssm-actor-dropdown-search-row">
+                    <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+                  </li>
+                  {{#each selectedLocation.sellData.actors}}
+                  <li class="ssm-actor-option{{#if this.selected}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+                  {{/each}}
+                </ul>
+              </div>
+              {{#if isGM}}
+              <button type="button" class="ssm-actor-filter-btn{{#if selectedLocation.sellData.filterActive}} active{{/if}}"
+                      data-actor-context="sell" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+                <i class="fa-solid fa-filter" inert></i>
+              </button>
+              {{/if}}
+            </div>
           </div>
           {{/if}}
 

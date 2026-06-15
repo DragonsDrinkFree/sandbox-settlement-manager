@@ -18,6 +18,9 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   _mode;
   _actor = null;
   _pendingPayment = null;
+  _actorFilter = { playerOwned: true, types: null };
+  #actorWidgetAbort = null;
+  #actorDropdownEl = null;
 
   constructor(expense, currencies, mode, options = {}) {
     super(options);
@@ -54,7 +57,13 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const isAttributeOrItem = this._mode !== "loose";
-    const ownedActors = game.actors.filter(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"));
+    const actorFilter = (a) => {
+      if (!game.user.isGM) return a.testUserPermission(game.user, "OWNER");
+      if (this._actorFilter.playerOwned && !a.hasPlayerOwner) return false;
+      if (this._actorFilter.types?.size && !this._actorFilter.types.has(a.type)) return false;
+      return true;
+    };
+    const ownedActors = game.actors.filter(actorFilter).map(a => ({ id: a.id, name: a.name }));
     const costCurrency = this._currencies.find(c => c.id === this._expense.currencyId);
     const balance = {};
     if (this._actor && isAttributeOrItem) {
@@ -80,8 +89,11 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       mode: this._mode,
       isLoose: this._mode === "loose",
       isAttributeOrItem,
-      ownedActors: ownedActors.map(a => ({ value: a.id, label: a.name })),
+      isGM: game.user.isGM,
+      ownedActors,
       selectedActorId: this._actor?.id ?? "",
+      selectedActorName: this._actor?.name ?? "",
+      filterActive: game.user.isGM && (!this._actorFilter.playerOwned || this._actorFilter.types !== null),
       balance,
       showBalance: isAttributeOrItem && this._actor !== null
     };
@@ -94,16 +106,99 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRender(context, options) {
     await super._onRender(context, options);
 
-    this.element.querySelector('[name="actorId"]')?.addEventListener("change", async e => {
-      this._actor = game.actors.get(e.target.value) ?? null;
-      this.render({ parts: ["form"] });
-    });
+    this.#wireActorWidget();
 
     this.element.querySelectorAll(".payment-input").forEach(input => {
       input.addEventListener("input", () => this.#updateLiveCalc());
     });
 
     this.#updateLiveCalc();
+  }
+
+  #wireActorWidget() {
+    this.#actorWidgetAbort?.abort();
+    this.#actorWidgetAbort = new AbortController();
+    const { signal } = this.#actorWidgetAbort;
+    this.#actorDropdownEl?.remove();
+    this.#actorDropdownEl = null;
+    document.querySelector('.ssm-actor-filter-menu')?.remove();
+
+    const widget = this.element.querySelector('.ssm-actor-dropdown-widget');
+    if (widget) {
+      this.#wireActorDropdown(widget, signal, id => {
+        this._actor = game.actors.get(id) ?? null;
+        this.render({ parts: ["form"] });
+      });
+    }
+
+    const filterBtn = this.element.querySelector('.ssm-actor-filter-btn');
+    if (filterBtn) {
+      this.#wireActorFilterMenu(filterBtn, this._actorFilter, signal, f => {
+        this._actorFilter = f;
+        this.render({ parts: ["form"] });
+      });
+    }
+  }
+
+  #wireActorDropdown(widget, signal, onSelect) {
+    const trigger = widget.querySelector('.ssm-actor-dropdown-trigger');
+    const list    = widget.querySelector('.ssm-actor-dropdown-list');
+    if (!trigger || !list) return;
+    document.body.appendChild(list);
+    this.#actorDropdownEl = list;
+    const position = () => {
+      const r = trigger.getBoundingClientRect();
+      list.style.top      = `${r.bottom + 2}px`;
+      list.style.left     = `${r.left}px`;
+      list.style.minWidth = `${r.width}px`;
+    };
+    const open  = () => { position(); list.classList.add('is-open'); list.querySelector('.ssm-actor-dropdown-search')?.focus(); };
+    const close = () => list.classList.remove('is-open');
+    trigger.addEventListener('click', e => { e.stopPropagation(); list.classList.contains('is-open') ? close() : open(); }, { signal });
+    document.addEventListener('click', close, { signal });
+    list.addEventListener('click', e => e.stopPropagation(), { signal });
+    list.querySelector('.ssm-actor-dropdown-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      list.querySelectorAll('.ssm-actor-option').forEach(opt => {
+        opt.style.display = (!q || opt.textContent.trim().toLowerCase().includes(q)) ? '' : 'none';
+      });
+    }, { signal });
+    list.querySelectorAll('.ssm-actor-option').forEach(opt => {
+      opt.addEventListener('click', () => { onSelect(opt.dataset.actorId || null); close(); }, { signal });
+    });
+  }
+
+  #wireActorFilterMenu(btn, actorFilter, signal, onApply) {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelector('.ssm-actor-filter-menu')?.remove();
+      const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
+        id,
+        label: typeof label === 'string' ? game.i18n.localize(label) : id,
+        checked: !actorFilter.types || actorFilter.types.has(id)
+      }));
+      const menu = document.createElement('div');
+      menu.className = 'ssm-actor-filter-menu';
+      menu.innerHTML = `
+        <label class="ssm-af-row"><input type="checkbox" class="ssm-af-player-owned"${actorFilter.playerOwned ? ' checked' : ''}> ${game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.actor.playerOwned')}</label>
+        <hr class="ssm-af-divider">
+        ${types.map(t => `<label class="ssm-af-row"><input type="checkbox" class="ssm-af-type" data-type="${t.id}"${t.checked ? ' checked' : ''}> ${t.label}</label>`).join('')}
+      `;
+      const rect = btn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top  = `${rect.bottom + 2}px`;
+      menu.style.left = `${rect.left}px`;
+      document.body.appendChild(menu);
+      menu.addEventListener('click', e => e.stopPropagation());
+      menu.addEventListener('change', () => {
+        const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
+        const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
+        const allChecked   = typeCbs.every(cb => cb.checked);
+        const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
+        onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
+      });
+      document.addEventListener('click', () => menu.remove(), { once: true, signal });
+    }, { signal });
   }
 
   #getPaymentAmounts() {
@@ -262,6 +357,9 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onClose(options) {
     await super._onClose(options);
+    this.#actorWidgetAbort?.abort();
+    this.#actorDropdownEl?.remove();
+    document.querySelector('.ssm-actor-filter-menu')?.remove();
     this._resolve?.(null);
     this._resolve = null;
   }

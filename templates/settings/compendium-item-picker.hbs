@@ -1,0 +1,39 @@
+<form class="ssm-compendium-picker-form" autocomplete="off">
+  <div class="form-group ssm-cp-source-row">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.compendiumSource"}}</label>
+    <select class="ssm-cp-pack-select">
+      {{#each packs}}
+      <option value="{{this.id}}">{{this.title}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="ssm-cp-filter-row">
+    <input type="text" class="ssm-cp-filter-input" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.compendiumFilter'}}">
+    <div class="ssm-cp-select-btns">
+      <button type="button" class="ssm-cp-select-all">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.selectAll"}}</button>
+      <button type="button" class="ssm-cp-deselect-all">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.deselectAll"}}</button>
+    </div>
+  </div>
+
+  <div class="ssm-cp-item-list">
+    {{#if items.length}}
+    {{#each items}}
+    <label class="ssm-cp-item-row">
+      <input type="checkbox" class="ssm-cp-item-cb" value="{{this.uuid}}" data-name="{{this.name}}">
+      {{#if this.img}}<img src="{{this.img}}" class="ssm-cp-item-img" width="20" height="20">{{/if}}
+      <span class="ssm-cp-item-name">{{this.name}}</span>
+      {{#if this.type}}<em class="ssm-cp-item-type">{{this.type}}</em>{{/if}}
+    </label>
+    {{/each}}
+    {{else}}
+    <p class="ssm-cp-empty">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.noCompendiumItems"}}</p>
+    {{/if}}
+  </div>
+
+  <div class="ssm-cp-footer">
+    <button type="button" class="ssm-cp-import-btn" data-action="confirmImport">
+      <i class="fa-solid fa-file-import"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.importBtn"}}
+    </button>
+  </div>
+</form>

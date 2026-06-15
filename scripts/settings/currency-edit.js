@@ -70,14 +70,25 @@ export class CurrencyEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const query = searchInput.value.trim().toLowerCase();
       if (!query) { resultsList.innerHTML = ""; return; }
 
-      const matches = game.items.contents
+      const worldMatches = game.items.contents
         .filter(i => i.name.toLowerCase().includes(query))
-        .slice(0, 8);
+        .map(i => ({ uuid: i.uuid, name: i.name, img: i.img, fromPack: false }));
+
+      const packMatches = [];
+      for (const pack of game.packs) {
+        if (pack.documentName !== "Item") continue;
+        for (const entry of pack.index) {
+          if (entry.name.toLowerCase().includes(query))
+            packMatches.push({ uuid: entry.uuid, name: entry.name, img: entry.img, fromPack: true });
+        }
+      }
+
+      const matches = [...worldMatches, ...packMatches].slice(0, 12);
 
       resultsList.innerHTML = matches
         .map(i => `<li class="item-search-result" data-uuid="${i.uuid}" data-name="${i.name}">
           ${i.img ? `<img src="${i.img}" width="18" height="18">` : ""}
-          <span>${i.name}</span></li>`)
+          <span>${i.name}</span>${i.fromPack ? `<em class="item-search-pack-tag">(Compendium)</em>` : ""}</li>`)
         .join("");
 
       resultsList.querySelectorAll(".item-search-result").forEach(li => {
