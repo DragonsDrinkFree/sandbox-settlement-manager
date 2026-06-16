@@ -76,7 +76,10 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       expense: this._expense,
       expenseCostLabel: (() => {
         const totalStd = costInStandard(this._expense, this._currencies);
-        const maxRate = this._currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+        const standardCurrency = this._currencies.find(c => c.isStandard);
+        const stdRate = standardCurrency ? parseExchangeRate(standardCurrency.exchangeRate) : 0;
+        const maxRate = stdRate > 1e-9 ? stdRate
+          : this._currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
         const breakdown = calculateChange(totalStd, this._currencies, maxRate);
         return (breakdown && Object.values(breakdown).some(v => v > 0))
           ? formatAmounts(breakdown, this._currencies)

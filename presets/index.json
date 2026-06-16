@@ -1,12 +1,17 @@
 [
   {
     "name": "ARS: OSRIC",
-    "file": "ARS.json",
+    "file": "ARS_OSRIC.json",
     "description": "ARS RPG System, Requires: OSRIC Compendium as reference."
   },
   {
     "name": "Dolmenwood",
     "file": "Dolmenwood.json",
     "description": "Dolmenwood RPG system — currencies (Pellucidium, Gold, Silver, Copper), settlement sizes, and item types."
+  },
+    {
+    "name": "OSE: Classic fantasy",
+    "file": "OSE_classicFantasy.json",
+    "description": "Old-School-Essentials system using the Classic Fantasy Compendium as a source of Coinage."
   }
 ]

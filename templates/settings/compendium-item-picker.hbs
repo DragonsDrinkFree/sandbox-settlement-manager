@@ -1,9 +1,10 @@
 <form class="ssm-compendium-picker-form" autocomplete="off">
   <div class="form-group ssm-cp-source-row">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.compendiumSource"}}</label>
+    <input type="text" class="ssm-cp-pack-filter" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.compendiumFilterPlaceholder'}}">
     <select class="ssm-cp-pack-select">
       {{#each packs}}
-      <option value="{{this.id}}">{{this.title}}</option>
+      <option value="{{this.id}}"{{#if (eq this.id ../selectedPackId)}} selected{{/if}}>{{this.title}}</option>
       {{/each}}
     </select>
   </div>

@@ -476,6 +476,7 @@
       "importFromCompendium": "Import from Compendium",
       "importFromCompendiumTitle": "Import Items from Compendium",
       "compendiumSource": "Compendium",
+      "compendiumFilterPlaceholder": "Filter compendiums…",
       "compendiumFilter": "Filter items…",
       "selectAll": "Select All",
       "deselectAll": "Deselect All",

@@ -1,7 +1,7 @@
 {
   "module": "sandbox-settlement-manager",
   "version": 1,
-  "exportedAt": "2026-06-14T18:09:30.946Z",
+  "exportedAt": "2026-06-16T14:29:12.690Z",
   "data": {
     "settlementTypes": [
       {
@@ -21,47 +21,58 @@
       "mode": "item",
       "currencies": [
         {
+          "id": "cz4A3D4IBmy2R8Ei",
+          "name": "Platinum",
+          "abbreviation": "pp",
+          "isStandard": false,
+          "exchangeRate": "5:1",
+          "attributePath": "",
+          "itemId": "Compendium.classicfantasycompendium.equipment-coins.Item.Hh1DIjjSYsdf5o4i",
+          "itemName": "[10.00] Platinum (pp)",
+          "quantityPath": "system.quantity.value"
+        },
+        {
           "id": "gold",
           "name": "Gold",
           "abbreviation": "gp",
           "isStandard": true,
           "exchangeRate": "1:1",
           "attributePath": "",
-          "itemId": "Item.r0bdxDhXyX27Ipdn",
+          "itemId": "Compendium.classicfantasycompendium.equipment-coins.Item.xYjJVzdv26B6y492",
           "itemName": "[01.00] Gold (gp)",
           "quantityPath": "system.quantity.value"
         },
         {
-          "id": "silver",
+          "id": "TWmcC6O2zMSuWNeZ",
+          "name": "Electrum",
+          "abbreviation": "ep",
+          "isStandard": false,
+          "exchangeRate": "1:2",
+          "attributePath": "",
+          "itemId": "Compendium.classicfantasycompendium.equipment-coins.Item.S0jdo7CjlykYCLtD",
+          "itemName": "[00.50] Electrum (ep)",
+          "quantityPath": "system.quantity.value"
+        },
+        {
+          "id": "gXq79EPuZUm05uyp",
           "name": "Silver",
           "abbreviation": "sp",
           "isStandard": false,
           "exchangeRate": "1:10",
           "attributePath": "",
-          "itemId": "Item.lsgrjKGf6TraxSha",
+          "itemId": "Compendium.classicfantasycompendium.equipment-coins.Item.tmIjR0SufKaQSpfB",
           "itemName": "[00.10] Silver (sp)",
           "quantityPath": "system.quantity.value"
         },
         {
-          "id": "copper",
+          "id": "CFgRmqNQ0JMcX0U7",
           "name": "Copper",
           "abbreviation": "cp",
           "isStandard": false,
           "exchangeRate": "1:100",
           "attributePath": "",
-          "itemId": "Item.qCuLtVVDBzFyVFtc",
+          "itemId": "Compendium.classicfantasycompendium.equipment-coins.Item.0MWiazlQuqMXrY0Z",
           "itemName": "[00.01] Copper (cp)",
-          "quantityPath": "system.quantity.value"
-        },
-        {
-          "id": "YSURJEdhME6NX7Kk",
-          "name": "Platinum",
-          "abbreviation": "pp",
-          "isStandard": false,
-          "exchangeRate": "10:1",
-          "attributePath": "",
-          "itemId": "Item.7xig7YmC0NqcootP",
-          "itemName": "[10.00] Platinum (pp)",
           "quantityPath": "system.quantity.value"
         }
       ]

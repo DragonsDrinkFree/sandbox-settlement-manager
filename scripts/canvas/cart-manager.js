@@ -204,18 +204,7 @@ class CartManager {
     const netStandard = this.computeNetTotalInStandard(currencies);
     if (netStandard <= 0) return null;
 
-    const EPSILON = 1e-9;
-    const sorted = [...currencies].sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
-    for (const c of sorted) {
-      const rate = parseExchangeRate(c.exchangeRate);
-      if (rate < EPSILON) continue;
-      const amount = netStandard / rate;
-      if (Math.abs(amount - Math.round(amount)) < EPSILON) {
-        return { amount: Math.round(amount), currencyId: c.id };
-      }
-    }
-
-    return { amount: Math.ceil(netStandard), currencyId: standardCurrency.id };
+    return this.#denominateInStandard(netStandard, standardCurrency, currencies);
   }
 
   /** Returns { amount, currencyId } for the amount the player is owed (net < 0). Null if not owed. */
@@ -224,18 +213,33 @@ class CartManager {
     if (!standardCurrency) return null;
     const netStandard = this.computeNetTotalInStandard(currencies);
     if (netStandard >= 0) return null;
-    const credit = Math.abs(netStandard);
+    return this.#denominateInStandard(Math.abs(netStandard), standardCurrency, currencies);
+  }
+
+  /**
+   * Convert a standard-unit amount into the most appropriate single-currency display value.
+   * Always prefers the standard currency when it yields a whole number, only falling back
+   * to other denominations when the standard currency would produce a fraction.
+   */
+  #denominateInStandard(amountStd, standardCurrency, currencies) {
     const EPSILON = 1e-9;
+    const stdRate = parseExchangeRate(standardCurrency.exchangeRate);
+    if (stdRate > EPSILON) {
+      const stdAmount = amountStd / stdRate;
+      if (Math.abs(stdAmount - Math.round(stdAmount)) < EPSILON) {
+        return { amount: Math.round(stdAmount), currencyId: standardCurrency.id };
+      }
+    }
     const sorted = [...currencies].sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
     for (const c of sorted) {
       const rate = parseExchangeRate(c.exchangeRate);
       if (rate < EPSILON) continue;
-      const amount = credit / rate;
+      const amount = amountStd / rate;
       if (Math.abs(amount - Math.round(amount)) < EPSILON) {
         return { amount: Math.round(amount), currencyId: c.id };
       }
     }
-    return { amount: Math.ceil(credit), currencyId: standardCurrency.id };
+    return { amount: Math.ceil(amountStd), currencyId: standardCurrency.id };
   }
 
   #notify() {

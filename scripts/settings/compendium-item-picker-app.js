@@ -28,20 +28,27 @@ export class CompendiumItemPickerApp extends HandlebarsApplicationMixin(Applicat
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const packs = game.packs.filter(p => p.documentName === "Item");
-    if (!this.#packId && packs.length) this.#packId = packs[0].id;
+    if (!this.#packId && packs.length) this.#packId = packs[0].collection;
 
     let items = [];
     if (this.#packId) {
       const pack = game.packs.get(this.#packId);
       if (pack) {
-        await pack.getIndex({ fields: ["name", "img", "type"] });
-        items = [...pack.index]
-          .map(e => ({ uuid: e.uuid, name: e.name, img: e.img, type: e.type }))
+        const index = await pack.getIndex({ fields: ["name", "img", "type"] });
+        items = [...index]
+          .map(e => ({
+            uuid: e.uuid ?? `${pack.uuid}.${pack.documentName}.${e._id}`,
+            name: e.name  ?? "",
+            img:  e.img   ?? "",
+            type: e.type  ?? ""
+          }))
+          .filter(e => e.name)
           .sort((a, b) => a.name.localeCompare(b.name));
       }
     }
 
-    context.packs = packs.map(p => ({ id: p.id, title: p.title ?? p.id }));
+    context.packs = packs.map(p => ({ id: p.collection, title: p.title ?? p.collection }));
+    context.selectedPackId = this.#packId;
     context.items = items;
     return context;
   }
@@ -49,9 +56,17 @@ export class CompendiumItemPickerApp extends HandlebarsApplicationMixin(Applicat
   async _onRender(context, options) {
     await super._onRender(context, options);
 
-    this.element.querySelector('.ssm-cp-pack-select')?.addEventListener('change', e => {
+    const packSelect = this.element.querySelector('.ssm-cp-pack-select');
+    packSelect?.addEventListener('change', e => {
       this.#packId = e.target.value;
       this.render({ parts: ["content"] });
+    });
+
+    this.element.querySelector('.ssm-cp-pack-filter')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      packSelect?.querySelectorAll('option').forEach(opt => {
+        opt.hidden = !!q && !opt.textContent.toLowerCase().includes(q);
+      });
     });
 
     this.element.querySelector('.ssm-cp-filter-input')?.addEventListener('input', e => {

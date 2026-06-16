@@ -157,6 +157,12 @@ export class SetupWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static #openGameSettings() {
+    Hooks.once("renderSettingsConfig", (app) => {
+      const navEl = app.element?.querySelector(`[data-category="${MODULE_ID}"]`);
+      if (navEl) navEl.click();
+      else app.element?.querySelector(`[name^="${MODULE_ID}."]`)
+        ?.closest(".form-group")?.scrollIntoView({ behavior: "smooth" });
+    });
     game.settings.sheet?.render(true);
     this.close({ _wizard_close: true });
   }

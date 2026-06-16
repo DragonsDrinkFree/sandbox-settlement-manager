@@ -114,7 +114,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (showInnSections || showMerchantSection || showBankSection) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
-      const defaultCurrencyId = currencies[0]?.id ?? "";
+      const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
       if (showInnSections) {
         lodgings = this._lodgings.map(l => ({
           ...l,
@@ -135,7 +135,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
             ...item,
             price: item.price ?? { currencyId: defaultCurrencyId, amount: 0 },
             enrichedName: item.itemId
-              ? await TextEditor.enrichHTML(`@UUID[${item.itemId}]{${item.name}}`, { async: true })
+              ? await (foundry.applications?.ux?.TextEditor ?? TextEditor).enrichHTML(`@UUID[${item.itemId}]{${item.name}}`, { async: true })
               : null
           };
           if (isXInSix) {
@@ -364,11 +364,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderWrongType"));
           return;
         }
-        const items = this.#collectFolderItems(folder);
-        if (!items.length) {
+        const rawItems = this.#collectFolderItems(folder);
+        if (!rawItems.length) {
           ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderEmpty"));
           return;
         }
+        // Compendium folders return index entries — load full documents so readItemPrice works.
+        const items = folder.pack
+          ? (await Promise.all(rawItems.map(e => fromUuid(e.uuid).catch(() => null)))).filter(Boolean)
+          : rawItems;
         for (const item of items) this._templateInventory.push(this.#makeInventoryEntry(item, currencies));
         ui.notifications.info(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.dropFolderAdded", { count: items.length }));
       }
@@ -394,7 +398,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const defaultCurrencyId = currencyConfig.currencies?.[0]?.id ?? "";
+    const currencies = currencyConfig.currencies ?? [];
+    const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
     this._lodgings.push({
       id:           foundry.utils.randomID(),
       name:         "",
@@ -532,7 +537,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncLodgingsFromDOM();
     this.#syncTemplateInventoryFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const defaultCurrencyId = currencyConfig.currencies?.[0]?.id ?? "";
+    const currencies = currencyConfig.currencies ?? [];
+    const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
     this._templateInventory.push({
       id:                foundry.utils.randomID(),
       name:              "",

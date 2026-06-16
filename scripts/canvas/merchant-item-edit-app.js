@@ -44,7 +44,7 @@ export class MerchantItemEditApp extends HandlebarsApplicationMixin(ApplicationV
   async _prepareContext(options) {
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies     = currencyConfig.currencies ?? [];
-    const defaultCurrencyId = currencies[0]?.id ?? "";
+    const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
 
     const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
     const typeOptions = (itemConfig.itemTypes ?? []).map(t => ({
