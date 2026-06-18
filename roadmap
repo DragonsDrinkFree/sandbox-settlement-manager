@@ -2,19 +2,3 @@
 Empty? Due to folders?
 
 
-
-# Errors:
-
-foundry.mjs:6727 Error: You are accessing the global "TextEditor" which is now namespaced under foundry.applications.ux.TextEditor.implementation
-Deprecated since Version 13
-Backwards-compatible support will be removed in Version 15
-    at logCompatibilityWarning (foundry.mjs:6715:17)
-    at get (foundry.mjs:181053:9)
-    at sub-type-edit.js:138:23
-    at Array.map (<anonymous>)
-    at SubTypeEditApp._prepareContext (sub-type-edit.js:133:71)
-    at #render (foundry.mjs:27220:32)
-    at #try (foundry.mjs:7169:23)
-    at foundry.mjs:7142:16
-    at new Promise (<anonymous>)
-    at Semaphore.add (foundry.mjs:7140:12)

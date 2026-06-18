@@ -447,7 +447,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const allLedger = innRaw.ledger ?? [];
     const visibleLedger = isGM
       ? allLedger
-      : allLedger.filter(e => e.actorId === game.user.character?.id);
+      : allLedger.filter(e => {
+          const actor = game.actors.get(e.actorId);
+          return actor?.testUserPermission(game.user, "OWNER");
+        });
 
     const ledger = visibleLedger.map(e => {
       const remaining = e.expiresAt - worldTime;
