@@ -21,9 +21,6 @@ import "./canvas/cart-manager.js";
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | Initializing`);
 
-  // Register keybindings FIRST — Foundry silently skips registration if earlier code throws.
-  // See reference: Keybindings.md
-
   // Preload shared Handlebars partials (registered under short ids for {{> id}} use).
   foundry.applications.handlebars.loadTemplates({
     "ssm-price-input": `modules/${MODULE_ID}/templates/partials/price-input.hbs`

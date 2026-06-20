@@ -16,43 +16,9 @@ import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { instanceFromTemplate, isOverridden, restoreFields, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData } from "./location-data.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
-
-function buildDepositDisplayList(deposits, now, secondsPerDay, currencies) {
-  const matured   = deposits.filter(d => now >= d.depositedAt + d.minDepositSeconds);
-  const unmatured = deposits.filter(d => now <  d.depositedAt + d.minDepositSeconds);
-  const result = [];
-  if (matured.length > 0) {
-    const mergedCoins = {};
-    for (const d of matured) for (const [cId, amt] of Object.entries(d.coins)) mergedCoins[cId] = (mergedCoins[cId] ?? 0) + amt;
-    result.push({
-      id:                matured[0].id,
-      idsJson:           JSON.stringify(matured.map(d => d.id)),
-      coins:             mergedCoins,
-      coinsLabel:        formatAmounts(mergedCoins, currencies),
-      matured:           true,
-      timeRemainingLabel: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.matured"),
-      depositedAt:       matured[0].depositedAt,
-      minDepositSeconds: 0
-    });
-  }
-  const sortedUnmatured = [...unmatured].sort((a, b) => (a.depositedAt + a.minDepositSeconds) - (b.depositedAt + b.minDepositSeconds));
-  for (const dep of sortedUnmatured) {
-    const remainingDays = Math.ceil((dep.depositedAt + dep.minDepositSeconds - now) / secondsPerDay);
-    result.push({
-      id:                dep.id,
-      idsJson:           JSON.stringify([dep.id]),
-      coins:             dep.coins,
-      coinsLabel:        formatAmounts(dep.coins, currencies),
-      matured:           false,
-      timeRemainingLabel: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysRemaining", { days: remainingDays }),
-      depositedAt:       dep.depositedAt,
-      minDepositSeconds: dep.minDepositSeconds
-    });
-  }
-  return result;
-}
 
 export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedLocationId = null;
@@ -232,6 +198,17 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       const subType    = entry.subTypeId
         ? (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId) ?? null
         : null;
+      const innData = isInn ? buildInnData(entry, location, currencies, isGM) : null;
+      if (innData?._needsSave && isGM) this.#saveEntryData(entry.id, innData._updatedInn).catch(err => console.error(`${MODULE_ID} | Failed to save inn menu refresh`, err));
+
+      const bankData = isBank ? buildBankData(this, entry, location, currencies) : null;
+
+      let merchantData = null;
+      if (isMerchant) {
+        merchantData = await buildMerchantData(entry, location, currencies, isGM);
+        if (merchantData._needsSave && isGM) this.#saveEntryData(entry.id, merchantData._updatedMerchant).catch(err => console.error(`${MODULE_ID} | Failed to save merchant restock`, err));
+      }
+
       return {
         id: entry.id, active: entry.id === this._activeTab,
         name:        coreType?.name ?? entry.typeId,
@@ -239,14 +216,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         icon:        coreType?.icon ?? "fa-solid fa-question",
         typeId: entry.typeId, isInn, isMerchant, isBank,
         isOther: !isInn && !isMerchant && !isBank,
-        innData:      isInn ? this.#buildInnData(entry, location, currencies, isGM) : null,
-        bankData:     isBank ? this.#buildBankData(entry, location, currencies) : null,
-        merchantData: await (async () => {
-          if (!isMerchant) return null;
-          const merchantResult = await this.#buildMerchantData(entry, location, currencies, isGM);
-          if (merchantResult._needsSave && isGM) this.#saveEntryData(entry.id, merchantResult._updatedMerchant).catch(() => {});
-          return merchantResult;
-        })()
+        innData, bankData, merchantData
       };
     }));
 
@@ -259,7 +229,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const hasSellTab = effectiveProfile.length > 0;
     let sellData = null;
     if (hasSellTab) {
-      sellData = await this.#buildSellData(location, currencies, isGM, effectiveProfile);
+      sellData = await buildSellData(this, location, currencies, isGM, effectiveProfile);
     }
     const sellTabActive = this._sellTabActive && hasSellTab;
     if (sellTabActive) {
@@ -292,88 +262,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location = this.#syncSelectedLocation();
     if (!location || !this._activeTab) return null;
     return getTypeEntries(location).find(e => e.id === this._activeTab) ?? null;
-  }
-
-  #buildBankData(entry, location, currencies) {
-    const bankRaw    = location.typeData?.[entry.id] ?? {};
-    const bankFilter = !game.user.isGM
-      ? a => a.testUserPermission(game.user, "OWNER")
-      : a => {
-          if (this._bankActorFilter.playerOwned && !a.hasPlayerOwner) return false;
-          if (this._bankActorFilter.types?.size && !this._bankActorFilter.types.has(a.type)) return false;
-          return true;
-        };
-    const ownedActors = game.actors.filter(bankFilter).map(a => ({ id: a.id, name: a.name }));
-    if (!this._bankActorId) {
-      const defaultActor = game.user.character
-        ?? game.actors.find(bankFilter)
-        ?? null;
-      if (defaultActor) this._bankActorId = defaultActor.id;
-    }
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const mode = currencyConfig.mode ?? 'loose';
-    const actor = this._bankActorId ? game.actors.get(this._bankActorId) : null;
-    const balances = actor ? currencies.map(c => {
-      let amount = 0;
-      if (mode === 'attribute' && c.attributePath)
-        amount = foundry.utils.getProperty(actor, c.attributePath) ?? 0;
-      else if (mode === 'item' && c.itemName) {
-        const item = actor.items.find(i => i.name === c.itemName);
-        amount = item ? (foundry.utils.getProperty(item, 'system.quantity') ?? 0) : 0;
-      }
-      return { id: c.id, abbreviation: c.abbreviation, amount };
-    }) : [];
-    const lowestCurrency   = currencies.length ? currencies.reduce((min, c) => parseExchangeRate(c.exchangeRate) < parseExchangeRate(min.exchangeRate) ? c : min) : null;
-    const standardCurrency = currencies.find(c => c.isStandard) ?? null;
-
-    // Resolve effective settings: template when not overridden, stored values when overridden
-    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
-    const subType = entry.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === entry.subTypeId)
-      : null;
-    const hasTemplate = !!subType;
-    const src = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
-    const doesExchange    = src.doesExchange ?? false;
-    const exchangeFee     = src.exchangeFee  ?? 0;
-    const depositSettings = src.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
-
-    const rawDeposits = depositSettings.global
-      ? (game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [])
-      : (bankRaw.deposits ?? []);
-    const actorDeposits = this._bankActorId ? rawDeposits.filter(d => d.actorId === this._bankActorId) : [];
-    const { hoursPerDay } = getWorldTimeConfig();
-    const secondsPerDay   = hoursPerDay * 3600;
-    const now             = game.time.worldTime;
-    const processedDeposits = buildDepositDisplayList(actorDeposits, now, secondsPerDay, currencies);
-    const allCoins = {};
-    for (const dep of actorDeposits) {
-      for (const [cId, amt] of Object.entries(dep.coins)) {
-        allCoins[cId] = (allCoins[cId] ?? 0) + amt;
-      }
-    }
-    const depositsTotal = actorDeposits.length ? formatAmounts(allCoins, currencies) : null;
-
-    return {
-      doesExchange,
-      exchangeFee,
-      currencies:           currencies.map(c => {
-        const bal = balances.find(b => b.id === c.id);
-        return { id: c.id, name: c.name, abbreviation: c.abbreviation, exchangeRate: c.exchangeRate, balance: bal?.amount ?? 0 };
-      }),
-      ownedActors,
-      selectedActorId:      this._bankActorId ?? null,
-      balances,
-      defaultFromCurrencyId: lowestCurrency?.id ?? null,
-      defaultToCurrencyId:   standardCurrency?.id ?? null,
-      depositSettings,
-      processedDeposits,
-      depositsTotal,
-      isOverridden: settingsOverridden,
-      hasTemplate,
-      isGM: game.user.isGM,
-      selectedActorName: game.actors.get(this._bankActorId)?.name ?? null,
-      filterActive: game.user.isGM && (!this._bankActorFilter.playerOwned || this._bankActorFilter.types !== null)
-    };
   }
 
   #wireExchangePreview(section) {
@@ -422,108 +310,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     toSel?.addEventListener('change', update);
   }
 
-  #buildInnData(entry, location, currencies, isGM = true) {
-    const innRaw    = location.typeData?.[entry.id] ?? { lodgings: [], ledger: [] };
-    const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
-    const worldTime = game.time.worldTime;
-
-    const lodgings = (innRaw.lodgings ?? []).map(l => {
-      const dayCurr     = currencies.find(c => c.id === l.pricePerDay?.currencyId);
-      const dayLabel    = `${l.pricePerDay?.amount ?? 0} ${dayCurr?.abbreviation ?? "?"}`;
-      const weeklyAmt   = l.pricePerWeek?.amount ?? ((l.pricePerDay?.amount ?? 0) * daysPerWeek);
-      const weekCurr    = l.pricePerWeek ? currencies.find(c => c.id === l.pricePerWeek.currencyId) : dayCurr;
-      const weekLabel   = `${weeklyAmt} ${weekCurr?.abbreviation ?? "?"}`;
-      const avail       = l.availability ?? null;
-      return {
-        ...l,
-        overridden:          isOverridden(l, TEMPLATE_FIELDS.lodging),
-        pricePerDayLabel:    dayLabel,
-        pricePerWeekLabel:   weekLabel,
-        availabilityDisplay: avail === null ? "∞" : String(avail),
-        isSoldOut:           typeof avail === "number" && avail <= 0
-      };
-    });
-
-    const allLedger = innRaw.ledger ?? [];
-    const visibleLedger = isGM
-      ? allLedger
-      : allLedger.filter(e => {
-          const actor = game.actors.get(e.actorId);
-          return actor?.testUserPermission(game.user, "OWNER");
-        });
-
-    const ledger = visibleLedger.map(e => {
-      const remaining = e.expiresAt - worldTime;
-      const isExpired = remaining <= 0;
-      const timeRemainingLabel = isExpired
-        ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.expired")
-        : (() => { const { totalDays, hour, minute } = secondsToComponents(remaining); return `${totalDays}d ${hour}h ${String(minute).padStart(2, "0")}m`; })();
-      return { ...e, isExpired, timeRemainingLabel };
-    });
-
-    const menuData = this.#buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime);
-    if (menuData._needsSave && isGM) {
-      const updatedInn = foundry.utils.deepClone(innRaw);
-      updatedInn.menu = menuData._updatedMenu;
-      this.#saveEntryData(entry.id, updatedInn).catch(() => {});
-    }
-
-    return { lodgings, ledger, isGM, menuData };
-  }
-
-  #buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime) {
-    const rawMenu = innRaw.menu ?? { courses: [] };
-    const secondsPerDay  = (hoursPerDay ?? 24) * 3600;
-    const secondsPerWeek = secondsPerDay * (daysPerWeek ?? 7);
-
-    let _needsSave = false;
-    const updatedCourses = foundry.utils.deepClone(rawMenu.courses ?? []);
-
-    const courses = updatedCourses.map(course => {
-      const isRandom = course.mode === "random";
-
-      if (isRandom && isGM) {
-        const cadenceSecs = course.refreshCadence === "weekly" ? secondsPerWeek : secondsPerDay;
-        const due = (course.lastRefreshed ?? 0) + cadenceSecs;
-        if (worldTime >= due && (course.pool ?? []).length > 0) {
-          const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
-          course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
-          course.lastRefreshed = worldTime;
-          _needsSave = true;
-        }
-      }
-
-      const visibleItems = isRandom ? (course.drawnItems ?? []) : (course.items ?? []);
-      let priceLabel = null;
-      if (course.price) {
-        const curr = currencies.find(c => c.id === course.price.currencyId);
-        priceLabel = `${course.price.amount} ${curr?.abbreviation ?? "?"}`;
-      }
-      return {
-        ...course,
-        overridden: isOverridden(course, TEMPLATE_FIELDS.course),
-        isRandom,
-        priceLabel,
-        visibleItems: visibleItems.map(item => {
-          const resolvedPrice = item.price ?? course.price;
-          let priceLabel = null;
-          if (resolvedPrice) {
-            const curr = currencies.find(c => c.id === resolvedPrice.currencyId);
-            priceLabel = `${resolvedPrice.amount} ${curr?.abbreviation ?? "?"}`;
-          }
-          return { ...item, priceLabel, hasPrice: !!resolvedPrice };
-        })
-      };
-    });
-
-    return {
-      courses,
-      hasCourses: courses.length > 0,
-      _needsSave,
-      _updatedMenu: { courses: updatedCourses }
-    };
-  }
-
   // ------------------------------------------------------------------ render
 
   async _onRender(context, options) {
@@ -558,7 +344,9 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     }
 
     if (!this._worldTimeHook && game.user.isGM) {
-      this._worldTimeHook = Hooks.on("updateWorldTime", () => this.render({ parts: ["content"] }));
+      // Debounce so advancing/scrubbing world time doesn't trigger a render (and its fromUuid pass) per tick.
+      const debounced = foundry.utils.debounce(() => this.render({ parts: ["content"] }), 250);
+      this._worldTimeHook = Hooks.on("updateWorldTime", () => debounced());
     }
 
     this.#wireActorWidgets();
@@ -781,203 +569,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     location.typeData ??= {};
     location.typeData[entryId] = data;
     await this.#saveLocationData(location);
-  }
-
-  async #buildMerchantData(entry, location, currencies, isGM = true) {
-    const merchant       = location.typeData?.[entry.id] ?? {};
-    const rawInventory   = merchant.inventory ?? [];
-    const stockType        = merchant.stockType        ?? "percent";
-    const restockFrequency = merchant.restockFrequency ?? "weekly";
-
-    const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
-    const typeConfigs = itemConfig.itemTypes ?? [];
-    const typeMap     = Object.fromEntries(typeConfigs.map(t => [t.systemType, t]));
-
-    const settlementTypes       = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
-    const currentSettlementType = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
-    const currentSettlementIdx  = settlementTypes.findIndex(t => t.name === currentSettlementType);
-
-    const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
-    const spd         = hoursPerDay * 3600;
-    const cadenceSecs = { daily: spd, weekly: spd * daysPerWeek, monthly: spd * daysPerWeek * 4 }[restockFrequency] ?? spd;
-    const restockDue  = isGM && (merchant.lastRestocked == null || game.time.worldTime >= merchant.lastRestocked + cadenceSecs);
-
-    let _needsSave = false;
-    const workingInventory = foundry.utils.deepClone(rawInventory);
-
-    if (restockDue) {
-      for (const item of workingInventory) {
-        const hasFormula = !!(item.stockFormula ?? "").trim();
-        let avail;
-        if (stockType === "x-in-6") {
-          const roll = await new Roll("1d6").evaluate();
-          avail = roll.total <= (item.stockAvailability ?? 6);
-        } else {
-          avail = Math.random() * 100 < (item.stockAvailability ?? 100);
-        }
-        if (hasFormula) {
-          item.quantity = avail
-            ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total)
-            : 0;
-        } else {
-          item.quantity = avail ? null : 0;
-        }
-      }
-      _needsSave = true;
-    }
-
-    const displayInventory = workingInventory.filter(item => {
-      const min = item.minSettlementSize ?? "";
-      if (!min) return true;
-      const minIdx = settlementTypes.findIndex(t => t.name === min);
-      return minIdx === -1 || currentSettlementIdx >= minIdx;
-    });
-
-    const groupMap = new Map();
-
-    for (const item of displayInventory) {
-      const typeKey = item.itemType ?? null;
-      const typeCfg = typeKey ? (typeMap[typeKey] ?? null) : null;
-      const groupKey = typeCfg ? typeKey : null;
-
-      let priceLabel = "—";
-      if (item.price) {
-        const curr = currencies.find(c => c.id === item.price.currencyId);
-        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
-      }
-
-      let attrValues = {};
-      if (item.itemId && typeCfg?.attributes?.length) {
-        const fi = await fromUuid(item.itemId).catch(() => null);
-        if (fi) attrValues = readItemAttributes(fi, typeCfg);
-      }
-
-      const attrCells = (typeCfg?.attributes ?? []).map(a => ({
-        id: a.id, label: a.label, value: attrValues[a.id] ?? "—"
-      }));
-
-      const isSoldOut  = item.quantity === 0;
-      const stockLabel = item.quantity == null ? "∞" : String(item.quantity);
-
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          typeKey: groupKey,
-          label:      typeCfg?.label ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.otherGroup"),
-          attributes: typeCfg?.attributes ?? [],
-          items:      []
-        });
-      }
-      groupMap.get(groupKey).items.push({ ...item, priceLabel, attrCells, stockLabel, isSoldOut });
-    }
-
-    const groups = [
-      ...typeConfigs.filter(t => groupMap.has(t.systemType)).map(t => groupMap.get(t.systemType)),
-      ...(groupMap.has(null) ? [groupMap.get(null)] : [])
-    ];
-
-    const soldOutLast = (a, b) => (a.isSoldOut ? 1 : 0) - (b.isSoldOut ? 1 : 0);
-    for (const group of groups) {
-      if (isGM) {
-        group.items.sort(soldOutLast);
-      } else {
-        group.items = group.items.filter(i => !i.isSoldOut);
-      }
-    }
-    const visibleGroups = isGM ? groups : groups.filter(g => g.items.length > 0);
-
-    const builtFlat = displayInventory.map(item => {
-      let priceLabel = "—";
-      if (item.price) {
-        const curr = currencies.find(c => c.id === item.price.currencyId);
-        priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
-      }
-      const isSoldOut  = item.quantity === 0;
-      const stockLabel = item.quantity == null ? "∞" : String(item.quantity);
-      return { ...item, priceLabel, attrCells: [], stockLabel, isSoldOut };
-    });
-    const flatInventory = isGM
-      ? builtFlat.sort(soldOutLast)
-      : builtFlat.filter(i => !i.isSoldOut);
-
-    const updatedMerchant = { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime };
-    if (_needsSave) updatedMerchant.buybackItems = [];
-
-    return {
-      groups: visibleGroups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,
-      _needsSave,
-      _updatedMerchant: updatedMerchant
-    };
-  }
-
-  async #buildSellData(location, currencies, isGM, effectiveProfile) {
-    const hasConflicts = effectiveProfile.some(r => r._conflicted || r._buybackConflicted);
-
-    const sellFilter = !game.user.isGM
-      ? a => a.testUserPermission(game.user, "OWNER")
-      : a => {
-          if (this._sellActorFilter.playerOwned && !a.hasPlayerOwner) return false;
-          if (this._sellActorFilter.types?.size && !this._sellActorFilter.types.has(a.type)) return false;
-          return true;
-        };
-    const ownedActors = game.actors.filter(sellFilter);
-    const defaultActor = (this._sellActorId ? game.actors.get(this._sellActorId) : null)
-      ?? game.user.character
-      ?? ownedActors[0]
-      ?? null;
-    if (defaultActor && !this._sellActorId) this._sellActorId = defaultActor.id;
-
-    const actorOptions = ownedActors.map(a => ({
-      id: a.id, name: a.name, selected: a.id === defaultActor?.id
-    }));
-
-    const itemConfig  = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
-    const typeConfigs = itemConfig.itemTypes ?? [];
-
-    const settlementMaxDenomValue = getSettlementMaxDenomValue(currencies);
-
-    const sellableItems = [];
-    if (defaultActor) {
-      for (const actorItem of defaultActor.items) {
-        const rule = findEffectiveRule(effectiveProfile, actorItem.type ?? "");
-        if (!rule || rule.buyRate === null) continue;
-        const salePrice = computeSalePrice(actorItem, rule, currencies);
-        if (!salePrice) continue;
-        const curr = currencies.find(c => c.id === salePrice.currencyId);
-        const typeCfg  = typeConfigs.find(t => t.systemType === actorItem.type) ?? null;
-        const saleStd  = costInStandard(salePrice, currencies);
-        const breakdown = calculateChange(saleStd, currencies, settlementMaxDenomValue);
-        const salePriceLabel = (breakdown && Object.values(breakdown).some(v => v > 0))
-          ? formatAmounts(breakdown, currencies)
-          : `${salePrice.amount} ${curr?.abbreviation ?? "?"}`;
-        sellableItems.push({
-          actorItemId:    actorItem.id,
-          name:           actorItem.name,
-          typeLabel:      typeCfg?.label ?? (actorItem.type ?? ""),
-          itemLinkedUuid: actorItem.uuid,
-          salePrice,
-          salePriceLabel
-        });
-      }
-    }
-
-    const merchantEntries = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
-    const rawBuyback = merchantEntries.flatMap(me =>
-      (location.typeData?.[me.id]?.buybackItems ?? []).map(b => ({ ...b, _entryId: me.id }))
-    );
-    const buybackItems = rawBuyback.map(entry => {
-      const curr = currencies.find(c => c.id === entry.buybackPrice?.currencyId);
-      return {
-        ...entry,
-        buybackPriceLabel: entry.buybackPrice
-          ? `${entry.buybackPrice.amount} ${curr?.abbreviation ?? "?"}`
-          : "—"
-      };
-    });
-
-    return {
-      effectiveProfile, hasConflicts, actors: actorOptions, selectedActorId: defaultActor?.id ?? null, sellableItems, buybackItems,
-      filterActive: game.user.isGM && (!this._sellActorFilter.playerOwned || this._sellActorFilter.types !== null)
-    };
   }
 
   async #onMerchantDrop(event) {
@@ -1254,7 +845,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const course = (innData.menu?.courses ?? []).find(c => c.id === courseId);
     if (!course || course.mode !== "random") return;
     const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
-    course.drawnItems    = shuffled.slice(0, course.drawCount ?? 3);
+    const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
+    const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
+    const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
+    course.drawnItems    = shuffled.slice(0, Math.min(dcCount, shuffled.length));
     course.lastRefreshed = game.time.worldTime;
     await this.#saveEntryData(this._activeTab, innData);
   }
@@ -1511,7 +1105,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       locationId: location.id,
       entryId:    this._activeTab,
       sceneId:    canvas.scene?.id,
-      isGlobal:   depositSettings.global ?? false
+      isGlobal:   depositSettings.global ?? false,
+      userId:     game.user.id
     };
 
     if (game.user.isGM) {
@@ -1771,7 +1366,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       locationId:     location.id,
       entryId:        this._activeTab,
       sceneId:        canvas.scene?.id,
-      isGlobal:       depositSettings.global ?? false
+      isGlobal:       depositSettings.global ?? false,
+      userId:         game.user.id
     };
 
     if (game.user.isGM) {

@@ -2,7 +2,7 @@ import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES } from "../
 import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
 import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
-import { costInStandard } from "../utils/currency-utils.js";
+import { costInStandard, getStandardCurrency } from "../utils/currency-utils.js";
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 
@@ -114,7 +114,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (showInnSections || showMerchantSection || showBankSection) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
-      const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
+      const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
       if (showInnSections) {
         lodgings = this._lodgings.map(l => ({
           ...l,
@@ -399,7 +399,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncLodgingsFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies = currencyConfig.currencies ?? [];
-    const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
+    const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
     this._lodgings.push({
       id:           foundry.utils.randomID(),
       name:         "",
@@ -538,7 +538,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncTemplateInventoryFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies = currencyConfig.currencies ?? [];
-    const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
+    const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
     this._templateInventory.push({
       id:                foundry.utils.randomID(),
       name:              "",

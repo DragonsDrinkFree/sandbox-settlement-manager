@@ -31,12 +31,9 @@ export function getCurrentWorldTime() {
 }
 
 export function registerWorldTimeHooks() {
-  Hooks.on("updateWorldTime", (worldTime, dt) => {
-    const c = secondsToComponents(worldTime);
-    console.debug(
-      `${MODULE_ID} | time ${dt >= 0 ? "+" : ""}${dt}s → day ${c.totalDays} (weekday ${c.dayOfWeek}), ` +
-      `${c.hour}:${String(c.minute).padStart(2, "0")}`
-    );
-    // Future: check inn expiry, inventory refresh triggers
+  Hooks.on("updateWorldTime", () => {
+    // Future: check inn expiry, inventory refresh triggers.
+    // Open settlement/location windows handle their own re-render via their own
+    // updateWorldTime hooks (debounced), so nothing is needed here yet.
   });
 }

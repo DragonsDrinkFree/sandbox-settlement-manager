@@ -21,13 +21,27 @@ export function registerSocketHandlers() {
     if (data.type === SOCKET_TYPES.SAVE_LOCATION) {
       await _handleSaveLocation(data);
     } else if (data.type === SOCKET_TYPES.RECORD_DEPOSIT) {
-      await _handleRecordDeposit(data);
+      // Bank actions wrap their fields under `payload`; unwrap before handling.
+      await _handleRecordDeposit(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.PROCESS_WITHDRAWAL) {
-      await _handleProcessWithdrawal(data);
+      await _handleProcessWithdrawal(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.RECORD_LEDGER_ENTRIES) {
       await _handleRecordLedgerEntries(data);
+    } else {
+      console.warn(`${MODULE_ID} | Unknown socket message type: ${data.type}`);
     }
   });
+}
+
+/**
+ * True when the given user owns the given actor. Used to reject bank socket
+ * messages that target an actor the requesting player does not control.
+ */
+function _userOwnsActor(userId, actorId) {
+  const user  = game.users.get(userId);
+  const actor = game.actors.get(actorId);
+  if (!user || !actor) return false;
+  return actor.testUserPermission(user, "OWNER");
 }
 
 /**
@@ -46,7 +60,8 @@ async function _handleSaveLocation({ sceneId, location }) {
 }
 
 /** GM-side: record a new deposit into either world setting (global) or scene flag. */
-export async function _handleRecordDeposit({ deposit, locationId, entryId, sceneId, isGlobal }) {
+export async function _handleRecordDeposit({ deposit, locationId, entryId, sceneId, isGlobal, userId }) {
+  if (!_userOwnsActor(userId, deposit?.actorId)) return;
   if (isGlobal) {
     const existing = game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [];
     await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, [...existing, deposit]);
@@ -69,9 +84,10 @@ export async function _handleRecordDeposit({ deposit, locationId, entryId, scene
  */
 export async function _handleProcessWithdrawal({
   depositIds, withdrawCoins, actorId, earlyFeeRate,
-  locationId, entryId, sceneId, isGlobal
+  locationId, entryId, sceneId, isGlobal, userId
 }) {
-  const currencyConfig = game.settings.get(MODULE_ID, "currencyConfig");
+  if (!_userOwnsActor(userId, actorId)) return;
+  const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? { currencies: [] };
   const currencies     = currencyConfig.currencies ?? [];
   const mode           = currencyConfig.mode ?? 'loose';
   const actor          = game.actors.get(actorId);

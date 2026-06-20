@@ -15,6 +15,21 @@ export function parseExchangeRate(rateStr) {
 }
 
 /**
+ * The standard (1:1) currency, falling back to the first configured currency.
+ * Returns null only when no currencies are configured.
+ */
+export function getStandardCurrency(currencies) {
+  return currencies.find(c => c.isStandard) ?? currencies[0] ?? null;
+}
+
+/**
+ * Highest denomination value (in standard units) across all currencies.
+ */
+export function getMaxDenomValue(currencies) {
+  return currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+}
+
+/**
  * Convert an expense's cost to standard currency.
  */
 export function costInStandard(expense, currencies) {
@@ -72,7 +87,7 @@ export function formatAmounts(amounts, currencies) {
     .filter(c => (amounts[c.id] ?? 0) > 0)
     .map(c => `${amounts[c.id]} ${c.abbreviation}`);
   if (!parts.length) {
-    const std = currencies.find(c => c.isStandard);
+    const std = getStandardCurrency(currencies);
     return `0 ${std?.abbreviation ?? ""}`;
   }
   return parts.join(", ");
@@ -155,14 +170,14 @@ export function readActorBalance(actor, currency, mode) {
  */
 export async function grantStandardToActor(actor, amountInStandard, currencies, mode, maxDenomValue = null) {
   if (!actor || amountInStandard < 1e-9 || mode === "loose") return;
-  const effectiveMax = maxDenomValue ?? currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+  const effectiveMax = maxDenomValue ?? getMaxDenomValue(currencies);
 
   let coins = calculateChange(amountInStandard, currencies, effectiveMax);
   if (!coins) {
     const eligible = [...currencies]
       .filter(c => parseExchangeRate(c.exchangeRate) <= effectiveMax + 1e-9)
       .sort((a, b) => parseExchangeRate(a.exchangeRate) - parseExchangeRate(b.exchangeRate));
-    const sc = eligible[0] ?? currencies.find(c => c.isStandard);
+    const sc = eligible[0] ?? getStandardCurrency(currencies);
     if (!sc) return;
     coins = { [sc.id]: Math.ceil(amountInStandard / parseExchangeRate(sc.exchangeRate)) };
   }
@@ -231,12 +246,12 @@ export function getSettlementMaxDenomValue(currencies) {
   const settlementTypes    = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
   const settlementTypeName = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
   const settlementType     = settlementTypes.find(t => t.name === settlementTypeName);
-  const globalMax    = currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
+  const globalMax    = getMaxDenomValue(currencies);
   const maxId        = settlementType?.maxCurrencyId ?? "";
   if (maxId === "*") return globalMax;
   if (maxId === "") {
     // Default: cap at the standard (1:1) currency
-    const std = currencies.find(c => c.isStandard);
+    const std = getStandardCurrency(currencies);
     return std ? parseExchangeRate(std.exchangeRate) : globalMax;
   }
   const maxCurr = currencies.find(c => c.id === maxId);

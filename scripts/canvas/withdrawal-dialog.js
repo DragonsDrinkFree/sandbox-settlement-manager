@@ -1,5 +1,5 @@
 import { MODULE_ID, SETTINGS } from "../constants.js";
-import { parseExchangeRate, totalOfferedInStandard, calculateChange, formatAmounts } from "../utils/currency-utils.js";
+import { parseExchangeRate, totalOfferedInStandard, calculateChange, formatAmounts, getMaxDenomValue } from "../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -101,7 +101,7 @@ export class WithdrawalDialog extends HandlebarsApplicationMixin(ApplicationV2) 
         const totalStd  = totalOfferedInStandard(withdrawCoins, currencies);
         const feeStd    = totalStd * earlyFeeRate / 100;
         const payoutStd = Math.max(0, totalStd - feeStd);
-        const maxDenom  = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+        const maxDenom  = getMaxDenomValue(currencies);
         const feeCoins  = calculateChange(feeStd, currencies, maxDenom) ?? {};
         const payCoins  = calculateChange(payoutStd, currencies, maxDenom) ?? {};
         if (feeEl)     feeEl.textContent     = formatAmounts(feeCoins, currencies);
