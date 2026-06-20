@@ -45,7 +45,7 @@
         </select>
         {{else}}
         <label class="ssm-cart-qty-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.qty"}}:</label>
-        <input type="number" class="ssm-cart-quantity" min="1" value="{{this.quantity}}"
+        <input type="number" class="ssm-cart-quantity" min="1" {{#if this.maxStock}}max="{{this.maxStock}}"{{/if}} value="{{this.quantity}}"
                data-cart-id="{{this.id}}">
         {{/if}}
         <span class="ssm-cart-line-total">{{this.lineTotalLabel}}</span>

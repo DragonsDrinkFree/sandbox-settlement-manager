@@ -1,9 +1,10 @@
-# v0.9.0-rc.1
+# v0.9.0
 
 ## Major
 - Release-candidate hardening pass.
 - Unified merchant/bank/inn/sell data-building into a single shared module so the GM Settlement Manager and the player location window always behave identically (previously drifted copies).
 ## Minor
+- Fixed: merchant stock is now tracked — buying an item reduces its quantity, sold-out items can't be bought, and checkout is blocked (no charge) when a cart exceeds available stock. Duplicate buys merge into one capped cart line.
 - Fixed: player deposits/withdrawals sent over the socket are now processed (payload was previously mis-routed and silently dropped).
 - Security: bank deposit/withdrawal socket handlers now verify the requesting player owns the target actor.
 - Player shop view now hides sold-out items and auto-selects a default bank actor, matching the GM window.

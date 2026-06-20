@@ -28,8 +28,34 @@ class CartManager {
     this.#notify();
   }
 
-  /** Add a merchant inventory item to the cart. */
+  /**
+   * Add a merchant inventory item to the cart. Stock-limited items (numeric quantity) are merged
+   * into a single line and capped at available stock; null quantity means unlimited (∞).
+   */
   addMerchantItem({ sceneId, locationId, locationName, entryId, item }) {
+    const maxStock = typeof item.quantity === 'number' ? item.quantity : null;
+
+    if (maxStock === 0) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.cart.outOfStock"));
+      return;
+    }
+
+    const existing = this.#items.find(i =>
+      i.type === 'merchantItem' &&
+      i.sceneId === sceneId && i.locationId === locationId &&
+      (i.entryId ?? null) === (entryId ?? null) && i.inventoryItemId === item.id
+    );
+    if (existing) {
+      if (maxStock !== null && existing.quantity >= maxStock) {
+        ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.cart.stockCapReached"));
+        return;
+      }
+      existing.quantity = maxStock !== null ? Math.min(existing.quantity + 1, maxStock) : existing.quantity + 1;
+      existing.maxStock = maxStock;
+      this.#notify();
+      return;
+    }
+
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'merchantItem',
@@ -41,7 +67,8 @@ class CartManager {
       itemName: item.name,
       itemLinkedId: item.itemId ?? null,
       price: item.price ?? null,
-      quantity: 1
+      quantity: 1,
+      maxStock
     });
     this.#notify();
   }
@@ -106,6 +133,10 @@ class CartManager {
     const item = this.#items.find(i => i.id === cartId);
     if (!item) return;
     Object.assign(item, updates);
+    // Clamp stock-limited merchant items to their available stock.
+    if (item.type === 'merchantItem' && typeof item.maxStock === 'number') {
+      item.quantity = Math.max(1, Math.min(item.quantity, item.maxStock));
+    }
     this.#notify();
   }
 

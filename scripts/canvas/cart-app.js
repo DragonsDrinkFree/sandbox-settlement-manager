@@ -213,6 +213,13 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const mode           = currencyConfig.mode ?? 'loose';
     const items          = cartManager.items;
 
+    // Authoritative stock guard: never charge for more merchant stock than is currently available.
+    const overbuy = CartApp.#findStockShortfalls(items);
+    if (overbuy.length) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.cart.insufficientStock", { items: overbuy.join(", ") }));
+      return;
+    }
+
     const netStd    = cartManager.computeNetTotalInStandard(currencies);
     const sellItems = items.filter(i => i.type === 'sellItem');
     const actorId   = sellItems[0]?.actorId ?? null;
@@ -278,30 +285,90 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  /**
+   * Returns the names of merchant items whose total cart quantity exceeds the current live stock.
+   * Aggregates duplicate lines per item; unlimited (null quantity) items are never short.
+   */
+  static #findStockShortfalls(items) {
+    const wanted = new Map();
+    for (const item of items) {
+      if (item.type !== 'merchantItem') continue;
+      const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.inventoryItemId}`;
+      const agg = wanted.get(key) ?? { name: item.itemName, qty: 0, ...item };
+      agg.qty += item.quantity ?? 1;
+      wanted.set(key, agg);
+    }
+
+    const short = [];
+    for (const w of wanted.values()) {
+      const scene     = game.scenes.get(w.sceneId);
+      const locations = scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+      const location  = locations.find(r => r.id === w.locationId);
+      const entryId   = w.entryId ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
+      const stockItem = location?.typeData?.[entryId]?.inventory?.find(i => i.id === w.inventoryItemId);
+      const stock     = stockItem?.quantity;
+      if (typeof stock === 'number' && w.qty > stock) short.push(w.name);
+    }
+    return short;
+  }
+
   /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */
   static async #processFulfillments(items, actorId, currencies = [], mode = 'loose') {
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const secondsPerDay  = hoursPerDay * 3600;
     const secondsPerWeek = secondsPerDay * daysPerWeek;
 
-    // Group lodging items by sceneId so we update each scene's flags once
-    const byScene = new Map();
-    for (const item of items) {
-      if (item.type !== 'lodging') continue;
-      if (!byScene.has(item.sceneId)) byScene.set(item.sceneId, []);
-      byScene.get(item.sceneId).push(item);
-    }
-
     const actorName = actorId ? (game.actors.get(actorId)?.name ?? '') : '';
 
-    for (const [sceneId, sceneItems] of byScene) {
+    // Fulfill sell items actor-side first (remove the sold item) and collect buyback entries to be
+    // written into the location flag below, grouped by `${sceneId}:${locationId}`.
+    const sellItems = items.filter(i => i.type === 'sellItem');
+    const buybackByLocation = new Map();
+    for (const sellItem of sellItems) {
+      const sellerActor = game.actors.get(sellItem.actorId);
+      if (!sellerActor) continue;
+      const actorItem = sellerActor.items.get(sellItem.actorItemId);
+      if (!actorItem) continue;
+
+      const qty        = sellItem.quantity ?? 1;
+      const currentQty = foundry.utils.getProperty(actorItem, 'system.quantity') ?? 1;
+      const itemData   = actorItem.toObject();
+      if (currentQty <= qty) {
+        await actorItem.delete();
+      } else {
+        await actorItem.update({ 'system.quantity': currentQty - qty });
+      }
+
+      const key = `${sellItem.sceneId}:${sellItem.locationId}`;
+      if (!buybackByLocation.has(key)) buybackByLocation.set(key, { sceneId: sellItem.sceneId, locationId: sellItem.locationId, entries: [] });
+      buybackByLocation.get(key).entries.push({
+        id:             foundry.utils.randomID(),
+        itemName:       sellItem.itemName,
+        itemLinkedUuid: sellItem.itemLinkedUuid ?? null,
+        itemData,
+        salePrice:      sellItem.salePrice,
+        buybackPrice:   sellItem.salePrice, // default player-price; profile edit can adjust
+        soldAt:         game.time.worldTime
+      });
+    }
+
+    // Consolidated per-scene location mutations: lodging bookings, merchant stock decrement, and
+    // buyback caching all share one deepClone + one save per location, so a buy and a sell at the
+    // same location in a single checkout can't clobber each other.
+    const mutationSceneIds = new Set([
+      ...items.filter(i => i.type === 'lodging' || i.type === 'merchantItem').map(i => i.sceneId),
+      ...[...buybackByLocation.values()].map(b => b.sceneId)
+    ]);
+
+    for (const sceneId of mutationSceneIds) {
       const scene = game.scenes.get(sceneId);
       if (!scene) continue;
 
-      const locations  = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
-      const dirtyIds   = new Set();
+      const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+      const dirtyIds  = new Set();
 
-      for (const cartItem of sceneItems) {
+      // Lodging bookings: append ledger entry + decrement availability.
+      for (const cartItem of items.filter(i => i.type === 'lodging' && i.sceneId === sceneId)) {
         const location = locations.find(r => r.id === cartItem.locationId);
         const inn = cartItem.entryId
           ? location?.typeData?.[cartItem.entryId]
@@ -338,6 +405,33 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         dirtyIds.add(cartItem.locationId);
       }
 
+      // Merchant purchases: decrement tracked stock (null quantity = unlimited, left untouched).
+      for (const cartItem of items.filter(i => i.type === 'merchantItem' && i.sceneId === sceneId)) {
+        const location = locations.find(r => r.id === cartItem.locationId);
+        const entryId  = cartItem.entryId
+          ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
+        const invItem  = location?.typeData?.[entryId]?.inventory?.find(i => i.id === cartItem.inventoryItemId);
+        if (invItem && typeof invItem.quantity === 'number') {
+          invItem.quantity = Math.max(0, invItem.quantity - (cartItem.quantity ?? 1));
+          dirtyIds.add(cartItem.locationId);
+        }
+      }
+
+      // Buyback caching: append sold items to the first merchant entry's buybackItems.
+      for (const { locationId, entries } of [...buybackByLocation.values()].filter(b => b.sceneId === sceneId)) {
+        const location = locations.find(r => r.id === locationId);
+        if (!location) continue;
+        const merchantEntryId = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
+        if (!merchantEntryId) continue;
+        location.typeData ??= {};
+        location.typeData[merchantEntryId] ??= {};
+        location.typeData[merchantEntryId].buybackItems = [
+          ...(location.typeData[merchantEntryId].buybackItems ?? []),
+          ...entries
+        ];
+        dirtyIds.add(locationId);
+      }
+
       if (!dirtyIds.size) continue;
 
       if (game.user.isGM) {
@@ -367,61 +461,6 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
             await actor.createEmbeddedDocuments('Item', [itemData]);
           }
         }
-      }
-    }
-
-    // Fulfill sell items: remove from actor and cache in merchant buyback list
-    const sellItems = items.filter(i => i.type === 'sellItem');
-
-    // Group buyback entries by sceneId + locationId
-    const buybackByLocation = new Map(); // key: `${sceneId}:${locationId}`
-
-    if (sellItems.length) for (const sellItem of sellItems) {
-      const sellerActor = game.actors.get(sellItem.actorId);
-      if (!sellerActor) continue;
-      const actorItem = sellerActor.items.get(sellItem.actorItemId);
-      if (!actorItem) continue;
-
-      const qty        = sellItem.quantity ?? 1;
-      const currentQty = foundry.utils.getProperty(actorItem, 'system.quantity') ?? 1;
-      if (currentQty <= qty) {
-        await actorItem.delete();
-      } else {
-        await actorItem.update({ 'system.quantity': currentQty - qty });
-      }
-
-      const key = `${sellItem.sceneId}:${sellItem.locationId}`;
-      if (!buybackByLocation.has(key)) buybackByLocation.set(key, { sceneId: sellItem.sceneId, locationId: sellItem.locationId, entries: [] });
-      buybackByLocation.get(key).entries.push({
-        id:             foundry.utils.randomID(),
-        itemName:       sellItem.itemName,
-        itemLinkedUuid: sellItem.itemLinkedUuid ?? null,
-        itemData:       actorItem.toObject(),
-        salePrice:      sellItem.salePrice,
-        buybackPrice:   sellItem.salePrice, // default player-price; profile edit can adjust
-        soldAt:         game.time.worldTime
-      });
-    }
-
-    // Save buyback entries to the first merchant entry's buybackItems for the location
-    for (const { sceneId, locationId, entries } of buybackByLocation.values()) {
-      const scene = game.scenes.get(sceneId);
-      if (!scene) continue;
-      const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
-      const location  = locations.find(r => r.id === locationId);
-      if (!location) continue;
-      const merchantEntryId = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
-      if (!merchantEntryId) continue;
-      location.typeData ??= {};
-      location.typeData[merchantEntryId] ??= {};
-      location.typeData[merchantEntryId].buybackItems = [
-        ...(location.typeData[merchantEntryId].buybackItems ?? []),
-        ...entries
-      ];
-      if (game.user.isGM) {
-        await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
-      } else {
-        game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.SAVE_LOCATION, sceneId: scene.id, location });
       }
     }
 

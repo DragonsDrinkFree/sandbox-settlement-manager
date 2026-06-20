@@ -384,7 +384,10 @@
       "sellingSection": "Selling",
       "sellCredit": "Sale credit",
       "netTotal": "Net Total",
-      "youReceive": "You receive"
+      "youReceive": "You receive",
+      "outOfStock": "That item is sold out.",
+      "stockCapReached": "No more of that item in stock.",
+      "insufficientStock": "Not enough stock for: {items}"
     },
     "actor": {
       "filterPlaceholder": "Filter…",
