@@ -1,0 +1,113 @@
+{
+  "module": "sandbox-settlement-manager",
+  "version": 1,
+  "exportedAt": "2026-06-22T21:18:00.857Z",
+  "data": {
+    "settlementTypes": [
+      {
+        "name": "Village",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "Town",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "City",
+        "maxCurrencyId": ""
+      }
+    ],
+    "currencyConfig": {
+      "mode": "attribute",
+      "currencies": [
+        {
+          "id": "qqIkMh3CSjlYA23Z",
+          "name": "Platinum",
+          "abbreviation": "pp",
+          "isStandard": false,
+          "exchangeRate": "10:1",
+          "attributePath": "system.currency.pp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "abbreviation": "gp",
+          "isStandard": true,
+          "exchangeRate": "1:1",
+          "attributePath": "system.currency.gp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "abbreviation": "sp",
+          "isStandard": false,
+          "exchangeRate": "1:10",
+          "attributePath": "system.currency.sp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "MNeWs3g61z6l9u4D",
+          "name": "Electrum",
+          "abbreviation": "ep",
+          "isStandard": false,
+          "exchangeRate": "1:5",
+          "attributePath": "system.currency.ep",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "copper",
+          "name": "Copper",
+          "abbreviation": "cp",
+          "isStandard": false,
+          "exchangeRate": "1:100",
+          "attributePath": "system.currency.cp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        }
+      ]
+    },
+    "itemConfig": {
+      "nameAttribute": "name",
+      "priceFormat": "denomination-field",
+      "priceAttribute": "system.price.value",
+      "priceDenominationAttribute": "system.price.denomination",
+      "itemTypes": [
+        {
+          "id": "N7JBwKjmgttRpufm",
+          "systemType": "weapon",
+          "label": "Weapons",
+          "attributes": []
+        },
+        {
+          "id": "f0Ic264vm57t1d0q",
+          "systemType": "equipment",
+          "label": "Equipment",
+          "attributes": []
+        },
+        {
+          "id": "zIGDnN1HEjziAQVF",
+          "systemType": "tool",
+          "label": "Tool",
+          "attributes": []
+        },
+        {
+          "id": "B6GAuUff7ITzQhMg",
+          "systemType": "consumable",
+          "label": "Consumable",
+          "attributes": []
+        }
+      ]
+    }
+  }
+}

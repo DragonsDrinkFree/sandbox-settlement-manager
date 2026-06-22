@@ -4,6 +4,11 @@
     "file": "ARS_OSRIC.json",
     "description": "ARS RPG System, Requires: OSRIC Compendium as reference."
   },
+    {
+    "name": "D&D 5th Edition",
+    "file": "dnd5e.json",
+    "description": "D&D 5th Edition System configuration."
+  },
   {
     "name": "Dolmenwood",
     "file": "Dolmenwood.json",
