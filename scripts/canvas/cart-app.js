@@ -286,29 +286,46 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Returns the names of merchant items whose total cart quantity exceeds the current live stock.
-   * Aggregates duplicate lines per item; unlimited (null quantity) items are never short.
+   * Returns the names of merchant items / inn lodgings whose total cart demand exceeds the current
+   * live stock or availability. Aggregates duplicate lines (each lodging line = 1 room); unlimited
+   * (null quantity / blank availability) entries are never short.
    */
   static #findStockShortfalls(items) {
-    const wanted = new Map();
+    const merchantWanted = new Map();
+    const lodgingWanted  = new Map();
     for (const item of items) {
-      if (item.type !== 'merchantItem') continue;
-      const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.inventoryItemId}`;
-      const agg = wanted.get(key) ?? { name: item.itemName, qty: 0, ...item };
-      agg.qty += item.quantity ?? 1;
-      wanted.set(key, agg);
+      if (item.type === 'merchantItem') {
+        const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.inventoryItemId}`;
+        const agg = merchantWanted.get(key) ?? { name: item.itemName, qty: 0, ...item };
+        agg.qty += item.quantity ?? 1;
+        merchantWanted.set(key, agg);
+      } else if (item.type === 'lodging') {
+        const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.lodgingId}`;
+        const agg = lodgingWanted.get(key) ?? { name: item.lodgingName, qty: 0, ...item };
+        agg.qty += 1; // each cart line is one room booking
+        lodgingWanted.set(key, agg);
+      }
     }
 
+    const locationsFor = (sceneId) => game.scenes.get(sceneId)?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
     const short = [];
-    for (const w of wanted.values()) {
-      const scene     = game.scenes.get(w.sceneId);
-      const locations = scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
-      const location  = locations.find(r => r.id === w.locationId);
+
+    for (const w of merchantWanted.values()) {
+      const location  = locationsFor(w.sceneId).find(r => r.id === w.locationId);
       const entryId   = w.entryId ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
-      const stockItem = location?.typeData?.[entryId]?.inventory?.find(i => i.id === w.inventoryItemId);
-      const stock     = stockItem?.quantity;
+      const stock     = location?.typeData?.[entryId]?.inventory?.find(i => i.id === w.inventoryItemId)?.quantity;
       if (typeof stock === 'number' && w.qty > stock) short.push(w.name);
     }
+
+    for (const w of lodgingWanted.values()) {
+      const location = locationsFor(w.sceneId).find(r => r.id === w.locationId);
+      const entryId  = w.entryId ?? getTypeEntries(location ?? {}).find(
+        e => e.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[e.id]?.lodgings ?? []).some(l => l.id === w.lodgingId)
+      )?.id;
+      const avail    = location?.typeData?.[entryId]?.lodgings?.find(l => l.id === w.lodgingId)?.availability;
+      if (typeof avail === 'number' && w.qty > avail) short.push(w.name);
+    }
+
     return short;
   }
 
@@ -395,7 +412,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
           actorName,
           purchasedAt,
           durationSeconds,
-          expiresAt: purchasedAt + durationSeconds
+          expiresAt: purchasedAt + durationSeconds,
+          reclaimed: false
         });
 
         const lodging = (inn.lodgings ?? []).find(l => l.id === cartItem.lodgingId);

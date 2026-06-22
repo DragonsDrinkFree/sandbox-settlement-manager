@@ -55,7 +55,7 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lodging: {
         name:       this._lodging.name       ?? "",
         beds:       this._lodging.beds       ?? 1,
-        infinite:   this._lodging.infinite   ?? true,
+        availability: typeof this._lodging.availability === "number" ? this._lodging.availability : "",
         pricePerDay: {
           currencyId: this._lodging.pricePerDay?.currencyId ?? defaultCurrencyId,
           amount:     this._lodging.pricePerDay?.amount     ?? 0
@@ -98,7 +98,8 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const name = (formData.object.name ?? "").trim();
     if (!name) return;
     const beds = parseInt(formData.object.beds) || 0;
-    const infinite = !!formData.object.infinite;
+    const avInt = parseInt(formData.object.availability); // number input → number; blank → NaN
+    const availability = Number.isFinite(avInt) ? avInt : null; // blank = unlimited
     const pricePerDay = {
       currencyId: formData.object.pricePerDayCurrencyId ?? "",
       amount:     parseFloat(formData.object.pricePerDayAmount) || 0
@@ -112,7 +113,7 @@ export class LodgingEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._resolve = null;
     resolve?.({
       id:              this._lodging.id || foundry.utils.randomID(),
-      name, beds, infinite, pricePerDay, pricePerWeek,
+      name, beds, availability, pricePerDay, pricePerWeek,
       templateItemId:  this._lodging.templateItemId ?? null,
       _templateValues: this._lodging._templateValues ?? null
     });

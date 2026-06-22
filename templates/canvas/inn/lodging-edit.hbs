@@ -8,6 +8,11 @@
       <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.beds"}}</label>
       <input type="number" name="beds" value="{{lodging.beds}}" min="0" step="1">
     </div>
+    <div class="lodging-compact-beds">
+      <label title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.availabilityHint'}}">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.availability"}}</label>
+      <input type="number" name="availability" value="{{lodging.availability}}" min="1" step="1" placeholder="∞"
+             title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.availabilityHint'}}">
+    </div>
     <div class="lodging-compact-price">
       <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.pricePerDay"}}</label>
       <div class="price-field-row">
@@ -15,10 +20,6 @@
       </div>
     </div>
   </div>
-  <label class="lodging-check-row">
-    <input type="checkbox" name="infinite" {{#if lodging.infinite}}checked{{/if}}>
-    {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.infinite"}}
-  </label>
   <div class="lodging-week-row">
     <label class="lodging-check-row">
       <input type="checkbox" name="autoWeekly" {{#if autoWeekly}}checked{{/if}}>

@@ -14,6 +14,7 @@ import { isOverridden, restoreFields, TEMPLATE_FIELDS } from "./template-link.js
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { buildMerchantData, buildBankData, buildInnData, buildSellData } from "./location-data.js";
+import { restoreLodgingAvailability } from "./lodging-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -361,6 +362,9 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
     if (!confirmed) return;
+    // Cancelling a booking that hasn't already been reclaimed (e.g. an active stay ended early)
+    // frees its room back up; expired/reclaimed bookings were already restored at expiry.
+    if (!entry.reclaimed) restoreLodgingAvailability(innData, entry);
     innData.ledger = innData.ledger.filter(e => e.id !== entryId);
     await this.#saveEntryData(this._activeTab, innData);
   }

@@ -1,4 +1,5 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+import { MODULE_ID, SETTINGS, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { reclaimExpiredBookings } from "../canvas/lodging-utils.js";
 
 export function getWorldTimeConfig() {
   return {
@@ -31,9 +32,29 @@ export function getCurrentWorldTime() {
 }
 
 export function registerWorldTimeHooks() {
-  Hooks.on("updateWorldTime", () => {
-    // Future: check inn expiry, inventory refresh triggers.
-    // Open settlement/location windows handle their own re-render via their own
-    // updateWorldTime hooks (debounced), so nothing is needed here yet.
-  });
+  // Restore inn lodging availability for bookings that have expired. Only the active GM mutates
+  // scene flags; the change propagates to every client (and re-renders open windows) via updateScene.
+  Hooks.on("updateWorldTime", () => reclaimExpiredLodgingBookings());
+  // Catch bookings that expired while the world was closed.
+  Hooks.once("ready", () => reclaimExpiredLodgingBookings());
+}
+
+async function reclaimExpiredLodgingBookings() {
+  if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
+  const now = game.time.worldTime;
+
+  for (const scene of game.scenes) {
+    const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
+    if (!locations?.length) continue;
+
+    const cloned = foundry.utils.deepClone(locations);
+    let changed = false;
+    for (const location of cloned) {
+      for (const entry of getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.INN)) {
+        const inn = location.typeData?.[entry.id];
+        if (inn && reclaimExpiredBookings(inn, now)) changed = true;
+      }
+    }
+    if (changed) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, cloned);
+  }
 }
