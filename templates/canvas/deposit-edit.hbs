@@ -1,0 +1,26 @@
+<div class="deposit-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.actorLabel"}}</label>
+    <select name="actorId">
+      {{#each actors}}
+      <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <fieldset class="deposit-edit-coins">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.total"}}</legend>
+    {{#each currencyRows}}
+    <div class="ssm-deposit-currency-row">
+      <label class="ssm-deposit-currency-label">{{this.abbreviation}}</label>
+      <input type="number" class="deposit-edit-coin-input"
+             data-currency-id="{{this.id}}" value="{{this.amount}}" min="0" step="1">
+    </div>
+    {{/each}}
+  </fieldset>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysRemainingLabel"}}</label>
+    <input type="number" name="remainingDays" value="{{remainingDays}}" min="0" step="1">
+  </div>
+</div>

@@ -22,6 +22,22 @@ export function restoreLodgingAvailability(inn, entry) {
 }
 
 /**
+ * Consume one unit of availability for the given lodging (the inverse of
+ * restoreLodgingAvailability). No-op (returns false) when the lodging is gone or its availability
+ * is infinite (non-numeric). Clamped at 0 — never goes negative, so a GM can still force-add a
+ * booking to an already sold-out room.
+ */
+export function consumeLodgingAvailability(inn, lodgingId) {
+  if (!inn || !lodgingId) return false;
+  const lodging = (inn.lodgings ?? []).find(l => l.id === lodgingId);
+  if (lodging && typeof lodging.availability === "number") {
+    lodging.availability = Math.max(0, lodging.availability - 1);
+    return true;
+  }
+  return false;
+}
+
+/**
  * Restore availability for every booking that has expired (`expiresAt <= now`) and not yet been
  * reclaimed, marking each `reclaimed` so it only restores once. The entry itself is kept (shown as
  * expired) until a GM dismisses it. Mutates `inn`; returns true if anything changed.

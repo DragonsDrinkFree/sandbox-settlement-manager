@@ -101,7 +101,12 @@ export class WithdrawalDialog extends HandlebarsApplicationMixin(ApplicationV2) 
         const totalStd  = totalOfferedInStandard(withdrawCoins, currencies);
         const feeStd    = totalStd * earlyFeeRate / 100;
         const payoutStd = Math.max(0, totalStd - feeStd);
-        const maxDenom  = getMaxDenomValue(currencies);
+        // Cap to the highest-value coin actually being withdrawn, so the preview never shows a
+        // larger/unrelated denomination (e.g. GP becoming PP) the player never handled — matches
+        // the server-side payout calculation in socket.js `_handleProcessWithdrawal`.
+        const withdrawnRates = Object.keys(withdrawCoins)
+          .map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+        const maxDenom  = withdrawnRates.length ? Math.max(...withdrawnRates) : getMaxDenomValue(currencies);
         const feeCoins  = calculateChange(feeStd, currencies, maxDenom) ?? {};
         const payCoins  = calculateChange(payoutStd, currencies, maxDenom) ?? {};
         if (feeEl)     feeEl.textContent     = formatAmounts(feeCoins, currencies);

@@ -475,9 +475,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const source = await fromUuid(item.itemLinkedId).catch(() => null);
         if (source) {
           const itemData = source.toObject();
-          for (let q = 0; q < (item.quantity ?? 1); q++) {
-            await actor.createEmbeddedDocuments('Item', [itemData]);
-          }
+          foundry.utils.setProperty(itemData, 'system.quantity', item.quantity ?? 1);
+          await actor.createEmbeddedDocuments('Item', [itemData]);
         }
       }
     }

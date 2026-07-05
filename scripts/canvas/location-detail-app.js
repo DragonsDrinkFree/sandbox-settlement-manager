@@ -7,14 +7,16 @@ import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
 import { costInStandard, calculateChange, formatAmounts, getSettlementMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
-import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal } from "../socket.js";
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit } from "../socket.js";
+import { DepositEditApp } from "./deposit-edit-app.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice, computeBuybackPrice } from "./purchasing-utils.js";
 import { isOverridden, restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { buildMerchantData, buildBankData, buildInnData, buildSellData } from "./location-data.js";
-import { restoreLodgingAvailability } from "./lodging-utils.js";
+import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
+import { BookingEditApp } from "./inn/booking-edit-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -49,6 +51,8 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       deleteLodging:      LocationDetailApp.#onDeleteLodging,
       rentLodging:        LocationDetailApp.#onRentLodging,
       dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
+      editBooking:        LocationDetailApp.#onEditBooking,
+      addBooking:         LocationDetailApp.#onAddBooking,
       configureMenu:      LocationDetailApp.#onConfigureMenu,
       refreshCourse:      LocationDetailApp.#onRefreshCourse,
       buyMenuItem:        LocationDetailApp.#onBuyMenuItem,
@@ -66,6 +70,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       addExchangeToCart:        LocationDetailApp.#onAddExchangeToCart,
       depositCoins:             LocationDetailApp.#onDepositCoins,
       withdrawDeposit:          LocationDetailApp.#onWithdrawDeposit,
+      editDeposit:              LocationDetailApp.#onEditDeposit,
       overrideBankSettings:     LocationDetailApp.#onOverrideBankSettings,
       resetBankSettings:        LocationDetailApp.#onResetBankSettings
     }
@@ -369,6 +374,78 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await this.#saveEntryData(this._activeTab, innData);
   }
 
+  static async #onEditBooking(event, target) {
+    if (!game.user.isGM) return;
+    const entryId = target.dataset.entryId;
+    if (!entryId) return;
+    const innData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
+    const entry = innData.ledger.find(e => e.id === entryId);
+    if (!entry) return;
+
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+    const now = game.time.worldTime;
+    const actors = game.actors.contents
+      .map(a => ({ id: a.id, name: a.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const result = await BookingEditApp.open(entry, { lodgings: [], actors, secondsPerDay, now });
+    if (!result) return;
+
+    entry.actorId   = result.actorId;
+    entry.actorName = result.actorName;
+
+    const wasActive    = !entry.reclaimed;
+    const willBeActive = result.days > 0;
+    if (!wasActive && willBeActive) {
+      consumeLodgingAvailability(innData, entry.lodgingId);
+      entry.reclaimed = false;
+    } else if (wasActive && !willBeActive) {
+      restoreLodgingAvailability(innData, entry);
+      entry.reclaimed = true;
+    }
+    entry.expiresAt = now + result.days * secondsPerDay;
+
+    await this.#saveEntryData(this._activeTab, innData);
+  }
+
+  static async #onAddBooking() {
+    if (!game.user.isGM) return;
+    const innData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
+    if (!(innData.lodgings ?? []).length) return;
+
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+    const now = game.time.worldTime;
+    const lodgings = innData.lodgings.map(l => ({ id: l.id, name: l.name, beds: l.beds }));
+    const actors = game.actors.contents
+      .map(a => ({ id: a.id, name: a.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const result = await BookingEditApp.open(null, { lodgings, actors, secondsPerDay, now });
+    if (!result) return;
+
+    const lodging = innData.lodgings.find(l => l.id === result.lodgingId);
+    if (!lodging) return;
+
+    innData.ledger ??= [];
+    innData.ledger.push({
+      id:                foundry.utils.randomID(),
+      lodgingId:         lodging.id,
+      lodgingName:       lodging.name,
+      beds:              lodging.beds,
+      actorId:           result.actorId,
+      actorName:         result.actorName,
+      purchasedAt:       now,
+      durationSeconds:   result.days * secondsPerDay,
+      expiresAt:         now + result.days * secondsPerDay,
+      reclaimed:         false
+    });
+    consumeLodgingAvailability(innData, lodging.id);
+
+    await this.#saveEntryData(this._activeTab, innData);
+  }
+
   static async #onConfigureMenu() {
     if (!game.user.isGM) return;
     const inn      = this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [], menu: { courses: [] } };
@@ -621,6 +698,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const payload = {
       deposit,
       locationId: this._location.id,
+      entryId:    this._activeTab,
       sceneId:    canvas.scene?.id,
       isGlobal:   depositSettings.global ?? false,
       userId:     game.user.id
@@ -681,6 +759,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       actorId:        actor.id,
       earlyFeeRate:   depositSettings.earlyWithdrawalFee ?? 0,
       locationId:     this._location.id,
+      entryId:        this._activeTab,
       sceneId:        canvas.scene?.id,
       isGlobal:       depositSettings.global ?? false,
       userId:         game.user.id
@@ -691,6 +770,62 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     } else {
       game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PROCESS_WITHDRAWAL, payload });
     }
+
+    this.render();
+  }
+
+  static async #onEditDeposit(event, target) {
+    if (!game.user.isGM) return;
+
+    let depositIds;
+    try { depositIds = JSON.parse(target.dataset.depositIds); } catch { return; }
+    if (!depositIds?.length) return;
+
+    const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies      = currencyConfig.currencies ?? [];
+    const bankRaw         = this._location.typeData?.[this._activeTab] ?? {};
+    const depositSettings = bankRaw.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 };
+    const isGlobal        = depositSettings.global ?? false;
+    const allDeposits     = isGlobal
+      ? (game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [])
+      : (bankRaw.deposits ?? []);
+
+    const matching = allDeposits.filter(d => depositIds.includes(d.id));
+    if (!matching.length) return;
+
+    const mergedCoins = {};
+    for (const d of matching) for (const [cId, amt] of Object.entries(d.coins)) mergedCoins[cId] = (mergedCoins[cId] ?? 0) + amt;
+    const now = game.time.worldTime;
+    const isMergedMatured = matching.every(d => now >= d.depositedAt + d.minDepositSeconds);
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+
+    const row = {
+      id:                matching[0].id,
+      targetIds:         depositIds,
+      actorId:           matching[0].actorId,
+      actorName:         matching[0].actorName,
+      coins:             mergedCoins,
+      matured:           isMergedMatured,
+      depositedAt:       matching[0].depositedAt,
+      minDepositSeconds: matching[0].minDepositSeconds
+    };
+
+    const actors = game.actors.contents
+      .map(a => ({ id: a.id, name: a.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const result = await DepositEditApp.open(row, { currencies, actors, secondsPerDay, now });
+    if (!result) return;
+
+    await _handleEditDeposit({
+      targetIds:      depositIds,
+      updatedDeposit: result.updatedDeposit,
+      locationId:     this._location.id,
+      entryId:        this._activeTab,
+      sceneId:        canvas.scene?.id,
+      isGlobal
+    });
 
     this.render();
   }

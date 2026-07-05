@@ -194,6 +194,11 @@
         <div class="inn-section">
           <div class="inn-section-header">
             <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.ledger"}}</span>
+            {{#if this.innData.isGM}}
+            <button type="button" class="inn-add-booking-btn" data-action="addBooking">
+              <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.addBooking"}}
+            </button>
+            {{/if}}
           </div>
           <table class="inn-ledger-table ssm-table">
             <thead>
@@ -214,6 +219,10 @@
                 <td class="col-time ssm-col-right">{{this.timeRemainingLabel}}</td>
                 {{#if ../innData.isGM}}
                 <td class="ssm-col-action">
+                  <button type="button" class="icon" data-action="editBooking" data-entry-id="{{this.id}}"
+                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
                   <button type="button" class="icon" data-action="dismissLedgerEntry" data-entry-id="{{this.id}}"
                           aria-label="Dismiss">
                     <i class="fa-solid fa-times"></i>
@@ -580,6 +589,12 @@
                       data-deposit-ids="{{this.idsJson}}" class="ssm-withdraw-btn">
                 {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.deposits.withdrawButton"}}
               </button>
+              {{#if ../bankData.isGM}}
+              <button type="button" class="icon ssm-edit-deposit-btn" data-action="editDeposit"
+                      data-deposit-ids="{{this.idsJson}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.deposits.editButton'}}">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              {{/if}}
             </li>
             {{/each}}
           </ul>

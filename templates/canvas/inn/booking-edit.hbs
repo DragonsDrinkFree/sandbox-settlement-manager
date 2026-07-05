@@ -1,0 +1,31 @@
+<div class="booking-edit-form">
+  {{#if isAdd}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.booking.lodgingLabel"}}</label>
+    <select name="lodgingId">
+      {{#each lodgings}}
+      <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}} ({{this.beds}})</option>
+      {{/each}}
+    </select>
+  </div>
+  {{else}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.booking.lodgingLabel"}}</label>
+    <p>{{lodgingName}}</p>
+  </div>
+  {{/if}}
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.booking.actorLabel"}}</label>
+    <select name="actorId">
+      {{#each actors}}
+      <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>{{#if isAdd}}{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.booking.durationLabel"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.booking.daysRemainingLabel"}}{{/if}}</label>
+    <input type="number" name="days" value="{{days}}" min="0" step="1">
+  </div>
+</div>

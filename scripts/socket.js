@@ -1,5 +1,5 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
-import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInStandard } from "./utils/currency-utils.js";
+import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue } from "./utils/currency-utils.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
@@ -106,13 +106,30 @@ export async function _handleProcessWithdrawal({
     allDeposits = foundry.utils.deepClone(location?.typeData?.[entryId]?.deposits ?? []);
   }
 
-  // Deduct withdrawCoins from target deposit records
+  // The client sends the bank's *configured* early-withdrawal rate regardless of whether this
+  // particular deposit has actually matured; only trust it (and only re-denominate the payout
+  // below) if at least one targeted deposit genuinely hasn't matured yet.
   const targetIds = new Set(depositIds);
-  for (const dep of allDeposits) {
-    if (!targetIds.has(dep.id)) continue;
-    for (const [cId, amt] of Object.entries(withdrawCoins)) {
-      dep.coins[cId] = Math.max(0, (dep.coins[cId] ?? 0) - amt);
+  const now = game.time.worldTime;
+  const isEarly = allDeposits.some(d => targetIds.has(d.id) && now < d.depositedAt + d.minDepositSeconds);
+  const effectiveFeeRate = isEarly ? earlyFeeRate : 0;
+
+  // Deduct withdrawCoins from the matched deposit records, treated as a shared pool: each
+  // currency's withdrawn total comes out of the group as a whole (draining one record before
+  // moving to the next), not from every matched record independently — otherwise a partial
+  // withdrawal from a merged/matured group would wipe out every record's balance, destroying
+  // whatever wasn't withdrawn.
+  const matchedDeposits = allDeposits.filter(d => targetIds.has(d.id));
+  for (const [cId, amt] of Object.entries(withdrawCoins)) {
+    let remaining = amt;
+    for (const dep of matchedDeposits) {
+      if (remaining <= 0) break;
+      const available = dep.coins[cId] ?? 0;
+      const take = Math.min(available, remaining);
+      if (take <= 0) continue;
+      dep.coins[cId] = available - take;
       if (dep.coins[cId] <= 0) delete dep.coins[cId];
+      remaining -= take;
     }
   }
   // Remove fully emptied deposits
@@ -129,13 +146,18 @@ export async function _handleProcessWithdrawal({
     await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
 
-  // Compute payout: withdrawCoins minus proportional early fee
+  // Compute payout: withdrawCoins minus proportional early fee (only when genuinely early — see
+  // effectiveFeeRate above). When no fee applies, the payout is exactly the coins withdrawn.
   let payoutCoins;
-  if (earlyFeeRate > 0) {
+  if (effectiveFeeRate > 0) {
     const totalStd  = totalOfferedInStandard(withdrawCoins, currencies);
-    const feeStd    = totalStd * earlyFeeRate / 100;
+    const feeStd    = totalStd * effectiveFeeRate / 100;
     const payoutStd = Math.max(0, totalStd - feeStd);
-    const maxDenom  = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
+    // Cap re-denomination to the highest-value coin actually withdrawn, so a fee can never turn
+    // the payout into a larger/unrelated denomination (e.g. GP becoming PP) the player never handled.
+    const withdrawnRates = Object.keys(withdrawCoins)
+      .map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+    const maxDenom = withdrawnRates.length ? Math.max(...withdrawnRates) : getMaxDenomValue(currencies);
     payoutCoins = calculateChange(payoutStd, currencies, maxDenom) ?? {};
   } else {
     payoutCoins = { ...withdrawCoins };
@@ -146,6 +168,32 @@ export async function _handleProcessWithdrawal({
     await grantCoinsToActor(actor, payoutCoins, currencies, mode);
   }
 
+  _refreshBankApps();
+}
+
+/**
+ * GM-only: apply an edit to one or more deposit records (as displayed via a possibly-merged row).
+ * Removes every deposit whose id is in `targetIds` and appends the single `updatedDeposit` in its
+ * place, consolidating merged/matured records into one. Called directly from the GM-gated edit
+ * dialog — never routed through the socket dispatcher, so no actor-ownership check is needed here
+ * (unlike _handleRecordDeposit/_handleProcessWithdrawal, which do get called via player sockets).
+ */
+export async function _handleEditDeposit({ targetIds, updatedDeposit, locationId, entryId, sceneId, isGlobal }) {
+  const targetSet = new Set(targetIds);
+  if (isGlobal) {
+    const existing = game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [];
+    const kept = existing.filter(d => !targetSet.has(d.id));
+    await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, [...kept, updatedDeposit]);
+  } else {
+    const scene = game.scenes.get(sceneId);
+    if (!scene) return;
+    const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+    const location  = locations.find(r => r.id === locationId);
+    if (!location?.typeData?.[entryId]) return;
+    const existing = location.typeData[entryId].deposits ?? [];
+    location.typeData[entryId].deposits = [...existing.filter(d => !targetSet.has(d.id)), updatedDeposit];
+    await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  }
   _refreshBankApps();
 }
 

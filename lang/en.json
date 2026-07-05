@@ -268,6 +268,15 @@
       "noLodgings": "No lodgings configured.",
       "noBookings": "No active bookings.",
       "ledger": "Active Bookings",
+      "addBooking": "Add Booking",
+      "booking": {
+        "addTitle": "Add Booking",
+        "editTitle": "Edit Booking",
+        "lodgingLabel": "Lodging",
+        "actorLabel": "Character",
+        "durationLabel": "Duration (days)",
+        "daysRemainingLabel": "Days Remaining"
+      },
       "lodgingSection": "Lodging",
       "expired": "Expired",
       "defaultLodgings": "Default Lodgings",
@@ -434,7 +443,11 @@
         "earlyWarning": "Early withdrawal penalty applies",
         "feeLabel": "Fee",
         "youWillReceive": "You will receive",
-        "withdrawTitle": "Withdraw Funds"
+        "withdrawTitle": "Withdraw Funds",
+        "editButton": "Edit Deposit",
+        "editTitle": "Edit Deposit",
+        "actorLabel": "Actor",
+        "daysRemainingLabel": "Days Remaining"
       }
     },
     "merchant": {
