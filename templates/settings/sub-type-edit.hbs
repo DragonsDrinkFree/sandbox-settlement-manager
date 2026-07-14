@@ -9,12 +9,14 @@
     </select>
   </div>
   {{/if}}
+  {{#unless locationMode}}
   <div class="template-name-row">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.nameLabel"}}</label>
     <input type="text" name="name" value="{{subType.name}}"
            placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.locationType.subType.namePlaceholder'}}"
            class="template-name-input">
   </div>
+  {{/unless}}
   {{#if showTypeSpecificSections}}
   <div class="inn-only"{{#unless isInn}} hidden{{/unless}}>
     <fieldset class="lodging-templates">

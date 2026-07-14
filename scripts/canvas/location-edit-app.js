@@ -1,5 +1,5 @@
 import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
-import { instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
+import { buildEntryTypeData } from "./location-data.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -192,70 +192,8 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (const entry of this._typeEntries) {
       if (typeData[entry.id] !== undefined) continue; // already has data
-
-      if (entry.typeId === LOCATION_TYPE_IDS.MERCHANT) {
-        const merchantSubType = (subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? [])
-          .find(s => s.id === entry.subTypeId);
-        const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
-        const tpl = merchantSubType?.typeData?.merchant ?? {};
-        typeData = {
-          ...typeData,
-          [entry.id]: {
-            stockType:            tpl.stockType        ?? "percent",
-            restockFrequency:     tpl.restockFrequency ?? "weekly",
-            _tplStockType:        tpl.stockType        ?? "percent",
-            _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
-            lastRestocked:        null,
-            inventory: templateItems.map(item => ({
-              ...item,
-              templateItemId: item.id,
-              quantity:       null,
-              _templateValues: {
-                name:              item.name,
-                itemId:            item.itemId            ?? null,
-                minSettlementSize: item.minSettlementSize ?? "",
-                stockAvailability: item.stockAvailability ?? 100,
-                stockFormula:      item.stockFormula      ?? "",
-                price:             { ...(item.price ?? {}) }
-              }
-            }))
-          }
-        };
-      }
-
-      if (entry.typeId === LOCATION_TYPE_IDS.INN) {
-        const subType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === entry.subTypeId);
-        typeData = {
-          ...typeData,
-          [entry.id]: {
-            lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
-            ledger: [],
-            menu: {
-              courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course))
-            }
-          }
-        };
-      }
-
-      if (entry.typeId === LOCATION_TYPE_IDS.BANK) {
-        const bankSubType = (subTypeMap[LOCATION_TYPE_IDS.BANK] ?? [])
-          .find(s => s.id === entry.subTypeId);
-        const tpl = bankSubType?.typeData?.bank ?? {};
-        const bankSettings = {
-          doesExchange:    tpl.doesExchange ?? true,
-          exchangeFee:     tpl.exchangeFee  ?? 0,
-          depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
-        };
-        typeData = {
-          ...typeData,
-          [entry.id]: {
-            ...bankSettings,
-            _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank),
-            deposits: [],
-            loans: []
-          }
-        };
-      }
+      const subType = (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId);
+      typeData = { ...typeData, [entry.id]: buildEntryTypeData(entry.typeId, subType) };
     }
 
     const resolve = this._resolve;

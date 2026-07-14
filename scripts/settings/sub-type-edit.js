@@ -39,6 +39,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _stockType = null;        // tracks merchantStockType <select> across re-renders
   _restockFrequency = null; // tracks merchantRestockFrequency <select> across re-renders
   _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
+  _locationMode = false;   // true when editing a single location entry instead of a shared template
+  _locationName = "";      // owning location's name (location mode, for the title)
+  _entryBase    = null;    // deep clone of the original location entry — runtime fields preserved on save
 
   constructor(subType, options = {}) {
     super(options);
@@ -46,6 +49,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   get title() {
+    if (this._locationMode) {
+      return game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.locationType.subType.editLocationTitle", { name: this._locationName });
+    }
     const key = this._subType?.name
       ? "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.editTitle"
       : "SANDBOX_SETTLEMENT_MANAGER.locationType.subType.addTitle";
@@ -90,6 +96,46 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
       app._purchasingProfile  = foundry.utils.deepClone(subType.typeData?.merchant?.purchasingProfile ?? []);
       app._resolve  = resolve;
+      app.render(true);
+    });
+  }
+
+  /**
+   * Open the editor scoped to a single location entry (a "single-use template") instead of a shared
+   * template. Loads working data from the location's `typeData[entryId]` shape (which differs from the
+   * template shape) and resolves with an entry object that merges the edited authored fields back onto
+   * the original entry — preserving runtime fields (per-item quantity, lastRestocked, buybackItems,
+   * ledger, deposits, loans, _templateValues). The caller persists the result to the scene flag.
+   * Resolves with the updated entry, or null if cancelled.
+   */
+  static async openForEntry(typeId, entryData = {}, { locationName = "" } = {}) {
+    // Build a synthetic subType whose typeData mirrors the template shape _prepareContext expects,
+    // so the merchant/bank display logic works unchanged.
+    const syntheticTypeData = {};
+    if (typeId === LOCATION_TYPE_IDS.BANK) {
+      syntheticTypeData.bank = {
+        doesExchange:    entryData.doesExchange ?? false,
+        exchangeFee:     entryData.exchangeFee  ?? 0,
+        depositSettings: entryData.depositSettings ?? {}
+      };
+    }
+    if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
+      syntheticTypeData.merchant = { stockType: entryData.stockType, restockFrequency: entryData.restockFrequency };
+    }
+    return new Promise(resolve => {
+      const app = new SubTypeEditApp({ name: locationName, typeData: syntheticTypeData });
+      app._typeId            = typeId;
+      app._locationMode      = true;
+      app._locationName      = locationName;
+      app._entryBase         = foundry.utils.deepClone(entryData);
+      // Working arrays loaded from the ENTRY shape (inventory/lodgings/etc. live at the entry root).
+      app._lodgings          = foundry.utils.deepClone(entryData.lodgings ?? []);
+      app._menu              = foundry.utils.deepClone(entryData.menu ?? { courses: [] });
+      app._templateInventory = foundry.utils.deepClone(entryData.inventory ?? []);
+      app._purchasingProfile = foundry.utils.deepClone(entryData.purchasingProfile ?? []);
+      app._stockType         = entryData.stockType ?? null;
+      app._restockFrequency  = entryData.restockFrequency ?? null;
+      app._resolve = resolve;
       app.render(true);
     });
   }
@@ -166,6 +212,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       subType: this._subType,
+      locationMode: this._locationMode,
+      locationName: this._locationName,
       isInn,
       isMerchant,
       isBank,
@@ -279,8 +327,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pdCurrencyId = row.querySelector('[data-field="pricePerDayCurrencyId"]')?.value ?? "";
     const avStr        = (row.querySelector('[data-field="availability"]')?.value ?? "").trim();
     const avInt        = parseInt(avStr);
+    const id           = row.dataset.lodgingId || foundry.utils.randomID();
+    // Merge onto the existing lodging (by id) so link metadata (templateItemId, _templateValues)
+    // survives in location mode; authored fields below are overwritten from the DOM.
+    const existing     = (this._lodgings ?? []).find(l => l.id === id) ?? {};
     return {
-      id:           row.dataset.lodgingId || foundry.utils.randomID(),
+      ...existing,
+      id,
       name:         (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
       beds:         parseInt(row.querySelector('[data-field="beds"]')?.value) || 0,
       availability: (avStr !== "" && Number.isFinite(avInt)) ? avInt : null,
@@ -298,19 +351,26 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #syncTemplateInventoryFromDOM() {
     const rows = this.element?.querySelectorAll('.merchant-inventory-row') ?? [];
     if (!rows.length && this._templateInventory.length) return;
-    this._templateInventory = [...rows].map(row => ({
-      id:               row.dataset.inventoryItemId || foundry.utils.randomID(),
-      name:             (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
-      itemId:           row.dataset.itemUuid ?? null,
-      itemType:         row.dataset.itemType ?? null,
-      minSettlementSize:      (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
-      stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
-      stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
-      price: {
-        currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? "",
-        amount:     parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
-      }
-    }));
+    // Merge onto the existing item (by id) rather than rebuild, so link metadata (templateItemId,
+    // _templateValues) and runtime fields (quantity) survive in location mode.
+    const byId = new Map(this._templateInventory.map(it => [it.id, it]));
+    this._templateInventory = [...rows].map(row => {
+      const id = row.dataset.inventoryItemId || foundry.utils.randomID();
+      return {
+        ...(byId.get(id) ?? {}),
+        id,
+        name:             (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
+        itemId:           row.dataset.itemUuid ?? null,
+        itemType:         row.dataset.itemType ?? null,
+        minSettlementSize:      (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
+        stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
+        stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
+        price: {
+          currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? "",
+          amount:     parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
+        }
+      };
+    });
   }
 
   /** Build a template inventory entry from an Item document. */
@@ -636,6 +696,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onSubmit(event, form, formData) {
+    if (this._locationMode) return this.#submitLocationEntry(form, formData);
+
     const name = (formData.object.name ?? "").trim();
     if (!name) return;
 
@@ -672,6 +734,39 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       result.typeData = { merchant: { stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile } };
     }
     result._templateTypeId = typeId;
+
+    const resolve = this._resolve;
+    this._resolve = null;
+    resolve?.(result);
+  }
+
+  /**
+   * Location-mode submit: merge the edited authored fields back onto the original entry (preserving
+   * runtime fields via the `...base` spread) and resolve that entry object for the caller to persist.
+   */
+  #submitLocationEntry(form, formData) {
+    const typeId = this._typeId;
+    const base   = foundry.utils.deepClone(this._entryBase ?? {});
+    let result   = base;
+
+    if (typeId === LOCATION_TYPE_IDS.INN) {
+      const rows = form.querySelectorAll('.lodging-table-row');
+      const lodgings = [...rows].map(row => this.#rowToLodging(row)).filter(l => l.name);
+      result = { ...base, lodgings, menu: this._menu };
+    } else if (typeId === LOCATION_TYPE_IDS.BANK) {
+      const doesExchange       = !!form.querySelector('[name="bankDoesExchange"]')?.checked;
+      const exchangeFee        = Math.max(0, Math.min(100, parseFloat(formData.object.bankExchangeFee) || 0));
+      const depositGlobal      = !!form.querySelector('[name="bankDepositGlobal"]')?.checked;
+      const depositFee         = Math.max(0, Math.min(100, parseFloat(formData.object.bankDepositFee) || 0));
+      const minDepositDays     = Math.max(0, parseInt(formData.object.bankMinDepositDays) || 0);
+      const earlyWithdrawalFee = Math.max(0, Math.min(100, parseFloat(formData.object.bankEarlyWithdrawalFee) || 0));
+      result = { ...base, doesExchange, exchangeFee, depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee } };
+    } else if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
+      const stockType        = (formData.object.merchantStockType        ?? "percent");
+      const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
+      this.#syncTemplateInventoryFromDOM();
+      result = { ...base, stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
+    }
 
     const resolve = this._resolve;
     this._resolve = null;

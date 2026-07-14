@@ -2,44 +2,37 @@ import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, getTypeEntries } from "../const
 import { readItemPrice } from "../utils/item-utils.js";
 
 /**
- * Merge purchasing profiles from all merchant templates attached to a location.
+ * Merge the purchasing profiles of every merchant tab at a location into the effective rule set that
+ * drives the derived Sell tab. Each merchant entry owns its own `purchasingProfile` (a per-tab
+ * "single-use template"); entries saved before per-entry profiles existed fall back to their source
+ * template's profile.
  *
  * Returns an array of effective rules, each annotated with:
- *   _source: "template" | "override" | "conflict"
- *   _conflicted: boolean — true if two templates disagreed on buyRate
- *   _buybackConflicted: boolean — true if two templates disagreed on buybackType
+ *   _source: "template" | "conflict"
+ *   _conflicted: boolean — true if two merchant tabs disagreed on buyRate
+ *   _buybackConflicted: boolean — true if two merchant tabs disagreed on buybackType
  */
 export function mergePurchasingProfiles(location) {
-  const entries        = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
-  const subTypeMap     = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
-  const merchantList   = subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? [];
-  const overrides      = location.purchasingOverrides ?? [];
+  const entries      = getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT);
+  const subTypeMap   = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+  const merchantList = Array.isArray(subTypeMap) ? [] : (subTypeMap[LOCATION_TYPE_IDS.MERCHANT] ?? []);
 
-  // Collect all template rules grouped by itemType
+  // Collect each merchant tab's own rules grouped by itemType.
   const byType = new Map(); // itemType → [rule, ...]
   for (const entry of entries) {
-    if (!entry.subTypeId) continue;
-    const template = merchantList.find(t => t.id === entry.subTypeId);
-    for (const rule of (template?.typeData?.merchant?.purchasingProfile ?? [])) {
+    let profile = location.typeData?.[entry.id]?.purchasingProfile;
+    if (!profile) {
+      const template = entry.subTypeId ? merchantList.find(t => t.id === entry.subTypeId) : null;
+      profile = template?.typeData?.merchant?.purchasingProfile ?? [];
+    }
+    for (const rule of profile) {
       if (!byType.has(rule.itemType)) byType.set(rule.itemType, []);
       byType.get(rule.itemType).push(rule);
     }
   }
 
-  // Build effective list: overrides take precedence, then template rules
   const effectiveRules = [];
-  const handledTypes   = new Set();
-
-  // Process overrides first
-  for (const ov of overrides) {
-    handledTypes.add(ov.itemType);
-    if (ov.buyRate === null || ov.buyRate === undefined) continue; // null = disabled
-    effectiveRules.push({ ...ov, _source: "override", _conflicted: false, _buybackConflicted: false });
-  }
-
-  // Process template rules for types not already overridden
   for (const [itemType, rules] of byType) {
-    if (handledTypes.has(itemType)) continue;
     if (rules.length === 1) {
       effectiveRules.push({ ...rules[0], _source: "template", _conflicted: false, _buybackConflicted: false });
     } else {

@@ -293,6 +293,11 @@
   overflow: hidden;
 }
 
+#sandbox-settlement-manager-location-detail .window-content {
+  padding: 0;
+  overflow: hidden;
+}
+
 #sandbox-settlement-manager-settlement-manage .settlement-two-pane {
   display: flex;
   height: 100%;
@@ -637,27 +642,19 @@
 #sandbox-settlement-manager-settlement-manage .inn-ledger-table .col-time,
 #sandbox-settlement-manager-location-detail .inn-ledger-table .col-time { width: 5.5rem; }
 
-/* Bleed the whole table into the window's own edge padding, rather than widening the action
-   column — that just steals width from col-time instead of reaching the true panel edge. */
-#sandbox-settlement-manager-settlement-manage .inn-ledger-table,
-#sandbox-settlement-manager-location-detail .inn-ledger-table {
-  margin-right: -0.6rem;
-  width: calc(100% + 0.6rem);
-}
-
 #sandbox-settlement-manager-settlement-manage .inn-ledger-table td.ssm-col-action,
 #sandbox-settlement-manager-location-detail .inn-ledger-table td.ssm-col-action {
-  width: 4.5rem;
+  width: 4rem;
   padding-left: 0.5rem;
   white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
-/* Foundry's core icon-button style stretches to fill its container, which stacks them when
-   two sit in the same cell; force them to sit side by side, 15% smaller than default, instead. */
+/* Foundry's core icon-button style stretches to fill its container, which stacks them when two
+   sit in the same cell; force them inline at their normal size instead (15% smaller here). */
 #sandbox-settlement-manager-settlement-manage .inn-ledger-table td.ssm-col-action button.icon,
 #sandbox-settlement-manager-location-detail .inn-ledger-table td.ssm-col-action button.icon {
   width: 1.28rem;
@@ -665,6 +662,7 @@
   min-height: unset;
   font-size: 11.33px;
   padding: 0;
+  line-height: 1;
   flex: 0 0 auto;
 }
 
@@ -1373,6 +1371,13 @@
 
 #sandbox-settlement-manager-location-detail .inn-section:first-child {
   border-top: none;
+}
+
+#sandbox-settlement-manager-settlement-manage .inn-section-actions,
+#sandbox-settlement-manager-location-detail .inn-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 #sandbox-settlement-manager-location-detail .inn-section-header {

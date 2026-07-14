@@ -3,21 +3,19 @@ import { LocationEditApp } from "./location-edit-app.js";
 import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
-import { MenuConfigApp } from "./inn/menu-config-app.js";
 import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { readItemName, readItemPrice, readItemAttributes } from "../utils/item-utils.js";
-import { costInStandard, calculateChange, formatAmounts, getSettlementMaxDenomValue, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
+import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit } from "../socket.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
-import { PurchasingProfileEditApp } from "./purchasing-profile-edit-app.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { instanceFromTemplate, isOverridden, restoreFields, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData } from "./location-data.js";
+import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData } from "./location-data.js";
+import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
 
@@ -49,16 +47,15 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       toggleDiscovered:   SettlementManageApp.#onToggleDiscovered,
       selectLocation:     SettlementManageApp.#onSelectLocation,
       switchTab:          SettlementManageApp.#onSwitchTab,
+      editLocationEntry:  SettlementManageApp.#onEditLocationEntry,
       deleteTypeEntry:    SettlementManageApp.#onDeleteTypeEntry,
       removeTypeEntry:    SettlementManageApp.#onRemoveTypeEntry,
-      addLodging:         SettlementManageApp.#onAddLodging,
       editLodging:        SettlementManageApp.#onEditLodging,
       deleteLodging:      SettlementManageApp.#onDeleteLodging,
       rentLodging:        SettlementManageApp.#onRentLodging,
       dismissLedgerEntry: SettlementManageApp.#onDismissLedgerEntry,
       editBooking:        SettlementManageApp.#onEditBooking,
       addBooking:         SettlementManageApp.#onAddBooking,
-      configureMenu:        SettlementManageApp.#onConfigureMenu,
       refreshCourse:        SettlementManageApp.#onRefreshCourse,
       buyMenuItem:          SettlementManageApp.#onBuyMenuItem,
       restoreFromTemplate:         SettlementManageApp.#onRestoreFromTemplate,
@@ -66,16 +63,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       addMerchantItem:             SettlementManageApp.#onAddMerchantItem,
       deleteMerchantItem:     SettlementManageApp.#onDeleteMerchantItem,
       editMerchantItem:       SettlementManageApp.#onEditMerchantItem,
-      addManualInventoryItem: SettlementManageApp.#onAddManualInventoryItem,
       switchToSellTab:        SettlementManageApp.#onSwitchToSellTab,
       addToSellCart:          SettlementManageApp.#onAddToSellCart,
       buyBackItem:            SettlementManageApp.#onBuyBackItem,
-      editPurchasingProfile:  SettlementManageApp.#onEditPurchasingProfile,
       addExchangeToCart:      SettlementManageApp.#onAddExchangeToCart,
       depositCoins:           SettlementManageApp.#onDepositCoins,
       withdrawDeposit:        SettlementManageApp.#onWithdrawDeposit,
       editDeposit:            SettlementManageApp.#onEditDeposit,
-      overrideBankSettings:   SettlementManageApp.#onOverrideBankSettings,
       resetBankSettings:      SettlementManageApp.#onResetBankSettings,
       settlementLedger:       SettlementManageApp.#onSettlementLedger,
       clearLedger:            SettlementManageApp.#onClearLedger,
@@ -369,13 +363,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
-    // Wire merchant drop zone(s)
-    this.element.querySelectorAll(".merchant-drop-zone").forEach(dropZone => {
-      dropZone.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dropZone.classList.add("drag-over"); });
-      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-      dropZone.addEventListener("drop",      e => { dropZone.classList.remove("drag-over"); this.#onMerchantDrop(e); });
-    });
-
     // Wire merchant inventory filter
     this.element.querySelectorAll(".merchant-filter-input").forEach(input => {
       input.addEventListener("input", () => {
@@ -479,54 +466,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         location.typeEntries = entries;
         location.typeData ??= {};
 
-        if (typeId === LOCATION_TYPE_IDS.INN) {
-          const subType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
-          location.typeData[newEntry.id] = {
-            lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
-            ledger: [],
-            menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) }
-          };
-        }
-        if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
-          const merchantSubType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.MERCHANT] ?? []).find(s => s.id === subTypeId);
-          const tpl = merchantSubType?.typeData?.merchant ?? {};
-          const templateItems = foundry.utils.deepClone(merchantSubType?.typeData?.merchant?.inventory ?? []);
-          location.typeData[newEntry.id] = {
-            stockType:            tpl.stockType        ?? "percent",
-            restockFrequency:     tpl.restockFrequency ?? "weekly",
-            _tplStockType:        tpl.stockType        ?? "percent",
-            _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
-            lastRestocked:        null,
-            inventory: templateItems.map(i => ({
-              ...i,
-              templateItemId: i.id,
-              quantity: null,
-              _templateValues: {
-                name:              i.name,
-                itemId:            i.itemId            ?? null,
-                minSettlementSize: i.minSettlementSize ?? "",
-                stockAvailability: i.stockAvailability ?? 100,
-                stockFormula:      i.stockFormula      ?? "",
-                price:             { ...(i.price ?? {}) }
-              }
-            }))
-          };
-        }
-        if (typeId === LOCATION_TYPE_IDS.BANK) {
-          const bankSubType = (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === subTypeId);
-          const tpl = bankSubType?.typeData?.bank ?? {};
-          const bankSettings = {
-            doesExchange:    tpl.doesExchange ?? true,
-            exchangeFee:     tpl.exchangeFee  ?? 0,
-            depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
-          };
-          location.typeData[newEntry.id] = {
-            ...bankSettings,
-            _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank),
-            deposits: [],
-            loans: []
-          };
-        }
+        const subType = (this.#getSubTypeMap()[typeId] ?? []).find(s => s.id === subTypeId);
+        location.typeData[newEntry.id] = buildEntryTypeData(typeId, subType);
 
         this._activeTab = newEntry.id;
         dropdown.classList.remove("is-open");
@@ -577,24 +518,16 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await this.#saveLocationData(location);
   }
 
-  async #onMerchantDrop(event) {
+  static async #onEditLocationEntry() {
     if (!game.user.isGM) return;
-    event.preventDefault();
-    let data;
-    try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
-    if (data?.type !== "Item") return;
-    const item = await fromUuid(data.uuid).catch(() => null);
-    if (!item) return;
-
-    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-    const name  = readItemName(item);
-    const price = readItemPrice(item, currencies);
-
     const location = this.#syncSelectedLocation();
     if (!location || !this._activeTab) return;
-    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
-    merchant.inventory.push({ id: foundry.utils.randomID(), name, price, itemId: item.uuid, quantity: null, itemType: item.type ?? null });
-    await this.#saveEntryData(this._activeTab, merchant);
+    const entry = this.#getActiveEntry();
+    if (!entry) return;
+    const entryData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
+    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name });
+    if (!result) return;
+    await this.#saveEntryData(this._activeTab, result);
   }
 
   // ------------------------------------------------------------------ left pane actions
@@ -706,18 +639,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     entries.splice(index, 1);
     location.typeEntries = entries;
     await this.#saveLocationData(location);
-  }
-
-  static async #onAddLodging() {
-    if (!game.user.isGM) return;
-    const result = await LodgingEditApp.open({});
-    if (!result) return;
-    result.id ??= foundry.utils.randomID();
-    const location = this.#syncSelectedLocation();
-    if (!location || !this._activeTab) return;
-    const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
-    innData.lodgings.push(result);
-    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onEditLodging(event, target) {
@@ -876,24 +797,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await this.#saveEntryData(this._activeTab, innData);
   }
 
-  static async #onConfigureMenu() {
-    if (!game.user.isGM) return;
-    const location = this.#syncSelectedLocation();
-    if (!location || !this._activeTab) return;
-    const entryId  = this._activeTab;
-    const inn      = location.typeData?.[entryId] ?? { lodgings: [], ledger: [], menu: { courses: [] } };
-    const template = this.#getTemplateForEntry(this.#getActiveEntry());
-    await MenuConfigApp.open(
-      inn.menu ?? { courses: [] },
-      async (updatedMenu) => {
-        const innData = foundry.utils.deepClone(this.#syncSelectedLocation()?.typeData?.[entryId] ?? { lodgings: [], ledger: [] });
-        innData.menu = updatedMenu;
-        await this.#saveEntryData(entryId, innData);
-      },
-      template
-    );
-  }
-
   static async #onRestoreFromTemplate() {
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
@@ -1010,17 +913,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await this.#saveEntryData(this._activeTab, merchant);
   }
 
-  static async #onAddManualInventoryItem() {
-    if (!game.user.isGM) return;
-    const result = await MerchantItemEditApp.open({});
-    if (!result) return;
-    const location = this.#syncSelectedLocation();
-    if (!location || !this._activeTab) return;
-    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
-    merchant.inventory.push(result);
-    await this.#saveEntryData(this._activeTab, merchant);
-  }
-
   static #onSwitchToSellTab() {
     this._sellTabActive = true;
     this.render({ parts: ["content"] });
@@ -1086,13 +978,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       }
     });
     CartApp.open();
-  }
-
-  static async #onEditPurchasingProfile() {
-    if (!game.user.isGM) return;
-    const location = this.#syncSelectedLocation();
-    if (!location) return;
-    await PurchasingProfileEditApp.open(location);
   }
 
   static async #onAddExchangeToCart(event, target) {
@@ -1202,79 +1087,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
     for (const input of form.querySelectorAll('.ssm-deposit-amount-input')) input.value = '';
     this.render({ parts: ["content"] });
-  }
-
-  static async #onOverrideBankSettings() {
-    if (!game.user.isGM) return;
-    const location     = this.#syncSelectedLocation();
-    if (!location || !this._activeTab) return;
-    const bankRaw      = location.typeData?.[this._activeTab] ?? {};
-    const settingsOverridden = isOverridden(bankRaw, TEMPLATE_FIELDS.bank);
-    const activeEntry  = this.#getActiveEntry();
-    const subType      = activeEntry?.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === activeEntry.subTypeId)
-      : null;
-    const src  = (settingsOverridden || !subType) ? bankRaw : (subType.typeData?.bank ?? {});
-    const dSrc = src.depositSettings ?? {};
-
-    const result = await foundry.applications.api.DialogV2.prompt({
-      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.overrideTitle") },
-      content: `
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.doesExchangeLabel")}</label>
-          <input type="checkbox" name="doesExchange"${src.doesExchange ? ' checked' : ''}>
-        </div>
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.exchangeFeeLabel")}</label>
-          <input type="number" name="exchangeFee" value="${src.exchangeFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
-          <span>%</span>
-        </div>
-        <hr>
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.globalLabel")}</label>
-          <input type="checkbox" name="depositGlobal"${dSrc.global ? ' checked' : ''}>
-        </div>
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.depositFeeLabel")}</label>
-          <input type="number" name="depositFee" value="${dSrc.depositFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
-          <span>%</span>
-        </div>
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.minDepositDaysLabel")}</label>
-          <input type="number" name="minDepositDays" value="${dSrc.minDepositDays ?? 0}" min="0" step="1" style="width:6rem">
-          <span>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.daysUnit")}</span>
-        </div>
-        <div class="form-group">
-          <label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.deposits.earlyWithdrawalFeeLabel")}</label>
-          <input type="number" name="earlyWithdrawalFee" value="${dSrc.earlyWithdrawalFee ?? 0}" min="0" max="100" step="0.1" style="width:6rem">
-          <span>%</span>
-        </div>
-      `,
-      ok: {
-        label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.overrideSave"),
-        callback: (_event, button) => ({
-          doesExchange:       button.form.elements.doesExchange.checked,
-          exchangeFee:        parseFloat(button.form.elements.exchangeFee.value) || 0,
-          depositGlobal:      button.form.elements.depositGlobal.checked,
-          depositFee:         parseFloat(button.form.elements.depositFee.value) || 0,
-          minDepositDays:     parseInt(button.form.elements.minDepositDays.value) || 0,
-          earlyWithdrawalFee: parseFloat(button.form.elements.earlyWithdrawalFee.value) || 0
-        })
-      },
-      rejectClose: false
-    });
-    if (!result) return;
-
-    const bankData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
-    bankData.doesExchange    = result.doesExchange;
-    bankData.exchangeFee     = result.exchangeFee;
-    bankData.depositSettings = {
-      global:             result.depositGlobal,
-      depositFee:         result.depositFee,
-      minDepositDays:     result.minDepositDays,
-      earlyWithdrawalFee: result.earlyWithdrawalFee
-    };
-    await this.#saveEntryData(this._activeTab, bankData);
   }
 
   static async #onResetBankSettings() {

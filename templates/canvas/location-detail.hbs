@@ -24,9 +24,15 @@
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.ledger"}}</span>
           {{#if this.innData.isGM}}
-          <button type="button" class="inn-add-booking-btn" data-action="addBooking">
-            <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.addBooking"}}
-          </button>
+          <div class="inn-section-actions">
+            <button type="button" class="inn-add-booking-btn" data-action="addBooking">
+              <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.addBooking"}}
+            </button>
+            <button type="button" class="icon" data-action="editLocationEntry"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+              <i class="fa-solid fa-gear"></i>
+            </button>
+          </div>
           {{/if}}
         </div>
         <table class="inn-ledger-table ssm-table">
@@ -71,12 +77,6 @@
       <div class="inn-section">
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodgingSection"}}</span>
-          {{#if this.innData.isGM}}
-          <button type="button" class="icon" data-action="addLodging"
-                  aria-label="Add Lodging">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-          {{/if}}
         </div>
         <table class="inn-lodging-table ssm-table">
           <thead>
@@ -129,12 +129,6 @@
       <div class="inn-section inn-menu-section">
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.sectionTitle"}}</span>
-          {{#if this.innData.isGM}}
-          <button type="button" class="icon" data-action="configureMenu"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.menu.configureTitle'}}">
-            <i class="fa-solid fa-gear"></i>
-          </button>
-          {{/if}}
         </div>
         {{#if this.innData.menuData.hasCourses}}
         {{#each this.innData.menuData.courses}}
@@ -199,18 +193,12 @@
             <i class="fa-solid fa-rotate-left"></i>
           </button>
           {{/if}}
-          <button type="button" class="icon" data-action="addManualInventoryItem"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.addItem'}}">
-            <i class="fa-solid fa-plus"></i>
+          <button type="button" class="icon" data-action="editLocationEntry"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+            <i class="fa-solid fa-gear"></i>
           </button>
           {{/if}}
         </div>
-        {{#if this.merchantData.isGM}}
-        <div class="merchant-drop-zone">
-          <i class="fa-solid fa-box-open"></i>
-          <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>
-        </div>
-        {{/if}}
         {{#if this.merchantData.hasGroups}}
         {{#each this.merchantData.groups}}
         <div class="merchant-type-group">
@@ -341,17 +329,13 @@
           <span class="ssm-bank-settings-badge is-overridden" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.settingsOverridden'}}">
             <i class="fa-solid fa-pen-to-square"></i>
           </span>
-          <button type="button" data-action="overrideBankSettings" class="ssm-settings-btn">
-            {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.editOverride"}}
+          {{/if}}
+          <button type="button" data-action="editLocationEntry" class="ssm-settings-btn">
+            <i class="fa-solid fa-gear"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.editEntry"}}
           </button>
           {{#if this.bankData.hasTemplate}}
           <button type="button" data-action="resetBankSettings" class="ssm-settings-btn ssm-settings-reset-btn">
             <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.resetToTemplate"}}
-          </button>
-          {{/if}}
-          {{else}}
-          <button type="button" data-action="overrideBankSettings" class="ssm-settings-btn">
-            <i class="fa-solid fa-unlock"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.override"}}
           </button>
           {{/if}}
         </div>
@@ -455,11 +439,6 @@
   <div class="location-detail-tab-pane{{#if sellTabActive}} active{{/if}}">
     <div class="ssm-sell-tab">
       <div class="ssm-sell-tab-header">
-        {{#if isGM}}
-        <button type="button" data-action="editPurchasingProfile" class="ssm-edit-profile-btn">
-          <i class="fa-solid fa-pen-to-square"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.editProfile"}}
-        </button>
-        {{/if}}
         {{#if sellData.hasConflicts}}
         <div class="ssm-conflict-warning">
           <i class="fa-solid fa-triangle-exclamation"></i>

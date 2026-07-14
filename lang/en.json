@@ -205,6 +205,7 @@
       "subType": {
         "addTitle": "Add Template",
         "editTitle": "Edit Template",
+        "editLocationTitle": "Edit Setup — {name}",
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Blacksmith",
         "add": "Add Template",
@@ -246,6 +247,7 @@
       "discoveredLabel": "Discovered",
       "add": "Add Location",
       "edit": "Edit",
+      "editEntry": "Edit Setup",
       "delete": "Delete",
       "empty": "No locations yet.",
       "unknownType": "Unknown Type",

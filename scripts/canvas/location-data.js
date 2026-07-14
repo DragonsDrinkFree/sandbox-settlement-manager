@@ -22,12 +22,51 @@ import {
   parseExchangeRate, getStandardCurrency
 } from "../utils/currency-utils.js";
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
-import { isOverridden, TEMPLATE_FIELDS } from "./template-link.js";
+import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
 export function getSubTypeMap() {
   const raw = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
   return Array.isArray(raw) ? {} : (raw ?? {});
+}
+
+/**
+ * Build the initial per-entry `typeData[entryId]` for a new location entry from its sub-type template.
+ * Shared by both create paths (location-edit-app.js and settlement-manage-app.js's type picker) so the
+ * two can't drift. Inn/merchant items are stamped as linked instances (templateItemId + _templateValues)
+ * via instanceFromTemplate; the merchant entry also carries its own copy of the template's
+ * purchasingProfile (each merchant tab is a single-use template — the Sell tab re-derives from these).
+ */
+export function buildEntryTypeData(typeId, subType) {
+  if (typeId === LOCATION_TYPE_IDS.INN) {
+    return {
+      lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
+      ledger: [],
+      menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) }
+    };
+  }
+  if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
+    const tpl = subType?.typeData?.merchant ?? {};
+    return {
+      stockType:            tpl.stockType        ?? "percent",
+      restockFrequency:     tpl.restockFrequency ?? "weekly",
+      _tplStockType:        tpl.stockType        ?? "percent",
+      _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
+      lastRestocked:        null,
+      purchasingProfile:    foundry.utils.deepClone(tpl.purchasingProfile ?? []),
+      inventory: (tpl.inventory ?? []).map(item => instanceFromTemplate(item, TEMPLATE_FIELDS.merchantItem, { quantity: null }))
+    };
+  }
+  if (typeId === LOCATION_TYPE_IDS.BANK) {
+    const tpl = subType?.typeData?.bank ?? {};
+    const bankSettings = {
+      doesExchange:    tpl.doesExchange ?? true,
+      exchangeFee:     tpl.exchangeFee  ?? 0,
+      depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
+    };
+    return { ...bankSettings, _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank), deposits: [], loans: [] };
+  }
+  return {};
 }
 
 /** Collapse an actor's deposits into a single matured row plus per-deposit unmatured rows. */
