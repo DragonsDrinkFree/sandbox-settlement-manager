@@ -1,5 +1,6 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
-import { grantCoinsToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue } from "./utils/currency-utils.js";
+import { grantCoinsToActor, grantStandardToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue } from "./utils/currency-utils.js";
+import { accrueLoan } from "./utils/loan-utils.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
@@ -7,7 +8,10 @@ export const SOCKET_TYPES = {
   SAVE_LOCATION:          "saveLocation",
   RECORD_DEPOSIT:         "recordDeposit",
   PROCESS_WITHDRAWAL:     "processWithdrawal",
-  RECORD_LEDGER_ENTRIES:  "recordLedgerEntries"
+  RECORD_LEDGER_ENTRIES:  "recordLedgerEntries",
+  ACCEPT_LOAN:            "acceptLoan",
+  DECLINE_LOAN:           "declineLoan",
+  REPAY_LOAN:             "repayLoan"
 };
 
 export function registerSocketHandlers() {
@@ -27,6 +31,12 @@ export function registerSocketHandlers() {
       await _handleProcessWithdrawal(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.RECORD_LEDGER_ENTRIES) {
       await _handleRecordLedgerEntries(data);
+    } else if (data.type === SOCKET_TYPES.ACCEPT_LOAN) {
+      await _handleAcceptLoan(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.DECLINE_LOAN) {
+      await _handleDeclineLoan(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.REPAY_LOAN) {
+      await _handleRepayLoan(data.payload ?? data);
     } else {
       console.warn(`${MODULE_ID} | Unknown socket message type: ${data.type}`);
     }
@@ -194,6 +204,119 @@ export async function _handleEditDeposit({ targetIds, updatedDeposit, locationId
     location.typeData[entryId].deposits = [...existing.filter(d => !targetSet.has(d.id)), updatedDeposit];
     await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
+  _refreshBankApps();
+}
+
+/**
+ * Load the bank entry + its loans array from a scene flag, returning the mutable deepClone chain
+ * so the caller can mutate and persist with a single setFlag. Returns null if anything is missing.
+ */
+function _loadBankLoans(sceneId, locationId, entryId) {
+  const scene = game.scenes.get(sceneId);
+  if (!scene) return null;
+  const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+  const location  = locations.find(r => r.id === locationId);
+  const bank      = location?.typeData?.[entryId];
+  if (!bank) return null;
+  bank.loans = bank.loans ?? [];
+  return { scene, locations, bank };
+}
+
+/**
+ * GM-side: a player accepts a pending loan offer. Flips the loan to active (interest accrual
+ * begins now) and hands the principal over as an immediately-matured deposit, honoring the bank's
+ * global-vs-local deposit setting.
+ */
+export async function _handleAcceptLoan({ loanId, locationId, entryId, sceneId, userId }) {
+  const ctx = _loadBankLoans(sceneId, locationId, entryId);
+  if (!ctx) return;
+  const { scene, locations, bank } = ctx;
+  const loan = bank.loans.find(l => l.id === loanId);
+  if (!loan || loan.status !== "offered") return;
+  if (!_userOwnsActor(userId, loan.actorId)) return;
+
+  const now = game.time.worldTime;
+  loan.status          = "active";
+  loan.acceptedAt      = now;
+  loan.lastAccrualAt   = now;
+  loan.balanceStandard = loan.principalStandard;
+
+  const deposit = {
+    id:                foundry.utils.randomID(),
+    actorId:           loan.actorId,
+    actorName:         loan.actorName,
+    coins:             { ...loan.principalCoins },
+    depositedAt:       now,
+    minDepositSeconds: 0
+  };
+
+  const isGlobal = bank.depositSettings?.global ?? false;
+  if (isGlobal) {
+    const existing = game.settings.get(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS) ?? [];
+    await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, [...existing, deposit]);
+  } else {
+    bank.deposits = [...(bank.deposits ?? []), deposit];
+  }
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  _refreshBankApps();
+}
+
+/** GM-side: a player declines a pending loan offer, removing it. */
+export async function _handleDeclineLoan({ loanId, locationId, entryId, sceneId, userId }) {
+  const ctx = _loadBankLoans(sceneId, locationId, entryId);
+  if (!ctx) return;
+  const { scene, locations, bank } = ctx;
+  const loan = bank.loans.find(l => l.id === loanId);
+  if (!loan || loan.status !== "offered") return;
+  if (!_userOwnsActor(userId, loan.actorId)) return;
+
+  bank.loans = bank.loans.filter(l => l.id !== loanId);
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  _refreshBankApps();
+}
+
+/**
+ * GM-side: a player makes a payment against an active loan. The actor was already debited the
+ * paid coins client-side; here we accrue interest to now (server-authoritative), subtract the
+ * payment, and either persist the reduced loan or — when paid off — remove it and refund any
+ * overpayment.
+ */
+export async function _handleRepayLoan({ loanId, payCoins, locationId, entryId, sceneId, userId }) {
+  const ctx = _loadBankLoans(sceneId, locationId, entryId);
+  if (!ctx) return;
+  const { scene, locations, bank } = ctx;
+  const idx = bank.loans.findIndex(l => l.id === loanId);
+  if (idx === -1) return;
+  const loan = bank.loans[idx];
+  if (loan.status !== "active") return;
+  if (!_userOwnsActor(userId, loan.actorId)) return;
+
+  const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? { currencies: [] };
+  const currencies     = currencyConfig.currencies ?? [];
+  const mode           = currencyConfig.mode ?? 'loose';
+  const now            = game.time.worldTime;
+
+  const accrued     = accrueLoan(loan, now);
+  const payStandard = totalOfferedInStandard(payCoins ?? {}, currencies);
+  const newBalance  = accrued.balanceStandard - payStandard;
+
+  if (newBalance <= 1e-6) {
+    bank.loans.splice(idx, 1); // paid off
+    const overpay = -newBalance;
+    if (overpay > 1e-6 && mode !== 'loose') {
+      const actor = game.actors.get(loan.actorId);
+      if (actor) {
+        // Cap change to the highest denomination actually paid, so overpaying with small coins can
+        // never hand back a larger/unrelated denomination the player never tendered.
+        const paidRates = Object.keys(payCoins ?? {}).map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+        const maxDenom  = paidRates.length ? Math.max(...paidRates) : getMaxDenomValue(currencies);
+        await grantStandardToActor(actor, overpay, currencies, mode, maxDenom);
+      }
+    }
+  } else {
+    bank.loans[idx] = { ...accrued, balanceStandard: newBalance };
+  }
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   _refreshBankApps();
 }
 

@@ -23,6 +23,7 @@ import {
 } from "../utils/currency-utils.js";
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
+import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
 export function getSubTypeMap() {
@@ -103,6 +104,47 @@ export function buildDepositDisplayList(deposits, now, secondsPerDay, currencies
     });
   }
   return result;
+}
+
+/**
+ * Turn an actor's raw loan records into display rows. Offered loans show the pending terms with
+ * Accept/Decline affordances; active loans are accrued on-read (pure) to show the current amount
+ * owed and when the next interest charge lands. Payments/mutations persist elsewhere — this only
+ * derives what to display, so it never writes.
+ */
+export function buildLoanDisplayList(loans, now, secondsPerDay, currencies) {
+  const periodLabelKey = { day: "day", week: "week", month: "month" };
+  return loans.map(raw => {
+    const loan = accrueLoan(raw, now);
+    const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${periodLabelKey[loan.periodUnit] ?? "week"}`);
+    const rateLabel = game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.ratePerPeriod", {
+      rate: loan.interestRate, period: periodLabel
+    });
+    const principalLabel = formatAmounts(loan.principalCoins ?? {}, currencies);
+    const common = {
+      id:            loan.id,
+      actorId:       loan.actorId,
+      actorName:     loan.actorName,
+      status:        loan.status,
+      offered:       loan.status === "offered",
+      active:        loan.status === "active",
+      interestRate:  loan.interestRate,
+      periodUnit:    loan.periodUnit,
+      periodLabel,
+      rateLabel,
+      principalLabel
+    };
+    if (loan.status !== "active") return common;
+
+    const owedCoins = computeOwedCoins(loan.balanceStandard, currencies);
+    const nextInterestDays = Math.max(0, Math.ceil(((loan.lastAccrualAt ?? now) + loan.periodSeconds - now) / secondsPerDay));
+    return {
+      ...common,
+      owedLabel:        formatAmounts(owedCoins, currencies),
+      nextInterestDays,
+      nextInterestLabel: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.nextInterest", { days: nextInterestDays })
+    };
+  });
 }
 
 /**
@@ -309,6 +351,10 @@ export function buildBankData(app, entry, location, currencies) {
   }
   const depositsTotal = actorDeposits.length ? formatAmounts(allCoins, currencies) : null;
 
+  const rawLoans   = bankRaw.loans ?? [];
+  const actorLoans = app._bankActorId ? rawLoans.filter(l => l.actorId === app._bankActorId) : [];
+  const processedLoans = buildLoanDisplayList(actorLoans, now, secondsPerDay, currencies);
+
   return {
     doesExchange,
     exchangeFee,
@@ -324,6 +370,8 @@ export function buildBankData(app, entry, location, currencies) {
     depositSettings,
     processedDeposits,
     depositsTotal,
+    processedLoans,
+    hasLoans: processedLoans.length > 0,
     isOverridden: settingsOverridden,
     hasTemplate,
     isGM: game.user.isGM,

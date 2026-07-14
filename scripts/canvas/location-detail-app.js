@@ -3,10 +3,12 @@ import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor } from "../utils/currency-utils.js";
+import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue } from "../utils/currency-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
-import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit } from "../socket.js";
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan } from "../socket.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
+import { LoanOfferApp } from "./loan-offer-app.js";
+import { periodSecondsFor, accrueLoan, insufficientCurrencies, selectPayoffCoins } from "../utils/loan-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
@@ -66,7 +68,14 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       depositCoins:             LocationDetailApp.#onDepositCoins,
       withdrawDeposit:          LocationDetailApp.#onWithdrawDeposit,
       editDeposit:              LocationDetailApp.#onEditDeposit,
-      resetBankSettings:        LocationDetailApp.#onResetBankSettings
+      resetBankSettings:        LocationDetailApp.#onResetBankSettings,
+      createLoanOffer:          LocationDetailApp.#onCreateLoanOffer,
+      acceptLoan:               LocationDetailApp.#onAcceptLoan,
+      declineLoan:              LocationDetailApp.#onDeclineLoan,
+      repayLoan:                LocationDetailApp.#onRepayLoan,
+      payOffLoan:               LocationDetailApp.#onPayOffLoan,
+      cancelLoan:               LocationDetailApp.#onCancelLoan,
+      editLoan:                 LocationDetailApp.#onEditLoan
     }
   };
 
@@ -776,6 +785,200 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       : null;
     restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
     await this.#saveEntryData(this._activeTab, bankData);
+  }
+
+  // --- Loans -------------------------------------------------------------------------------
+
+  static async #onCreateLoanOffer() {
+    if (!game.user.isGM) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const result = await LoanOfferApp.open({ currencies, defaultActorId: this._bankActorId });
+    if (!result) return;
+
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+    const principalStandard = totalOfferedInStandard(result.principalCoins, currencies);
+    const now = game.time.worldTime;
+    const loan = {
+      id:              foundry.utils.randomID(),
+      actorId:         result.actorId,
+      actorName:       result.actorName,
+      status:          "offered",
+      principalCoins:  result.principalCoins,
+      principalStandard,
+      balanceStandard: principalStandard,
+      interestRate:    result.interestRate,
+      periodUnit:      result.periodUnit,
+      periodSeconds:   periodSecondsFor(result.periodUnit, secondsPerDay),
+      offeredAt:       now,
+      acceptedAt:      null,
+      lastAccrualAt:   null
+    };
+
+    const bank = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? {});
+    bank.loans = [...(bank.loans ?? []), loan];
+    this._bankActorId = result.actorId; // surface the new offer immediately
+    await this.#saveEntryData(this._activeTab, bank);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.offerCreated"));
+  }
+
+  static async #onAcceptLoan(event, target) {
+    const loanId = target.dataset.loanId;
+    if (!loanId) return;
+    const loan = (this._location.typeData?.[this._activeTab]?.loans ?? []).find(l => l.id === loanId);
+    if (!loan) return;
+    const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies) ?? [];
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.acceptConfirmTitle"),
+      content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.acceptConfirmBody", {
+        amount: formatAmounts(loan.principalCoins ?? {}, currencies),
+        rate:   loan.interestRate,
+        period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${loan.periodUnit}`)
+      })
+    });
+    if (!confirmed) return;
+
+    const payload = { loanId, locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    if (game.user.isGM) await _handleAcceptLoan(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.ACCEPT_LOAN, payload });
+    this.render();
+  }
+
+  static async #onDeclineLoan(event, target) {
+    const loanId = target.dataset.loanId;
+    if (!loanId) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.declineConfirmTitle"),
+      content: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.declineConfirmBody")
+    });
+    if (!confirmed) return;
+
+    const payload = { loanId, locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    if (game.user.isGM) await _handleDeclineLoan(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.DECLINE_LOAN, payload });
+    this.render();
+  }
+
+  static async #onRepayLoan(event, target) {
+    const loanId = target.dataset.loanId;
+    const loan = (this._location.typeData?.[this._activeTab]?.loans ?? []).find(l => l.id === loanId);
+    if (!loan) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const mode           = currencyConfig.mode ?? 'loose';
+    const container = target.closest('.ssm-loan-entry');
+    const payCoins = {};
+    container?.querySelectorAll('.ssm-loan-pay-input').forEach(input => {
+      const amt = parseInt(input.value) || 0;
+      if (amt > 0) payCoins[input.dataset.currencyId] = amt;
+    });
+    await this.#submitRepayment(loan, payCoins, currencies, mode);
+  }
+
+  static async #onPayOffLoan(event, target) {
+    const loanId = target.dataset.loanId;
+    const loan = (this._location.typeData?.[this._activeTab]?.loans ?? []).find(l => l.id === loanId);
+    if (!loan) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const mode           = currencyConfig.mode ?? 'loose';
+    const actor   = game.actors.get(loan.actorId);
+    const accrued = accrueLoan(loan, game.time.worldTime);
+    const { coins, shortfall } = selectPayoffCoins(actor, accrued.balanceStandard, currencies, mode);
+    if (shortfall > 1e-6) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientPayoff"));
+      return;
+    }
+    await this.#submitRepayment(loan, coins, currencies, mode);
+  }
+
+  /** Shared by repay (from inputs) and pay-off-in-full: verify funds, confirm (with any change), debit, dispatch. */
+  async #submitRepayment(loan, payCoins, currencies, mode) {
+    const filtered = {};
+    for (const [cId, amt] of Object.entries(payCoins ?? {})) {
+      const n = Math.max(0, Math.floor(amt));
+      if (n > 0) filtered[cId] = n;
+    }
+    if (!Object.keys(filtered).length) return;
+    const actor = game.actors.get(loan.actorId);
+    if (!actor) return;
+
+    const short = insufficientCurrencies(actor, filtered, currencies, mode);
+    if (short.length) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
+      return;
+    }
+
+    // Preview any change: an overpayment beyond the (accrued) balance is returned to the player,
+    // denominated no larger than the highest coin they paid with.
+    const owedStandard = accrueLoan(loan, game.time.worldTime).balanceStandard;
+    const changeStandard = totalOfferedInStandard(filtered, currencies) - owedStandard;
+    let changeLabel = "";
+    if (changeStandard > 1e-6) {
+      const paidRates = Object.keys(filtered).map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+      const maxDenom  = paidRates.length ? Math.max(...paidRates) : getMaxDenomValue(currencies);
+      changeLabel = formatAmounts(calculateChange(changeStandard, currencies, maxDenom) ?? {}, currencies);
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmTitle"),
+      content: changeLabel
+        ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBodyChange", { coins: formatAmounts(filtered, currencies), change: changeLabel })
+        : game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBody", { coins: formatAmounts(filtered, currencies) })
+    });
+    if (!confirmed) return;
+
+    await removeCoinsFromActor(actor, filtered, currencies, mode);
+
+    const payload = { loanId: loan.id, payCoins: filtered, locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    if (game.user.isGM) await _handleRepayLoan(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.REPAY_LOAN, payload });
+    this.render();
+  }
+
+  static async #onCancelLoan(event, target) {
+    if (!game.user.isGM) return;
+    const loanId = target.dataset.loanId;
+    const bank = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? {});
+    if (!(bank.loans ?? []).some(l => l.id === loanId)) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.cancelConfirmTitle"),
+      content: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.loans.cancelConfirmBody")
+    });
+    if (!confirmed) return;
+    bank.loans = (bank.loans ?? []).filter(l => l.id !== loanId);
+    await this.#saveEntryData(this._activeTab, bank);
+  }
+
+  static async #onEditLoan(event, target) {
+    if (!game.user.isGM) return;
+    const loanId = target.dataset.loanId;
+    const bank = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? {});
+    const loans = bank.loans ?? [];
+    const loan = loans.find(l => l.id === loanId);
+    if (!loan) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const result = await LoanOfferApp.open({ currencies, loan });
+    if (!result) return;
+
+    const { hoursPerDay } = getWorldTimeConfig();
+    const secondsPerDay = hoursPerDay * 3600;
+    const principalStandard = totalOfferedInStandard(result.principalCoins, currencies);
+    const updated = {
+      ...loan,
+      actorId:         result.actorId,
+      actorName:       result.actorName,
+      principalCoins:  result.principalCoins,
+      principalStandard,
+      balanceStandard: principalStandard, // GM edit re-bases the owed amount to the new principal
+      interestRate:    result.interestRate,
+      periodUnit:      result.periodUnit,
+      periodSeconds:   periodSecondsFor(result.periodUnit, secondsPerDay)
+    };
+    bank.loans = loans.map(l => l.id === loanId ? updated : l);
+    await this.#saveEntryData(this._activeTab, bank);
   }
 
   #wireActorWidgets() {

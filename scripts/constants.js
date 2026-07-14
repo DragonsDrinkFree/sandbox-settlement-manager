@@ -74,6 +74,13 @@ export function migrateLocation(location) {
   }
   location.typeData = typeData;
 
+  // Step 2b — backfill the loans array on bank entries created before the Loans feature.
+  for (const entry of entries) {
+    if (entry.typeId === "bank" && typeData[entry.id] && typeData[entry.id].loans === undefined) {
+      typeData[entry.id].loans = [];
+    }
+  }
+
   // Step 3 — lift purchasingOverrides from first merchant entry up to location level
   if (!location.purchasingOverrides) {
     const firstMerchantId = seenTypes["merchant"];

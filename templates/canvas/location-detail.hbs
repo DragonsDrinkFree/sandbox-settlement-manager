@@ -422,12 +422,87 @@
         {{/if}}
       </fieldset>
 
-      {{#if this.bankData.isGM}}
-      <fieldset class="ssm-bank-section">
+      <fieldset class="ssm-bank-section ssm-bank-loans">
         <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loansTitle"}}</legend>
-        <p class="ssm-bank-placeholder">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.comingSoon"}}</p>
+        {{#if this.bankData.isGM}}
+        <div class="ssm-loan-gm-bar">
+          <button type="button" data-action="createLoanOffer" class="ssm-loan-create-btn"{{#unless this.bankData.selectedActorId}} disabled{{/unless}}>
+            <i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.createOffer"}}
+          </button>
+        </div>
+        {{/if}}
+        {{#if this.bankData.selectedActorId}}
+        {{#if this.bankData.processedLoans.length}}
+        <ul class="ssm-loans-list">
+          {{#each this.bankData.processedLoans}}
+          <li class="ssm-loan-entry{{#if this.active}} ssm-loan-active{{else}} ssm-loan-offered{{/if}}" data-loan-id="{{this.id}}">
+            {{#if this.offered}}
+            <div class="ssm-loan-terms">
+              <span class="ssm-loan-badge">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.offerBadge"}}</span>
+              <span class="ssm-loan-amount">{{this.principalLabel}}</span>
+              <span class="ssm-loan-rate">{{this.rateLabel}}</span>
+            </div>
+            <div class="ssm-loan-actions">
+              <button type="button" data-action="acceptLoan" data-loan-id="{{this.id}}" class="ssm-loan-accept-btn">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.accept"}}
+              </button>
+              <button type="button" data-action="declineLoan" data-loan-id="{{this.id}}" class="ssm-loan-decline-btn">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.decline"}}
+              </button>
+              {{#if ../bankData.isGM}}
+              <button type="button" class="icon ssm-loan-edit-btn" data-action="editLoan" data-loan-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.loans.edit'}}">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button type="button" class="icon ssm-loan-cancel-btn" data-action="cancelLoan" data-loan-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.loans.cancel'}}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              {{/if}}
+            </div>
+            {{else}}
+            <div class="ssm-loan-terms">
+              <span class="ssm-loan-owed-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.currentOwed"}}:</span>
+              <span class="ssm-loan-owed">{{this.owedLabel}}</span>
+              <span class="ssm-loan-rate">{{this.rateLabel}}</span>
+              {{#if ../bankData.isGM}}
+              <span class="ssm-loan-gm-actions">
+                <button type="button" class="icon ssm-loan-edit-btn" data-action="editLoan" data-loan-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.loans.edit'}}">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" class="icon ssm-loan-cancel-btn" data-action="cancelLoan" data-loan-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.loans.cancel'}}">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </span>
+              {{/if}}
+            </div>
+            <div class="ssm-loan-sub">
+              <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.originalPrincipal"}}: {{this.principalLabel}}</span>
+              <span>{{this.nextInterestLabel}}</span>
+            </div>
+            <div class="ssm-loan-pay-form">
+              {{#each ../bankData.currencies}}
+              <div class="ssm-deposit-currency-row">
+                <label class="ssm-deposit-currency-label">{{this.abbreviation}}</label>
+                <input type="number" class="ssm-loan-pay-input" data-currency-id="{{this.id}}" min="0" max="{{this.balance}}" step="1" placeholder="0">
+              </div>
+              {{/each}}
+              <div class="ssm-loan-pay-actions">
+                <button type="button" data-action="repayLoan" data-loan-id="{{this.id}}" class="ssm-loan-pay-btn">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.pay"}}
+                </button>
+                <button type="button" data-action="payOffLoan" data-loan-id="{{this.id}}" class="ssm-loan-payoff-btn">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.payOff"}}
+                </button>
+              </div>
+            </div>
+            {{/if}}
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.noLoans"}}</em></p>
+        {{/if}}
+        {{/if}}
       </fieldset>
-      {{/if}}
     </div>
     {{else}}
     <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.location.noDetailView"}}</p>

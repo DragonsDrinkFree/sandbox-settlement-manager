@@ -3465,6 +3465,162 @@
   padding-top: 0.3rem;
 }
 
+/* Loans UI */
+#sandbox-settlement-manager-settlement-manage .ssm-loan-gm-bar,
+#sandbox-settlement-manager-location-detail .ssm-loan-gm-bar {
+  display: flex;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-create-btn,
+#sandbox-settlement-manager-location-detail .ssm-loan-create-btn {
+  font-size: 0.82em;
+  padding: 0.15rem 0.6rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loans-list,
+#sandbox-settlement-manager-location-detail .ssm-loans-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-entry,
+#sandbox-settlement-manager-location-detail .ssm-loan-entry {
+  padding: 0.35rem 0.5rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-entry.ssm-loan-offered,
+#sandbox-settlement-manager-location-detail .ssm-loan-entry.ssm-loan-offered {
+  background: rgba(120,90,0,0.12);
+  border: 1px solid rgba(180,120,0,0.35);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-terms,
+#sandbox-settlement-manager-location-detail .ssm-loan-terms {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-badge,
+#sandbox-settlement-manager-location-detail .ssm-loan-badge {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(180,120,0,0.25);
+  color: var(--color-text-dark-warning, #a87000);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-amount,
+#sandbox-settlement-manager-location-detail .ssm-loan-amount,
+#sandbox-settlement-manager-settlement-manage .ssm-loan-owed,
+#sandbox-settlement-manager-location-detail .ssm-loan-owed {
+  font-weight: 600;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-owed-label,
+#sandbox-settlement-manager-location-detail .ssm-loan-owed-label {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-rate,
+#sandbox-settlement-manager-location-detail .ssm-loan-rate {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-sub,
+#sandbox-settlement-manager-location-detail .ssm-loan-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-actions,
+#sandbox-settlement-manager-location-detail .ssm-loan-actions,
+#sandbox-settlement-manager-settlement-manage .ssm-loan-pay-actions,
+#sandbox-settlement-manager-location-detail .ssm-loan-pay-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-actions button,
+#sandbox-settlement-manager-location-detail .ssm-loan-actions button,
+#sandbox-settlement-manager-settlement-manage .ssm-loan-pay-actions button,
+#sandbox-settlement-manager-location-detail .ssm-loan-pay-actions button {
+  font-size: 0.8em;
+  padding: 0.1rem 0.5rem;
+  flex: 0 0 auto;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-accept-btn,
+#sandbox-settlement-manager-location-detail .ssm-loan-accept-btn {
+  color: var(--color-text-dark-primary, #191813);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-gm-actions,
+#sandbox-settlement-manager-location-detail .ssm-loan-gm-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-pay-form,
+#sandbox-settlement-manager-location-detail .ssm-loan-pay-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-top: 0.3rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-pay-input,
+#sandbox-settlement-manager-location-detail .ssm-loan-pay-input {
+  width: 4rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-loan-pay-actions,
+#sandbox-settlement-manager-location-detail .ssm-loan-pay-actions {
+  margin-left: auto;
+}
+
+/* Loan offer dialog */
+#sandbox-settlement-manager-loan-offer .ssm-loan-interest-row,
+#sandbox-settlement-manager-loan-offer .ssm-loan-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-loan-offer .ssm-loan-interest-input {
+  width: 5rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-loan-offer .ssm-loan-period-help {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #888);
+  margin: 0.2rem 0 0;
+}
+
 /* Withdrawal dialog */
 #sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-row {
   display: flex;

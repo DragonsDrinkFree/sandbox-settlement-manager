@@ -1,0 +1,49 @@
+<div class="ssm-loan-offer-form">
+  <div class="form-group ssm-loan-actor-row">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.offeredTo"}}</label>
+    <div class="ssm-actor-picker-row">
+      <div class="ssm-actor-dropdown-widget">
+        <button type="button" class="ssm-actor-dropdown-trigger">
+          <span class="ssm-actor-selected-name">{{#if selectedActorName}}{{selectedActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
+          <i class="fa-solid fa-caret-down" inert></i>
+        </button>
+        <ul class="ssm-actor-dropdown-list">
+          <li class="ssm-actor-dropdown-search-row">
+            <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+          </li>
+          {{#each ownedActors}}
+          <li class="ssm-actor-option{{#if (eq this.id ../selectedActorId)}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#if isGM}}
+      <button type="button" class="ssm-actor-filter-btn{{#if filterActive}} active{{/if}}"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+        <i class="fa-solid fa-filter" inert></i>
+      </button>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.amountLabel"}}</label>
+    <div class="ssm-loan-amount-row">
+      {{> ssm-price-input attr="name" field="principal" price=price currencies=currencies amountClass="ssm-loan-amount-input" selectClass="ssm-loan-currency-select"}}
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.interestLabel"}}</label>
+    <div class="ssm-loan-interest-row">
+      <input type="number" name="interestRate" value="{{interestRate}}" min="0" step="0.1" class="ssm-loan-interest-input">
+      <span>%</span>
+      <span class="ssm-loan-per-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.perLabel"}}</span>
+      <select name="periodUnit" class="ssm-loan-period-select">
+        {{#each periods}}
+        <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <p class="ssm-loan-period-help"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.periodHelp"}}</em></p>
+  </div>
+</div>
