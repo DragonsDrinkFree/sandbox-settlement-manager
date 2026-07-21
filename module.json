@@ -2,10 +2,10 @@
   "id": "sandbox-settlement-manager",
   "title": "Sandbox Settlement Manager",
   "description": "A GM toolkit for managing Settlements in A Sandbox Campaign.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "compatibility": {
     "minimum": "13",
-    "verified": "14.364"
+    "verified": "14.365"
   },
   "authors": [
     {

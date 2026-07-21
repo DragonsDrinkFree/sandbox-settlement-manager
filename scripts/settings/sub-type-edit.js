@@ -5,6 +5,7 @@ import { readItemName, readItemPrice } from "../utils/item-utils.js";
 import { costInStandard, getStandardCurrency } from "../utils/currency-utils.js";
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
+import { rollMerchantRestock } from "../canvas/location-data.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -744,7 +745,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Location-mode submit: merge the edited authored fields back onto the original entry (preserving
    * runtime fields via the `...base` spread) and resolve that entry object for the caller to persist.
    */
-  #submitLocationEntry(form, formData) {
+  async #submitLocationEntry(form, formData) {
     const typeId = this._typeId;
     const base   = foundry.utils.deepClone(this._entryBase ?? {});
     let result   = base;
@@ -765,6 +766,19 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
       this.#syncTemplateInventoryFromDOM();
+
+      // Roll live stock now for items that are new or whose availability/formula changed, so a local
+      // merchant's new stock-formula / sub-100% items don't show ∞ until the next timed restock.
+      // Unchanged items keep their current quantity; the true-template path (#onSubmit) never rolls.
+      const oldById = new Map((this._entryBase?.inventory ?? []).map(it => [it.id, it]));
+      const toRoll = this._templateInventory.filter(it => {
+        const old = oldById.get(it.id);
+        if (!old || it.quantity === undefined) return true;
+        return Number(old.stockAvailability ?? 100) !== Number(it.stockAvailability ?? 100)
+            || (old.stockFormula ?? "").trim() !== (it.stockFormula ?? "").trim();
+      });
+      await rollMerchantRestock(toRoll, stockType);
+
       result = { ...base, stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
     }
 

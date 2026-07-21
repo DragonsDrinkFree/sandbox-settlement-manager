@@ -148,6 +148,24 @@ export function buildLoanDisplayList(loans, now, secondsPerDay, currencies) {
 }
 
 /**
+ * Re-roll each inventory item's stock in place: an availability check (x-in-6 die or percent chance)
+ * decides whether the item is in stock this cycle, then a stock formula (if any) sets the quantity —
+ * items with no formula show ∞ (null) when available or 0 when sold out. Shared by the passive
+ * restock timer in buildMerchantData and the GM's manual "Refresh Stock" action so both roll identically.
+ */
+export async function rollMerchantRestock(inventory, stockType) {
+  for (const item of inventory) {
+    const hasFormula = !!(item.stockFormula ?? "").trim();
+    const avail = stockType === "x-in-6"
+      ? (await new Roll("1d6").evaluate()).total <= (item.stockAvailability ?? 6)
+      : Math.random() * 100 < (item.stockAvailability ?? 100);
+    if (hasFormula) item.quantity = avail ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total) : 0;
+    else            item.quantity = avail ? null : 0; // null renders as ∞
+  }
+  return inventory;
+}
+
+/**
  * Build merchant inventory display data, restocking if due (GM only).
  * Items without a stock formula roll the availability % on restock and may show ∞ or sold out.
  * GMs see sold-out items sorted last; players don't see sold-out items at all.
@@ -176,23 +194,7 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
   const workingInventory = foundry.utils.deepClone(rawInventory);
 
   if (restockDue) {
-    for (const item of workingInventory) {
-      const hasFormula = !!(item.stockFormula ?? "").trim();
-      let avail;
-      if (stockType === "x-in-6") {
-        const roll = await new Roll("1d6").evaluate();
-        avail = roll.total <= (item.stockAvailability ?? 6);
-      } else {
-        avail = Math.random() * 100 < (item.stockAvailability ?? 100);
-      }
-      if (hasFormula) {
-        item.quantity = avail
-          ? Math.floor((await new Roll(String(item.stockFormula)).evaluate()).total)
-          : 0;
-      } else {
-        item.quantity = avail ? null : 0;
-      }
-    }
+    await rollMerchantRestock(workingInventory, stockType);
     _needsSave = true;
   }
 

@@ -16,7 +16,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData, rollMerchantRestock } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -62,6 +62,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       buyMenuItem:          SettlementManageApp.#onBuyMenuItem,
       restoreFromTemplate:         SettlementManageApp.#onRestoreFromTemplate,
       restoreFromMerchantTemplate: SettlementManageApp.#onRestoreFromMerchantTemplate,
+      forceRestockMerchant:        SettlementManageApp.#onForceRestockMerchant,
       addMerchantItem:             SettlementManageApp.#onAddMerchantItem,
       deleteMerchantItem:     SettlementManageApp.#onDeleteMerchantItem,
       editMerchantItem:       SettlementManageApp.#onEditMerchantItem,
@@ -830,6 +831,18 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
       await this.#saveEntryData(entryId, updated);
     });
+  }
+
+  static async #onForceRestockMerchant() {
+    if (!game.user.isGM) return;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
+    await rollMerchantRestock(merchant.inventory ?? [], merchant.stockType ?? "percent");
+    merchant.lastRestocked = game.time.worldTime;
+    merchant.buybackItems  = [];
+    await this.#saveEntryData(this._activeTab, merchant);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
   }
 
   static async #onRefreshCourse(event, target) {

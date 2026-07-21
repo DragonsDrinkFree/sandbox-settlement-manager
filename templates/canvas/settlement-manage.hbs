@@ -358,10 +358,17 @@
           <div class="inn-section-header">
             <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.inventory"}}</span>
             {{#if this.merchantData.isGM}}
-            <button type="button" class="icon" data-action="editLocationEntry"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
-              <i class="fa-solid fa-gear"></i>
-            </button>
+            <div class="inn-section-actions">
+              <button type="button" class="icon" data-action="forceRestockMerchant"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.forceRestockLabel'}}"
+                      data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.forceRestockLabel'}}">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+              <button type="button" class="icon" data-action="editLocationEntry"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
             {{/if}}
           </div>
           <div class="merchant-filter-row">

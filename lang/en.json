@@ -558,6 +558,8 @@
       "restockDaily": "Daily",
       "restockWeekly": "Weekly",
       "restockMonthly": "Monthly",
+      "forceRestockLabel": "Refresh Stock",
+      "restocked": "Stock refreshed.",
       "colStock": "Stock",
       "unlimited": "∞",
       "purchasingProfile": "Purchasing Profile",

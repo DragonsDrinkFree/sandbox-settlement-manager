@@ -187,16 +187,23 @@
         <div class="inn-section-header">
           <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.inventory"}}</span>
           {{#if this.merchantData.isGM}}
-          {{#if this.merchantData.canRestore}}
-          <button type="button" class="icon" data-action="restoreFromMerchantTemplate"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.restore.buttonLabel'}}">
-            <i class="fa-solid fa-rotate-left"></i>
-          </button>
-          {{/if}}
-          <button type="button" class="icon" data-action="editLocationEntry"
-                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
-            <i class="fa-solid fa-gear"></i>
-          </button>
+          <div class="inn-section-actions">
+            {{#if this.merchantData.canRestore}}
+            <button type="button" class="icon" data-action="restoreFromMerchantTemplate"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.restore.buttonLabel'}}">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            {{/if}}
+            <button type="button" class="icon" data-action="forceRestockMerchant"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.forceRestockLabel'}}"
+                    data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.forceRestockLabel'}}">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <button type="button" class="icon" data-action="editLocationEntry"
+                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+              <i class="fa-solid fa-gear"></i>
+            </button>
+          </div>
           {{/if}}
         </div>
         {{#if this.merchantData.hasGroups}}

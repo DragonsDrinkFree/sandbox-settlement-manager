@@ -1,3 +1,7 @@
+# v0.9.1
+## Minor
+- Local Merchant set up now properly handles limited stock formulas and availability
+- Added a "Refresh Stock" button to merchants, Allowing GM's to trigger inventory restocks immediately.
 # v0.9.0
 
 ## Major
@@ -5,7 +9,8 @@
 - GM can now Create/Edit Bookings on Inn's
 - Item stacks when purchased now properly stack rather then entering inventory as # separate items.
 - Unified merchant/bank/inn/sell data-building into a single shared module so the GM Settlement Manager and the player location window always behave identically (previously drifted copies).
-- Added Loan creation ability for banks. Loans have an amount, interest, and interest period. Refinement needed. 
+- Added Loan creation ability for banks. Loans have an amount, interest, and interest period. Refinement needed.
+- Changed Settlement manager stock/inventory system to now open a localized template editing menu. Giving local settlement editing full capabilities of the system, and unifying the setup process, rather then maintaining two different configuration processes.
 
 ## Minor
 - Fixed: Partial withdrawls of matured deposits were being handled incorrectly causing more money to be 

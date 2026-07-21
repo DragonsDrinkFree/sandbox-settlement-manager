@@ -13,7 +13,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, rollMerchantRestock } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -59,6 +59,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       deleteMerchantItem:       LocationDetailApp.#onDeleteMerchantItem,
       editMerchantItem:         LocationDetailApp.#onEditMerchantItem,
       restoreFromMerchantTemplate:    LocationDetailApp.#onRestoreFromMerchantTemplate,
+      forceRestockMerchant:           LocationDetailApp.#onForceRestockMerchant,
       switchToSellTab:                LocationDetailApp.#onSwitchToSellTab,
       switchFromSellTab:        LocationDetailApp.#onSwitchFromSellTab,
       selectSellActor:          LocationDetailApp.#onSelectSellActor,
@@ -512,6 +513,16 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await MerchantRestoreDialog.open(merchantData, template, async (updated) => {
       await this.#saveEntryData(this._activeTab, updated);
     });
+  }
+
+  static async #onForceRestockMerchant() {
+    if (!game.user.isGM) return;
+    const merchant = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { inventory: [] });
+    await rollMerchantRestock(merchant.inventory ?? [], merchant.stockType ?? "percent");
+    merchant.lastRestocked = game.time.worldTime;
+    merchant.buybackItems  = [];
+    await this.#saveEntryData(this._activeTab, merchant);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
   }
 
   static #onSwitchToSellTab() {
