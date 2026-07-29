@@ -104,6 +104,11 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (lineTotal) {
         if (item.type === 'sellItem') {
           lineTotalLabel = formatConstrained(costInStandard(lineTotal, currencies));
+        } else if (item.price?.coins) {
+          // Price-varied merchant item: show the coin breakdown (scaled by quantity), not a fractional base amount.
+          const scaled = {};
+          for (const [cId, n] of Object.entries(item.price.coins)) scaled[cId] = n * item.quantity;
+          lineTotalLabel = formatAmounts(scaled, currencies);
         } else {
           const curr = currencies.find(c => c.id === lineTotal.currencyId);
           lineTotalLabel = `${lineTotal.amount} ${curr?.abbreviation ?? '?'}`;

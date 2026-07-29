@@ -66,7 +66,7 @@ class CartManager {
       inventoryItemId: item.id,
       itemName: item.name,
       itemLinkedId: item.itemId ?? null,
-      price: item.price ?? null,
+      price: item.currentPrice ?? item.price ?? null,
       quantity: 1,
       maxStock
     });
@@ -171,7 +171,10 @@ class CartManager {
     }
     if (item.type === 'menuItem' || item.type === 'merchantItem') {
       if (!item.price) return null;
-      return { amount: Math.round(item.price.amount * item.quantity), currencyId: item.price.currencyId };
+      // No Math.round: a price-varied merchant item's `amount` may be fractional in its base
+      // denomination (its exact value lives in the coin breakdown); rounding here would drop it.
+      // Whole authored/menu prices are unaffected.
+      return { amount: item.price.amount * item.quantity, currencyId: item.price.currencyId };
     }
     if (item.type === 'sellItem') {
       if (!item.salePrice) return null;

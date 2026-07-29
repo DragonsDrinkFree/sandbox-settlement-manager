@@ -13,7 +13,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, rollMerchantRestock } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -518,7 +518,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onForceRestockMerchant() {
     if (!game.user.isGM) return;
     const merchant = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { inventory: [] });
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
     await rollMerchantRestock(merchant.inventory ?? [], merchant.stockType ?? "percent");
+    applyPriceVariation(merchant.inventory ?? [], readPriceVarConfig(merchant), currencies);
+    rollMerchantBuyRates(merchant.purchasingProfile ?? []);
     merchant.lastRestocked = game.time.worldTime;
     merchant.buybackItems  = [];
     await this.#saveEntryData(this._activeTab, merchant);

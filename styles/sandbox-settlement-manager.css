@@ -2550,6 +2550,53 @@
   flex: 1;
 }
 
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-config {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-config > label {
+  font-weight: 500;
+  white-space: nowrap;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-range {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-range .lodging-num-input {
+  width: 3.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-rounding {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-sub-type-edit .merchant-price-var-rounding select {
+  flex: 0 0 auto;
+}
+
 #sandbox-settlement-manager-sub-type-edit .col-msize {
   min-width: 110px;
 }

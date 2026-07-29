@@ -39,6 +39,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _purchasingProfile = [];
   _stockType = null;        // tracks merchantStockType <select> across re-renders
   _restockFrequency = null; // tracks merchantRestockFrequency <select> across re-renders
+  _priceVarMin = null;         // tracks price-variation config across re-renders (inputs leave DOM on tab switch)
+  _priceVarMax = null;
+  _priceVarIndividual = null;
+  _priceVarRounding = null;
   _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
@@ -136,6 +140,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._purchasingProfile = foundry.utils.deepClone(entryData.purchasingProfile ?? []);
       app._stockType         = entryData.stockType ?? null;
       app._restockFrequency  = entryData.restockFrequency ?? null;
+      app._priceVarMin        = entryData.priceVarMin        ?? null;
+      app._priceVarMax        = entryData.priceVarMax        ?? null;
+      app._priceVarIndividual = entryData.priceVarIndividual ?? null;
+      app._priceVarRounding   = entryData.priceVarRounding   ?? null;
       app._resolve = resolve;
       app.render(true);
     });
@@ -153,6 +161,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const stockType        = this._stockType        ?? merchantData.stockType        ?? "percent";
     const restockFrequency = this._restockFrequency ?? merchantData.restockFrequency ?? "weekly";
     const isXInSix         = stockType === "x-in-6";
+    const priceVarMin        = this._priceVarMin        ?? merchantData.priceVarMin        ?? 0;
+    const priceVarMax        = this._priceVarMax        ?? merchantData.priceVarMax        ?? 0;
+    const priceVarIndividual = this._priceVarIndividual ?? merchantData.priceVarIndividual ?? false;
+    const priceVarRounding   = this._priceVarRounding   ?? merchantData.priceVarRounding   ?? "same";
 
     let lodgings = [];
     let currencies = [];
@@ -234,8 +246,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       stockType,
       restockFrequency,
       isXInSix,
+      priceVarMin,
+      priceVarMax,
+      priceVarIndividual,
+      priceVarRounding,
       merchantTab: this._merchantTab,
-      purchasingProfile: this._purchasingProfile,
+      purchasingProfile: this._purchasingProfile.map(r => ({
+        ...r,
+        rateLabel: (r.buyRateMax != null && r.buyRateMax !== r.buyRate) ? `${r.buyRate}–${r.buyRateMax}` : `${r.buyRate}`
+      })),
       systemItemTypes,
       buybackTypeOptions,
       buttons: [
@@ -453,6 +472,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (st) this._stockType = st;
     const rf = this.element?.querySelector('[name="merchantRestockFrequency"]')?.value;
     if (rf) this._restockFrequency = rf;
+    // Preserve price-variation config (these inputs leave the DOM on the purchasing tab).
+    const pvMin = this.element?.querySelector('[name="merchantPriceVarMin"]');
+    if (pvMin) this._priceVarMin = parseFloat(pvMin.value) || 0;
+    const pvMax = this.element?.querySelector('[name="merchantPriceVarMax"]');
+    if (pvMax) this._priceVarMax = parseFloat(pvMax.value) || 0;
+    const pvInd = this.element?.querySelector('[name="merchantPriceVarIndividual"]');
+    if (pvInd) this._priceVarIndividual = pvInd.checked;
+    const pvRnd = this.element?.querySelector('[name="merchantPriceVarRounding"]');
+    if (pvRnd) this._priceVarRounding = pvRnd.value;
   }
 
   static #onAddLodging() {
@@ -674,12 +702,17 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!addRow) return;
     const itemType    = addRow.querySelector('[data-field="ruleItemType"]')?.value ?? "";
     const buyRate     = parseFloat(addRow.querySelector('[data-field="ruleBuyRate"]')?.value) || 0;
+    const buyRateMaxRaw = addRow.querySelector('[data-field="ruleBuyRateMax"]')?.value;
+    const buyRateMax  = (buyRateMaxRaw === "" || buyRateMaxRaw == null) ? buyRate : (parseFloat(buyRateMaxRaw) || 0);
     const buybackType = addRow.querySelector('[data-field="ruleBuybackType"]')?.value ?? "player";
     if (this._purchasingProfile.some(r => r.itemType === itemType)) return;
+    const rateMin = Math.max(0, Math.min(100, buyRate));
+    const rateMax = Math.max(rateMin, Math.min(100, buyRateMax));
     this._purchasingProfile.push({
       id: foundry.utils.randomID(),
       itemType,
-      buyRate: Math.max(0, Math.min(100, buyRate)),
+      buyRate: rateMin,
+      buyRateMax: rateMax,
       buybackType
     });
     this.render({ parts: ["form"] });
@@ -731,14 +764,42 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
+      const pv = this.#readPriceVarFromForm(form);
       this.#syncTemplateInventoryFromDOM();
-      result.typeData = { merchant: { stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile } };
+      result.typeData = { merchant: { stockType, restockFrequency, ...pv, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile } };
     }
     result._templateTypeId = typeId;
 
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.(result);
+  }
+
+  /**
+   * Read the merchant price-variation controls. The inputs only render on the inventory tab, so when
+   * saving from the purchasing tab they're absent from the DOM — fall back to the instance fields
+   * (captured across re-renders by #syncSubTypeName), then to defaults.
+   */
+  #readPriceVarFromForm(form) {
+    const num = (name, field, dflt) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      const v  = el ? parseFloat(el.value) : (this[field] ?? dflt);
+      return Math.max(-100, Math.min(100, Number.isFinite(v) ? v : dflt));
+    };
+    const bool = (name, field, dflt) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      return el ? el.checked : (this[field] ?? dflt);
+    };
+    const str = (name, field, dflt) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      return el ? el.value : (this[field] ?? dflt);
+    };
+    return {
+      priceVarMin:        num("merchantPriceVarMin",        "_priceVarMin",        0),
+      priceVarMax:        num("merchantPriceVarMax",        "_priceVarMax",        0),
+      priceVarIndividual: bool("merchantPriceVarIndividual", "_priceVarIndividual", false),
+      priceVarRounding:   str("merchantPriceVarRounding",    "_priceVarRounding",   "same")
+    };
   }
 
   /**
@@ -765,6 +826,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } else if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");
+      const pv = this.#readPriceVarFromForm(form);
       this.#syncTemplateInventoryFromDOM();
 
       // Roll live stock now for items that are new or whose availability/formula changed, so a local
@@ -779,7 +841,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       await rollMerchantRestock(toRoll, stockType);
 
-      result = { ...base, stockType, restockFrequency, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
+      result = { ...base, stockType, restockFrequency, ...pv, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
     }
 
     const resolve = this._resolve;

@@ -1,3 +1,7 @@
+# v1.0
+## Major
+- Price variations for merchants (Buying and selling)
+
 # v0.9.1
 ## Minor
 - Local Merchant set up now properly handles limited stock formulas and availability

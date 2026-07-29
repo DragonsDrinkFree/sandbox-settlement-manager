@@ -53,6 +53,14 @@ export function buildEntryTypeData(typeId, subType) {
       restockFrequency:     tpl.restockFrequency ?? "weekly",
       _tplStockType:        tpl.stockType        ?? "percent",
       _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
+      priceVarMin:            tpl.priceVarMin        ?? 0,
+      priceVarMax:            tpl.priceVarMax        ?? 0,
+      priceVarIndividual:     tpl.priceVarIndividual ?? false,
+      priceVarRounding:       tpl.priceVarRounding   ?? "same",
+      _tplPriceVarMin:        tpl.priceVarMin        ?? 0,
+      _tplPriceVarMax:        tpl.priceVarMax        ?? 0,
+      _tplPriceVarIndividual: tpl.priceVarIndividual ?? false,
+      _tplPriceVarRounding:   tpl.priceVarRounding   ?? "same",
       lastRestocked:        null,
       purchasingProfile:    foundry.utils.deepClone(tpl.purchasingProfile ?? []),
       inventory: (tpl.inventory ?? []).map(item => instanceFromTemplate(item, TEMPLATE_FIELDS.merchantItem, { quantity: null }))
@@ -165,6 +173,93 @@ export async function rollMerchantRestock(inventory, stockType) {
   return inventory;
 }
 
+/** Random integer percent within [min, max], inclusive of both bounds; tolerates min > max. */
+function pickPct(min = 0, max = 0) {
+  const lo = Math.min(min, max), hi = Math.max(min, max);
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+/**
+ * Turn an authored price + adjustment percent into a live price with a coin breakdown, per the
+ * chosen rounding mode. Returns `{ currencyId, amount, coins }` where `amount` is the value in the
+ * base denomination (used for charging — its standard value equals the coins' total) and `coins`
+ * is the display breakdown `{ [currencyId]: count }`.
+ *
+ * Modes:
+ *  - "same"  keep the base denomination, round away from base (increase→up, decrease→down).
+ *  - "lower" keep the whole base part; express the remainder in the next-lower denomination (nearest).
+ *  - "all"   break down through every denomination to the lowest (nearest at the finest coin).
+ * When there is no lower denomination available, "lower"/"all" degrade to "same".
+ */
+function computeAdjustedPrice(basePrice, pct, rounding, currencies) {
+  const base     = currencies.find(c => c.id === basePrice.currencyId);
+  const baseRate = parseExchangeRate(base?.exchangeRate) || 1;
+  const rawStd   = basePrice.amount * (1 + pct / 100) * baseRate;
+
+  const lowerDenoms = currencies.filter(c => parseExchangeRate(c.exchangeRate) < baseRate);
+  let allowed;
+  if (rounding === "all") {
+    allowed = currencies.filter(c => parseExchangeRate(c.exchangeRate) <= baseRate);
+  } else if (rounding === "lower" && lowerDenoms.length) {
+    const next = lowerDenoms.reduce((a, b) => parseExchangeRate(a.exchangeRate) >= parseExchangeRate(b.exchangeRate) ? a : b);
+    allowed = [base, next];
+  } else {
+    allowed = [base];
+  }
+  const floorRate = Math.min(...allowed.map(c => parseExchangeRate(c.exchangeRate)));
+
+  const q = rawStd / floorRate;
+  const n = rounding === "same"
+    ? (pct >= 0 ? Math.ceil(q - 1e-9) : Math.floor(q + 1e-9)) // away from base
+    : Math.round(q);                                          // nearest
+  const roundedStd = Math.max(0, n) * floorRate;
+
+  const coins = calculateChange(roundedStd, allowed, baseRate) ?? { [base.id]: Math.max(0, Math.round(q)) };
+  return { currencyId: base.id, amount: roundedStd / baseRate, coins };
+}
+
+/**
+ * Roll each merchant item's live sale price from its authored `price`, storing the result on the
+ * runtime `currentPrice` (authored `price` is never overwritten). With `individual` off a single
+ * store-wide percent applies to every item; with it on each item rolls its own percent from the
+ * same range. The `rounding` mode governs how the adjusted value is expressed as coins.
+ * Called on every full restock (timed + manual), not on item edits.
+ */
+export function applyPriceVariation(inventory, { min = 0, max = 0, individual = false, rounding = "same" } = {}, currencies = []) {
+  const noVariation = min === 0 && max === 0;
+  const storePct = individual ? null : pickPct(min, max);
+  for (const item of inventory) {
+    if (!item.price) continue;
+    if (noVariation) { delete item.currentPrice; continue; } // no adjustment → fall back to the authored price
+    const pct = individual ? pickPct(min, max) : storePct;
+    item.currentPrice = computeAdjustedPrice(item.price, pct, rounding, currencies);
+  }
+  return inventory;
+}
+
+/**
+ * Roll each purchasing-profile rule's buy-back percent within its [buyRate, buyRateMax] range,
+ * stamping the runtime `_rolledBuyRate` the sale-price computation reads. A disabled rule
+ * (`buyRate == null`) stays disabled. Re-rolled every restock alongside stock/prices.
+ */
+export function rollMerchantBuyRates(purchasingProfile) {
+  for (const rule of purchasingProfile ?? []) {
+    if (rule.buyRate == null) { rule._rolledBuyRate = null; continue; }
+    rule._rolledBuyRate = pickPct(rule.buyRate ?? 0, rule.buyRateMax ?? rule.buyRate ?? 0);
+  }
+  return purchasingProfile;
+}
+
+/** Read the merchant-level price-variation config off a stored merchant entry, with defaults. */
+export function readPriceVarConfig(merchant) {
+  return {
+    min:        merchant?.priceVarMin ?? 0,
+    max:        merchant?.priceVarMax ?? 0,
+    individual: merchant?.priceVarIndividual ?? false,
+    rounding:   merchant?.priceVarRounding ?? "same"
+  };
+}
+
 /**
  * Build merchant inventory display data, restocking if due (GM only).
  * Items without a stock formula roll the availability % on restock and may show ∞ or sold out.
@@ -192,9 +287,12 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
 
   let _needsSave = false;
   const workingInventory = foundry.utils.deepClone(rawInventory);
+  let workingProfile = null;
 
   if (restockDue) {
     await rollMerchantRestock(workingInventory, stockType);
+    applyPriceVariation(workingInventory, readPriceVarConfig(merchant), currencies);
+    workingProfile = rollMerchantBuyRates(foundry.utils.deepClone(merchant.purchasingProfile ?? []));
     _needsSave = true;
   }
 
@@ -222,7 +320,9 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
     const groupKey = typeCfg ? typeKey : null;
 
     let priceLabel = "—";
-    if (item.price) {
+    if (item.currentPrice?.coins) {
+      priceLabel = formatAmounts(item.currentPrice.coins, currencies);
+    } else if (item.price) {
       const curr = currencies.find(c => c.id === item.price.currencyId);
       priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
     }
@@ -268,7 +368,9 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
 
   const builtFlat = displayInventory.map(item => {
     let priceLabel = "—";
-    if (item.price) {
+    if (item.currentPrice?.coins) {
+      priceLabel = formatAmounts(item.currentPrice.coins, currencies);
+    } else if (item.price) {
       const curr = currencies.find(c => c.id === item.price.currencyId);
       priceLabel = `${item.price.amount} ${curr?.abbreviation ?? "?"}`;
     }
@@ -281,7 +383,10 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
     : builtFlat.filter(i => !i.isSoldOut);
 
   const updatedMerchant = { ...merchant, inventory: workingInventory, lastRestocked: game.time.worldTime };
-  if (_needsSave) updatedMerchant.buybackItems = []; // clear buyback cache on restock
+  if (_needsSave) {
+    updatedMerchant.buybackItems = []; // clear buyback cache on restock
+    if (workingProfile) updatedMerchant.purchasingProfile = workingProfile; // persist rolled buy rates
+  }
 
   return {
     groups: visibleGroups, flatInventory, isGM, hasGroups: typeConfigs.length > 0,

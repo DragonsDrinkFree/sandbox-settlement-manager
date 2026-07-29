@@ -195,6 +195,22 @@
           <option value="monthly"{{#if (eq restockFrequency "monthly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockMonthly"}}</option>
         </select>
       </div>
+      <div class="merchant-price-var-config">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.priceVariation"}}</label>
+        <div class="merchant-price-var-range">
+          <input type="number" name="merchantPriceVarMin" value="{{priceVarMin}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
+          <span class="merchant-price-var-dash">–</span>
+          <input type="number" name="merchantPriceVarMax" value="{{priceVarMax}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
+        </div>
+        <label class="merchant-price-var-check"><input type="checkbox" name="merchantPriceVarIndividual"{{#if priceVarIndividual}} checked{{/if}}> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.individualAdjustments"}}</label>
+        <label class="merchant-price-var-rounding">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.rounding"}}
+          <select name="merchantPriceVarRounding">
+            <option value="same"{{#if (eq priceVarRounding "same")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingSame"}}</option>
+            <option value="lower"{{#if (eq priceVarRounding "lower")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingLower"}}</option>
+            <option value="all"{{#if (eq priceVarRounding "all")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingAll"}}</option>
+          </select>
+        </label>
+      </div>
       <div class="merchant-template-drop-zone merchant-drop-zone">
         <i class="fa-solid fa-box-open"></i>
         <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>
@@ -298,6 +314,8 @@
           <label class="ssm-rule-header" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.merchantPriceHint'}}">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.ruleMerchantPriceHeader"}}</label>
           <div class="ssm-rule-rate-wrap">
             <input type="number" data-field="ruleBuyRate" value="50" min="0" max="100" step="1" class="lodging-num-input">
+            <span>–</span>
+            <input type="number" data-field="ruleBuyRateMax" value="50" min="0" max="100" step="1" class="lodging-num-input">
             <span>%</span>
           </div>
         </div>
@@ -329,7 +347,7 @@
           {{#each purchasingProfile}}
           <tr>
             <td>{{#if this.itemType}}{{this.itemType}}{{else}}<em>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSizeAll"}}</em>{{/if}}</td>
-            <td class="col-num ssm-col-right">{{this.buyRate}}%</td>
+            <td class="col-num ssm-col-right">{{this.rateLabel}}%</td>
             <td>{{#if (eq this.buybackType "full")}}{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackFull"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.buybackPlayer"}}{{/if}}</td>
             <td class="col-del">
               <button type="button" class="icon" data-action="removePurchasingRule"

@@ -20,6 +20,16 @@ function syncMerchant(merchantData, templateMerchant) {
     updated.restockFrequency = tplRf;
   updated._tplStockType        = tplSt;
   updated._tplRestockFrequency = tplRf;
+
+  // Price-variation settings: same adopt-unless-overridden pattern (shadow field per setting).
+  const priceVarDefaults = { priceVarMin: 0, priceVarMax: 0, priceVarIndividual: false, priceVarRounding: "same" };
+  for (const [field, dflt] of Object.entries(priceVarDefaults)) {
+    const shadow = `_tpl${field.charAt(0).toUpperCase()}${field.slice(1)}`;
+    const tplVal = templateMerchant[field] ?? dflt;
+    if (merchantData[shadow] === undefined || merchantData[field] === merchantData[shadow])
+      updated[field] = tplVal;
+    updated[shadow] = tplVal;
+  }
   return updated;
 }
 

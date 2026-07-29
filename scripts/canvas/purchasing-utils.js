@@ -27,7 +27,9 @@ export function mergePurchasingProfiles(location) {
     }
     for (const rule of profile) {
       if (!byType.has(rule.itemType)) byType.set(rule.itemType, []);
-      byType.get(rule.itemType).push(rule);
+      // Resolve the effective buy rate to the per-restock rolled value (falling back to the
+      // configured min when a merchant hasn't rolled yet). Downstream code reads `buyRate`.
+      byType.get(rule.itemType).push({ ...rule, buyRate: rule._rolledBuyRate ?? rule.buyRate });
     }
   }
 
