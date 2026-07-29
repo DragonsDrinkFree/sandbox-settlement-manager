@@ -73,6 +73,10 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasCoursePrice,
       items,
       currencies,
+      priceVarMin:        this._course.priceVarMin        ?? 0,
+      priceVarMax:        this._course.priceVarMax        ?? 0,
+      priceVarIndividual: this._course.priceVarIndividual ?? false,
+      priceVarRounding:   this._course.priceVarRounding   ?? "same",
       hasTemplate: !!this._templateCourse,
       buttons: this._templateCourse
         ? [
@@ -136,6 +140,16 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       currencyId: el.querySelector('[name="priceCurrencyId"]')?.value ?? "",
       amount:     parseFloat(el.querySelector('[name="priceAmount"]')?.value) || 0
     } : null;
+    // Preserve per-course price-variation config across item add/edit/delete re-renders.
+    const clamp = v => Math.max(-100, Math.min(100, parseFloat(v) || 0));
+    const pvMin = el.querySelector('[name="coursePriceVarMin"]');
+    if (pvMin) this._course.priceVarMin = clamp(pvMin.value);
+    const pvMax = el.querySelector('[name="coursePriceVarMax"]');
+    if (pvMax) this._course.priceVarMax = clamp(pvMax.value);
+    const pvInd = el.querySelector('[name="coursePriceVarIndividual"]');
+    if (pvInd) this._course.priceVarIndividual = pvInd.checked;
+    const pvRnd = el.querySelector('[name="coursePriceVarRounding"]');
+    if (pvRnd) this._course.priceVarRounding = pvRnd.value;
   }
 
   static async #onAddItem() {
@@ -203,6 +217,11 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const drawCountMax   = Math.max(drawCountMin, parseInt(formData.object.drawCountMax) || drawCountMin);
     const drawCount      = drawCountMax;
     const refreshCadence = formData.object.refreshCadence === "weekly" ? "weekly" : "daily";
+    const clamp = v => Math.max(-100, Math.min(100, parseFloat(v) || 0));
+    const priceVarMin        = clamp(formData.object.coursePriceVarMin);
+    const priceVarMax        = clamp(formData.object.coursePriceVarMax);
+    const priceVarIndividual = !!form.querySelector('[name="coursePriceVarIndividual"]')?.checked;
+    const priceVarRounding   = form.querySelector('[name="coursePriceVarRounding"]')?.value ?? "same";
 
     const resolve = this._resolve;
     this._resolve = null;
@@ -215,6 +234,10 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       drawCountMin,
       drawCountMax,
       refreshCadence,
+      priceVarMin,
+      priceVarMax,
+      priceVarIndividual,
+      priceVarRounding,
       items:          mode === "static"  ? (this._course.items  ?? []) : [],
       pool:           mode === "random"  ? (this._course.pool   ?? []) : [],
       drawnItems:     mode === "random"  ? (this._course.drawnItems ?? []) : [],

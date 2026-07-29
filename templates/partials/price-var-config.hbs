@@ -1,0 +1,25 @@
+{{!--
+  Shared price-variation controls (merchant / lodging / course).
+  Params:
+    prefix      input-name prefix; emits <prefix>PriceVarMin/Max/Individual/Rounding
+    min, max    numeric percent bounds (may be negative)
+    individual  boolean — per-item vs store-wide adjustment
+    rounding    "same" | "lower" | "all"
+--}}
+<div class="ssm-price-var-config">
+  <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.priceVariation"}}</label>
+  <div class="ssm-price-var-range">
+    <input type="number" name="{{prefix}}PriceVarMin" value="{{min}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
+    <span class="ssm-price-var-dash">–</span>
+    <input type="number" name="{{prefix}}PriceVarMax" value="{{max}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
+  </div>
+  <label class="ssm-price-var-check"><input type="checkbox" name="{{prefix}}PriceVarIndividual"{{#if individual}} checked{{/if}}> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.individualAdjustments"}}</label>
+  <label class="ssm-price-var-rounding">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.rounding"}}
+    <select name="{{prefix}}PriceVarRounding">
+      <option value="same"{{#if (eq rounding "same")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingSame"}}</option>
+      <option value="lower"{{#if (eq rounding "lower")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingLower"}}</option>
+      <option value="all"{{#if (eq rounding "all")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingAll"}}</option>
+    </select>
+    <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.priceVarRounding'}}"></i>
+  </label>
+</div>

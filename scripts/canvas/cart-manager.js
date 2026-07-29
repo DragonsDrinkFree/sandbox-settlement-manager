@@ -20,8 +20,8 @@ class CartManager {
       lodgingId: lodging.id,
       lodgingName: lodging.name,
       beds: lodging.beds ?? 1,
-      pricePerDay:  lodging.pricePerDay  ?? null,
-      pricePerWeek: lodging.pricePerWeek ?? null,
+      pricePerDay:  lodging.currentPricePerDay  ?? lodging.pricePerDay  ?? null,
+      pricePerWeek: lodging.currentPricePerWeek ?? lodging.pricePerWeek ?? null,
       duration: 1,
       unit: 'days'
     });
@@ -94,7 +94,7 @@ class CartManager {
 
   /** Add a menu item to the cart. Price is resolved from item first, then course default. */
   addMenuItem({ sceneId, locationId, locationName, course, item }) {
-    const resolvedPrice = item.price ?? course.price ?? null;
+    const resolvedPrice = item.currentPrice ?? item.price ?? course.price ?? null;
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'menuItem',
@@ -153,18 +153,20 @@ class CartManager {
   /** Returns { amount, currencyId } for this cart item, or null if no price is set. */
   computeLineTotal(item, currencies) {
     if (item.type === 'lodging') {
+      // No Math.round: a price-varied lodging amount may be fractional in its base denomination (its
+      // exact value is in the coin breakdown). Whole authored prices are unaffected.
       const { daysPerWeek } = getWorldTimeConfig();
       if (item.unit === 'weeks') {
         if (item.pricePerWeek) {
-          return { amount: Math.round(item.pricePerWeek.amount * item.duration), currencyId: item.pricePerWeek.currencyId };
+          return { amount: item.pricePerWeek.amount * item.duration, currencyId: item.pricePerWeek.currencyId };
         }
         if (item.pricePerDay) {
-          return { amount: Math.round(item.pricePerDay.amount * daysPerWeek * item.duration), currencyId: item.pricePerDay.currencyId };
+          return { amount: item.pricePerDay.amount * daysPerWeek * item.duration, currencyId: item.pricePerDay.currencyId };
         }
         return null;
       } else {
         if (item.pricePerDay) {
-          return { amount: Math.round(item.pricePerDay.amount * item.duration), currencyId: item.pricePerDay.currencyId };
+          return { amount: item.pricePerDay.amount * item.duration, currencyId: item.pricePerDay.currencyId };
         }
         return null;
       }

@@ -16,7 +16,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -58,6 +58,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       dismissLedgerEntry: SettlementManageApp.#onDismissLedgerEntry,
       editBooking:        SettlementManageApp.#onEditBooking,
       addBooking:         SettlementManageApp.#onAddBooking,
+      forceRefreshInn:      SettlementManageApp.#onForceRefreshInn,
       refreshCourse:        SettlementManageApp.#onRefreshCourse,
       buyMenuItem:          SettlementManageApp.#onBuyMenuItem,
       restoreFromTemplate:         SettlementManageApp.#onRestoreFromTemplate,
@@ -846,6 +847,17 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     merchant.buybackItems  = [];
     await this.#saveEntryData(this._activeTab, merchant);
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
+  }
+
+  static async #onForceRefreshInn() {
+    if (!game.user.isGM) return;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const inn = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], menu: { courses: [] } });
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+    forceRefreshInn(inn, currencies);
+    await this.#saveEntryData(this._activeTab, inn);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.refreshed"));
   }
 
   static async #onRefreshCourse(event, target) {

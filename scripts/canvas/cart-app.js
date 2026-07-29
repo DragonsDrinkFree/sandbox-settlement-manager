@@ -105,9 +105,15 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (item.type === 'sellItem') {
           lineTotalLabel = formatConstrained(costInStandard(lineTotal, currencies));
         } else if (item.price?.coins) {
-          // Price-varied merchant item: show the coin breakdown (scaled by quantity), not a fractional base amount.
+          // Price-varied merchant/menu item: show the coin breakdown (scaled by quantity), not a fractional base amount.
           const scaled = {};
           for (const [cId, n] of Object.entries(item.price.coins)) scaled[cId] = n * item.quantity;
+          lineTotalLabel = formatAmounts(scaled, currencies);
+        } else if (item.type === 'lodging' && (item.unit === 'weeks' ? item.pricePerWeek : item.pricePerDay)?.coins) {
+          // Price-varied lodging: coin breakdown of the active (day/week) price scaled by duration.
+          const active = item.unit === 'weeks' ? item.pricePerWeek : item.pricePerDay;
+          const scaled = {};
+          for (const [cId, n] of Object.entries(active.coins)) scaled[cId] = n * item.duration;
           lineTotalLabel = formatAmounts(scaled, currencies);
         } else {
           const curr = currencies.find(c => c.id === lineTotal.currencyId);

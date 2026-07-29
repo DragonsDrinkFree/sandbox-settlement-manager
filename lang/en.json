@@ -115,6 +115,7 @@
       "merchantSettlementSize": "Minimum settlement size this item will appear in stock for merchants using this template.",
       "merchantAvailability": "Chance that this item will be present in a merchant, re-checked each restock period.",
       "merchantStockFormula": "Dice/number formula rolled to set quantity when in stock (e.g. 2d6). Leave blank for infinite stock.",
+      "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world."
     },
     "importExport": {
@@ -283,6 +284,9 @@
       "expired": "Expired",
       "defaultLodgings": "Default Lodgings",
       "noDefaultLodgings": "No default lodgings.",
+      "lodgingRefreshPeriod": "Refresh Period",
+      "forceRefreshLabel": "Refresh Prices & Menu",
+      "refreshed": "Inn refreshed.",
       "lodging": {
         "addTitle": "Add Lodging",
         "editTitle": "Edit Lodging",

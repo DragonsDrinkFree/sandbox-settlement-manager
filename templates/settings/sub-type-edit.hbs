@@ -88,6 +88,16 @@
       <button type="button" data-action="addLodging" class="lodging-add-btn">
         <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.add"}}
       </button>
+      {{> ssm-price-var-config prefix="lodging" min=lodgingPriceVarMin max=lodgingPriceVarMax individual=lodgingPriceVarIndividual rounding=lodgingPriceVarRounding}}
+      <div class="lodging-refresh-config">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodgingRefreshPeriod"}}
+          <select name="lodgingRefreshCadence">
+            <option value="daily"{{#if (eq lodgingRefreshCadence "daily")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockDaily"}}</option>
+            <option value="weekly"{{#if (eq lodgingRefreshCadence "weekly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockWeekly"}}</option>
+            <option value="monthly"{{#if (eq lodgingRefreshCadence "monthly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockMonthly"}}</option>
+          </select>
+        </label>
+      </div>
     </fieldset>
 
     <fieldset class="menu-courses">
@@ -195,22 +205,7 @@
           <option value="monthly"{{#if (eq restockFrequency "monthly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockMonthly"}}</option>
         </select>
       </div>
-      <div class="merchant-price-var-config">
-        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.priceVariation"}}</label>
-        <div class="merchant-price-var-range">
-          <input type="number" name="merchantPriceVarMin" value="{{priceVarMin}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
-          <span class="merchant-price-var-dash">–</span>
-          <input type="number" name="merchantPriceVarMax" value="{{priceVarMax}}" min="-100" max="100" step="1" class="lodging-num-input"><span>%</span>
-        </div>
-        <label class="merchant-price-var-check"><input type="checkbox" name="merchantPriceVarIndividual"{{#if priceVarIndividual}} checked{{/if}}> {{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.individualAdjustments"}}</label>
-        <label class="merchant-price-var-rounding">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.rounding"}}
-          <select name="merchantPriceVarRounding">
-            <option value="same"{{#if (eq priceVarRounding "same")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingSame"}}</option>
-            <option value="lower"{{#if (eq priceVarRounding "lower")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingLower"}}</option>
-            <option value="all"{{#if (eq priceVarRounding "all")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.roundingAll"}}</option>
-          </select>
-        </label>
-      </div>
+      {{> ssm-price-var-config prefix="merchant" min=priceVarMin max=priceVarMax individual=priceVarIndividual rounding=priceVarRounding}}
       <div class="merchant-template-drop-zone merchant-drop-zone">
         <i class="fa-solid fa-box-open"></i>
         <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.dropHint"}}</span>

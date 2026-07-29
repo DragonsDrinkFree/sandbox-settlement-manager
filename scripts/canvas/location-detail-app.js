@@ -13,7 +13,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -53,6 +53,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
       editBooking:        LocationDetailApp.#onEditBooking,
       addBooking:         LocationDetailApp.#onAddBooking,
+      forceRefreshInn:    LocationDetailApp.#onForceRefreshInn,
       refreshCourse:      LocationDetailApp.#onRefreshCourse,
       buyMenuItem:        LocationDetailApp.#onBuyMenuItem,
       buyInventoryItem:         LocationDetailApp.#onBuyInventoryItem,
@@ -526,6 +527,15 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     merchant.buybackItems  = [];
     await this.#saveEntryData(this._activeTab, merchant);
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
+  }
+
+  static async #onForceRefreshInn() {
+    if (!game.user.isGM) return;
+    const inn = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], menu: { courses: [] } });
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+    forceRefreshInn(inn, currencies);
+    await this.#saveEntryData(this._activeTab, inn);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.refreshed"));
   }
 
   static #onSwitchToSellTab() {

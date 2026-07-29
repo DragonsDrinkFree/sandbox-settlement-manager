@@ -23,7 +23,8 @@ Hooks.once("init", () => {
 
   // Preload shared Handlebars partials (registered under short ids for {{> id}} use).
   foundry.applications.handlebars.loadTemplates({
-    "ssm-price-input": `modules/${MODULE_ID}/templates/partials/price-input.hbs`
+    "ssm-price-input":      `modules/${MODULE_ID}/templates/partials/price-input.hbs`,
+    "ssm-price-var-config": `modules/${MODULE_ID}/templates/partials/price-var-config.hbs`
   });
 
   registerSettings();

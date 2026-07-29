@@ -43,6 +43,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _priceVarMax = null;
   _priceVarIndividual = null;
   _priceVarRounding = null;
+  _lodgingPriceVarMin = null;  // inn lodging price-variation config (survives add-lodging/add-course re-renders)
+  _lodgingPriceVarMax = null;
+  _lodgingPriceVarIndividual = null;
+  _lodgingPriceVarRounding = null;
+  _lodgingRefreshCadence = null;
   _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
@@ -144,6 +149,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._priceVarMax        = entryData.priceVarMax        ?? null;
       app._priceVarIndividual = entryData.priceVarIndividual ?? null;
       app._priceVarRounding   = entryData.priceVarRounding   ?? null;
+      app._lodgingPriceVarMin        = entryData.lodgingPriceVarMin        ?? null;
+      app._lodgingPriceVarMax        = entryData.lodgingPriceVarMax        ?? null;
+      app._lodgingPriceVarIndividual = entryData.lodgingPriceVarIndividual ?? null;
+      app._lodgingPriceVarRounding   = entryData.lodgingPriceVarRounding   ?? null;
+      app._lodgingRefreshCadence     = entryData.lodgingRefreshCadence     ?? null;
       app._resolve = resolve;
       app.render(true);
     });
@@ -165,6 +175,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const priceVarMax        = this._priceVarMax        ?? merchantData.priceVarMax        ?? 0;
     const priceVarIndividual = this._priceVarIndividual ?? merchantData.priceVarIndividual ?? false;
     const priceVarRounding   = this._priceVarRounding   ?? merchantData.priceVarRounding   ?? "same";
+    const innData = this._subType.typeData ?? {};
+    const lodgingPriceVarMin        = this._lodgingPriceVarMin        ?? innData.lodgingPriceVarMin        ?? 0;
+    const lodgingPriceVarMax        = this._lodgingPriceVarMax        ?? innData.lodgingPriceVarMax        ?? 0;
+    const lodgingPriceVarIndividual = this._lodgingPriceVarIndividual ?? innData.lodgingPriceVarIndividual ?? false;
+    const lodgingPriceVarRounding   = this._lodgingPriceVarRounding   ?? innData.lodgingPriceVarRounding   ?? "same";
+    const lodgingRefreshCadence     = this._lodgingRefreshCadence     ?? innData.lodgingRefreshCadence     ?? "weekly";
 
     let lodgings = [];
     let currencies = [];
@@ -250,6 +266,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       priceVarMax,
       priceVarIndividual,
       priceVarRounding,
+      lodgingPriceVarMin,
+      lodgingPriceVarMax,
+      lodgingPriceVarIndividual,
+      lodgingPriceVarRounding,
+      lodgingRefreshCadence,
       merchantTab: this._merchantTab,
       purchasingProfile: this._purchasingProfile.map(r => ({
         ...r,
@@ -481,6 +502,17 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (pvInd) this._priceVarIndividual = pvInd.checked;
     const pvRnd = this.element?.querySelector('[name="merchantPriceVarRounding"]');
     if (pvRnd) this._priceVarRounding = pvRnd.value;
+    // Preserve inn lodging price-variation config across add-lodging/add-course re-renders.
+    const lvMin = this.element?.querySelector('[name="lodgingPriceVarMin"]');
+    if (lvMin) this._lodgingPriceVarMin = parseFloat(lvMin.value) || 0;
+    const lvMax = this.element?.querySelector('[name="lodgingPriceVarMax"]');
+    if (lvMax) this._lodgingPriceVarMax = parseFloat(lvMax.value) || 0;
+    const lvInd = this.element?.querySelector('[name="lodgingPriceVarIndividual"]');
+    if (lvInd) this._lodgingPriceVarIndividual = lvInd.checked;
+    const lvRnd = this.element?.querySelector('[name="lodgingPriceVarRounding"]');
+    if (lvRnd) this._lodgingPriceVarRounding = lvRnd.value;
+    const lvCad = this.element?.querySelector('[name="lodgingRefreshCadence"]');
+    if (lvCad) this._lodgingRefreshCadence = lvCad.value;
   }
 
   static #onAddLodging() {
@@ -744,7 +776,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const lodgings = [...rows]
         .map(row => this.#rowToLodging(row))
         .filter(l => l.name);
-      result.typeData = { lodgings, menu: this._menu };
+      result.typeData = { lodgings, menu: this._menu, ...this.#readLodgingConfigFromForm(form) };
     }
     if (typeId === LOCATION_TYPE_IDS.BANK) {
       const doesExchange       = !!form.querySelector('[name="bankDoesExchange"]')?.checked;
@@ -776,29 +808,39 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Read the merchant price-variation controls. The inputs only render on the inventory tab, so when
-   * saving from the purchasing tab they're absent from the DOM — fall back to the instance fields
-   * (captured across re-renders by #syncSubTypeName), then to defaults.
+   * Read a price-variation control set. Inputs may be absent from the DOM (merchant inputs leave on
+   * the purchasing tab), so fall back to the instance fields (captured across re-renders by
+   * #syncSubTypeName), then to defaults. `inputPrefix` names the DOM inputs (e.g. "merchant",
+   * "lodging"); `fieldPrefix` names the instance fields (`_priceVar*` when "", else `_<prefix>PriceVar*`).
    */
-  #readPriceVarFromForm(form) {
-    const num = (name, field, dflt) => {
-      const el = form.querySelector(`[name="${name}"]`);
-      const v  = el ? parseFloat(el.value) : (this[field] ?? dflt);
+  #readPriceVarFromForm(form, inputPrefix = "merchant", fieldPrefix = "") {
+    const fieldName = suffix => fieldPrefix ? `_${fieldPrefix}PriceVar${suffix}` : `_priceVar${suffix}`;
+    const el = suffix => form.querySelector(`[name="${inputPrefix}PriceVar${suffix}"]`);
+    const num = (suffix, dflt) => {
+      const e = el(suffix);
+      const v = e ? parseFloat(e.value) : (this[fieldName(suffix)] ?? dflt);
       return Math.max(-100, Math.min(100, Number.isFinite(v) ? v : dflt));
     };
-    const bool = (name, field, dflt) => {
-      const el = form.querySelector(`[name="${name}"]`);
-      return el ? el.checked : (this[field] ?? dflt);
-    };
-    const str = (name, field, dflt) => {
-      const el = form.querySelector(`[name="${name}"]`);
-      return el ? el.value : (this[field] ?? dflt);
-    };
+    const bool = (suffix, dflt) => { const e = el(suffix); return e ? e.checked : (this[fieldName(suffix)] ?? dflt); };
+    const str  = (suffix, dflt) => { const e = el(suffix); return e ? e.value   : (this[fieldName(suffix)] ?? dflt); };
     return {
-      priceVarMin:        num("merchantPriceVarMin",        "_priceVarMin",        0),
-      priceVarMax:        num("merchantPriceVarMax",        "_priceVarMax",        0),
-      priceVarIndividual: bool("merchantPriceVarIndividual", "_priceVarIndividual", false),
-      priceVarRounding:   str("merchantPriceVarRounding",    "_priceVarRounding",   "same")
+      priceVarMin:        num("Min", 0),
+      priceVarMax:        num("Max", 0),
+      priceVarIndividual: bool("Individual", false),
+      priceVarRounding:   str("Rounding", "same")
+    };
+  }
+
+  /** Read the inn lodging price-variation config + refresh cadence, mapped to `lodging*` storage keys. */
+  #readLodgingConfigFromForm(form) {
+    const pv = this.#readPriceVarFromForm(form, "lodging", "lodging");
+    const cadenceEl = form.querySelector('[name="lodgingRefreshCadence"]');
+    return {
+      lodgingPriceVarMin:        pv.priceVarMin,
+      lodgingPriceVarMax:        pv.priceVarMax,
+      lodgingPriceVarIndividual: pv.priceVarIndividual,
+      lodgingPriceVarRounding:   pv.priceVarRounding,
+      lodgingRefreshCadence:     cadenceEl ? cadenceEl.value : (this._lodgingRefreshCadence ?? "weekly")
     };
   }
 
@@ -814,7 +856,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.INN) {
       const rows = form.querySelectorAll('.lodging-table-row');
       const lodgings = [...rows].map(row => this.#rowToLodging(row)).filter(l => l.name);
-      result = { ...base, lodgings, menu: this._menu };
+      result = { ...base, lodgings, menu: this._menu, ...this.#readLodgingConfigFromForm(form) };
     } else if (typeId === LOCATION_TYPE_IDS.BANK) {
       const doesExchange       = !!form.querySelector('[name="bankDoesExchange"]')?.checked;
       const exchangeFee        = Math.max(0, Math.min(100, parseFloat(formData.object.bankExchangeFee) || 0));

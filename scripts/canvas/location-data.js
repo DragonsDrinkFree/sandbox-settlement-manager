@@ -40,10 +40,18 @@ export function getSubTypeMap() {
  */
 export function buildEntryTypeData(typeId, subType) {
   if (typeId === LOCATION_TYPE_IDS.INN) {
+    const innTpl = subType?.typeData ?? {};
     return {
       lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
       ledger: [],
-      menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) }
+      menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) },
+      // Lodging-level price-variation config (single set for all lodgings) + its refresh cadence.
+      lodgingPriceVarMin:        innTpl.lodgingPriceVarMin        ?? 0,
+      lodgingPriceVarMax:        innTpl.lodgingPriceVarMax        ?? 0,
+      lodgingPriceVarIndividual: innTpl.lodgingPriceVarIndividual ?? false,
+      lodgingPriceVarRounding:   innTpl.lodgingPriceVarRounding   ?? "same",
+      lodgingRefreshCadence:     innTpl.lodgingRefreshCadence     ?? "weekly",
+      lodgingLastRefreshed:      null
     };
   }
   if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
@@ -258,6 +266,95 @@ export function readPriceVarConfig(merchant) {
     individual: merchant?.priceVarIndividual ?? false,
     rounding:   merchant?.priceVarRounding ?? "same"
   };
+}
+
+/** Read the inn's lodging-level price-variation config off a stored inn entry, with defaults. */
+function readLodgingPriceVarConfig(inn) {
+  return {
+    min:        inn?.lodgingPriceVarMin ?? 0,
+    max:        inn?.lodgingPriceVarMax ?? 0,
+    individual: inn?.lodgingPriceVarIndividual ?? false,
+    rounding:   inn?.lodgingPriceVarRounding ?? "same"
+  };
+}
+
+/** Read a course's own price-variation config, with defaults. */
+function readCoursePriceVarConfig(course) {
+  return {
+    min:        course?.priceVarMin ?? 0,
+    max:        course?.priceVarMax ?? 0,
+    individual: course?.priceVarIndividual ?? false,
+    rounding:   course?.priceVarRounding ?? "same"
+  };
+}
+
+/**
+ * Roll live lodging prices from the authored pricePerDay / pricePerWeek onto runtime
+ * `currentPricePerDay` / `currentPricePerWeek` (each `{ currencyId, amount, coins }`). One percent
+ * per lodging applies to both its day and week price; `individual` off shares one store-wide percent.
+ * Weekly falls back to day × daysPerWeek when the lodging has no explicit weekly price.
+ */
+function applyLodgingPriceVariation(lodgings, { min = 0, max = 0, individual = false, rounding = "same" } = {}, currencies = [], daysPerWeek = 7) {
+  const noVar = min === 0 && max === 0;
+  const storePct = individual ? null : pickPct(min, max);
+  for (const l of lodgings) {
+    if (noVar) { delete l.currentPricePerDay; delete l.currentPricePerWeek; continue; }
+    const pct = individual ? pickPct(min, max) : storePct;
+    if (l.pricePerDay) l.currentPricePerDay = computeAdjustedPrice(l.pricePerDay, pct, rounding, currencies);
+    const weekBase = l.pricePerWeek
+      ?? (l.pricePerDay ? { currencyId: l.pricePerDay.currencyId, amount: l.pricePerDay.amount * daysPerWeek } : null);
+    if (weekBase) l.currentPricePerWeek = computeAdjustedPrice(weekBase, pct, rounding, currencies);
+  }
+  return lodgings;
+}
+
+/**
+ * Roll live prices for a course's active items (drawnItems in random mode, `items` in fixed mode)
+ * onto each item's runtime `currentPrice`, computed from its effective base `item.price ?? course.price`.
+ * `individual` off shares one store-wide percent across the course; on rolls per item.
+ */
+function applyCoursePriceVariation(course, { min = 0, max = 0, individual = false, rounding = "same" } = {}, currencies = []) {
+  const active = course.mode === "random" ? (course.drawnItems ?? []) : (course.items ?? []);
+  const noVar = min === 0 && max === 0;
+  const storePct = individual ? null : pickPct(min, max);
+  for (const item of active) {
+    const base = item.price ?? course.price;
+    if (!base || noVar) { delete item.currentPrice; continue; }
+    const pct = individual ? pickPct(min, max) : storePct;
+    item.currentPrice = computeAdjustedPrice(base, pct, rounding, currencies);
+  }
+  return course;
+}
+
+/** Re-draw a random course's items from its pool, honoring drawCountMin..drawCountMax. */
+function drawCourseItems(course) {
+  if (course.mode !== "random" || !(course.pool ?? []).length) return;
+  const shuffled = [...course.pool].sort(() => Math.random() - 0.5);
+  const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
+  const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
+  const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
+  course.drawnItems = shuffled.slice(0, Math.min(dcCount, shuffled.length));
+}
+
+/**
+ * Force an immediate inn refresh regardless of any cadence (the manual "Refresh" button): re-roll
+ * lodging prices, re-draw each random course, and re-roll every course's prices, stamping the
+ * refresh timestamps. Mutates `inn` in place. Mirrors the merchant force-restock button.
+ */
+export function forceRefreshInn(inn, currencies) {
+  const { daysPerWeek } = getWorldTimeConfig();
+  const now = game.time.worldTime;
+
+  const lodgingCfg = readLodgingPriceVarConfig(inn);
+  applyLodgingPriceVariation(inn.lodgings ?? [], lodgingCfg, currencies, daysPerWeek);
+  inn.lodgingLastRefreshed = now;
+
+  for (const course of inn.menu?.courses ?? []) {
+    drawCourseItems(course);
+    applyCoursePriceVariation(course, readCoursePriceVarConfig(course), currencies);
+    course.lastRefreshed = now;
+  }
+  return inn;
 }
 
 /**
@@ -496,12 +593,39 @@ export function buildInnData(entry, location, currencies, isGM = true) {
   const { daysPerWeek, hoursPerDay } = getWorldTimeConfig();
   const worldTime = game.time.worldTime;
 
-  const lodgings = (innRaw.lodgings ?? []).map(l => {
+  // --- Lodging price variation: re-roll on the lodging refresh cadence (GM only) ---
+  const workingLodgings = foundry.utils.deepClone(innRaw.lodgings ?? []);
+  const lodgingCfg    = readLodgingPriceVarConfig(innRaw);
+  const hasLodgingVar = lodgingCfg.min !== 0 || lodgingCfg.max !== 0;
+  let _lodgingNeedsSave = false;
+  let _lodgingRefreshed = false;
+  if (isGM) {
+    if (hasLodgingVar) {
+      const spd = hoursPerDay * 3600;
+      const cadenceSecs = { daily: spd, weekly: spd * daysPerWeek, monthly: spd * daysPerWeek * 4 }[innRaw.lodgingRefreshCadence ?? "weekly"] ?? spd * daysPerWeek;
+      const due = innRaw.lodgingLastRefreshed == null || worldTime >= innRaw.lodgingLastRefreshed + cadenceSecs;
+      if (due) {
+        applyLodgingPriceVariation(workingLodgings, lodgingCfg, currencies, daysPerWeek);
+        _lodgingNeedsSave = true;
+        _lodgingRefreshed = true;
+      }
+    } else if (workingLodgings.some(l => l.currentPricePerDay || l.currentPricePerWeek)) {
+      // Variation turned off — drop stale adjusted prices so authored prices show again.
+      for (const l of workingLodgings) { delete l.currentPricePerDay; delete l.currentPricePerWeek; }
+      _lodgingNeedsSave = true;
+    }
+  }
+
+  const lodgings = workingLodgings.map(l => {
     const dayCurr     = currencies.find(c => c.id === l.pricePerDay?.currencyId);
-    const dayLabel    = `${l.pricePerDay?.amount ?? 0} ${dayCurr?.abbreviation ?? "?"}`;
+    const dayLabel    = l.currentPricePerDay?.coins
+      ? formatAmounts(l.currentPricePerDay.coins, currencies)
+      : `${l.pricePerDay?.amount ?? 0} ${dayCurr?.abbreviation ?? "?"}`;
     const weeklyAmt   = l.pricePerWeek?.amount ?? ((l.pricePerDay?.amount ?? 0) * daysPerWeek);
     const weekCurr    = l.pricePerWeek ? currencies.find(c => c.id === l.pricePerWeek.currencyId) : dayCurr;
-    const weekLabel   = `${weeklyAmt} ${weekCurr?.abbreviation ?? "?"}`;
+    const weekLabel   = l.currentPricePerWeek?.coins
+      ? formatAmounts(l.currentPricePerWeek.coins, currencies)
+      : `${weeklyAmt} ${weekCurr?.abbreviation ?? "?"}`;
     const avail       = l.availability ?? null;
     return {
       ...l,
@@ -533,9 +657,13 @@ export function buildInnData(entry, location, currencies, isGM = true) {
   const menuData = buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime);
   let _needsSave = false;
   let _updatedInn = null;
-  if (menuData._needsSave && isGM) {
+  if ((menuData._needsSave || _lodgingNeedsSave) && isGM) {
     _updatedInn = foundry.utils.deepClone(innRaw);
-    _updatedInn.menu = menuData._updatedMenu;
+    if (menuData._needsSave) _updatedInn.menu = menuData._updatedMenu;
+    if (_lodgingNeedsSave) {
+      _updatedInn.lodgings = workingLodgings;
+      if (_lodgingRefreshed) _updatedInn.lodgingLastRefreshed = worldTime;
+    }
     _needsSave = true;
   }
 
@@ -553,19 +681,30 @@ function buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, world
 
   const courses = updatedCourses.map(course => {
     const isRandom = course.mode === "random";
+    const priceCfg = readCoursePriceVarConfig(course);
+    const hasPriceVar = priceCfg.min !== 0 || priceCfg.max !== 0;
 
-    if (isRandom && isGM) {
+    // Refresh cadence: random mode re-draws items; either mode re-rolls prices when variation is set.
+    if (isGM && (isRandom || hasPriceVar)) {
       const cadenceSecs = course.refreshCadence === "weekly" ? secondsPerWeek : secondsPerDay;
-      const due = (course.lastRefreshed ?? 0) + cadenceSecs;
-      if (worldTime >= due && (course.pool ?? []).length > 0) {
-        const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
-        const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
-        const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
-        const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
-        course.drawnItems    = shuffled.slice(0, Math.min(dcCount, shuffled.length));
-        course.lastRefreshed = worldTime;
-        _needsSave = true;
+      const due = worldTime >= (course.lastRefreshed ?? 0) + cadenceSecs;
+      if (due) {
+        let changed = false;
+        if (isRandom && (course.pool ?? []).length > 0) {
+          const shuffled = [...(course.pool ?? [])].sort(() => Math.random() - 0.5);
+          const dcMin = course.drawCountMin ?? course.drawCount ?? 1;
+          const dcMax = course.drawCountMax ?? course.drawCount ?? dcMin;
+          const dcCount = dcMin >= dcMax ? dcMin : Math.floor(Math.random() * (dcMax - dcMin + 1)) + dcMin;
+          course.drawnItems = shuffled.slice(0, Math.min(dcCount, shuffled.length));
+          changed = true;
+        }
+        if (hasPriceVar) { applyCoursePriceVariation(course, priceCfg, currencies); changed = true; }
+        if (changed) { course.lastRefreshed = worldTime; _needsSave = true; }
       }
+    } else if (!hasPriceVar && isGM) {
+      // Variation off — clear any stale adjusted prices on active items.
+      const items = isRandom ? (course.drawnItems ?? []) : (course.items ?? []);
+      if (items.some(i => i.currentPrice)) { for (const i of items) delete i.currentPrice; _needsSave = true; }
     }
 
     const visibleItems = isRandom ? (course.drawnItems ?? []) : (course.items ?? []);
@@ -580,11 +719,12 @@ function buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, world
       isRandom,
       priceLabel,
       visibleItems: visibleItems.map(item => {
-        const resolvedPrice = item.price ?? course.price;
+        const resolvedPrice = item.currentPrice ?? item.price ?? course.price;
         let priceLabel = null;
         if (resolvedPrice) {
-          const curr = currencies.find(c => c.id === resolvedPrice.currencyId);
-          priceLabel = `${resolvedPrice.amount} ${curr?.abbreviation ?? "?"}`;
+          priceLabel = resolvedPrice.coins
+            ? formatAmounts(resolvedPrice.coins, currencies)
+            : `${resolvedPrice.amount} ${(currencies.find(c => c.id === resolvedPrice.currencyId))?.abbreviation ?? "?"}`;
         }
         return { ...item, priceLabel, hasPrice: !!resolvedPrice };
       })

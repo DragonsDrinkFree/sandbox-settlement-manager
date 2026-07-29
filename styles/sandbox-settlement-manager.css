@@ -2550,7 +2550,8 @@
   flex: 1;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-config {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-config,
+#sandbox-settlement-manager-course-edit .ssm-price-var-config {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2561,23 +2562,27 @@
   border-radius: 3px;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-config > label {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-config > label,
+#sandbox-settlement-manager-course-edit .ssm-price-var-config > label {
   font-weight: 500;
   white-space: nowrap;
   margin: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-range {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-range,
+#sandbox-settlement-manager-course-edit .ssm-price-var-range {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-range .lodging-num-input {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-range .lodging-num-input,
+#sandbox-settlement-manager-course-edit .ssm-price-var-range .lodging-num-input {
   width: 3.5rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-check {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-check,
+#sandbox-settlement-manager-course-edit .ssm-price-var-check {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -2585,16 +2590,21 @@
   white-space: nowrap;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-rounding {
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-rounding,
+#sandbox-settlement-manager-course-edit .ssm-price-var-rounding {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   font-weight: normal;
   white-space: nowrap;
+  min-width: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .merchant-price-var-rounding select {
-  flex: 0 0 auto;
+#sandbox-settlement-manager-sub-type-edit .ssm-price-var-rounding select,
+#sandbox-settlement-manager-course-edit .ssm-price-var-rounding select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 9rem;
 }
 
 #sandbox-settlement-manager-sub-type-edit .col-msize {
