@@ -47,6 +47,7 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       priceFormat:                selectedFormat,
       priceAttribute:             gf?.priceAttribute             ?? config.priceAttribute             ?? "",
       priceDenominationAttribute: gf?.priceDenominationAttribute ?? config.priceDenominationAttribute ?? "",
+      weightAttribute:            gf?.weightAttribute            ?? config.weightAttribute            ?? "",
       formats,
       showDenominationField: selectedFormat === "denomination-field",
       itemTypes: this._itemTypes,
@@ -69,7 +70,8 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       nameAttribute:              this.element.querySelector('[name="nameAttribute"]')?.value ?? "name",
       priceFormat:                this.element.querySelector('[name="priceFormat"]')?.value ?? "simple",
       priceAttribute:             this.element.querySelector('[name="priceAttribute"]')?.value ?? "",
-      priceDenominationAttribute: this.element.querySelector('[name="priceDenominationAttribute"]')?.value ?? ""
+      priceDenominationAttribute: this.element.querySelector('[name="priceDenominationAttribute"]')?.value ?? "",
+      weightAttribute:            this.element.querySelector('[name="weightAttribute"]')?.value ?? ""
     };
   }
 
@@ -106,6 +108,7 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       priceFormat:                data.priceFormat                 ?? "simple",
       priceAttribute:             (data.priceAttribute             ?? "").trim(),
       priceDenominationAttribute: (data.priceDenominationAttribute ?? "").trim(),
+      weightAttribute:            (data.weightAttribute            ?? "").trim(),
       itemTypes:                  this._itemTypes ?? []
     });
   }

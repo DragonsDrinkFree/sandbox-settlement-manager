@@ -72,3 +72,17 @@ export function readItemName(item) {
   const path = (nameAttribute ?? '').trim() || 'name';
   return String(foundry.utils.getProperty(item, path) ?? item.name ?? '');
 }
+
+/**
+ * Read a single unit's weight using the configured weightAttribute (Item Settings).
+ * Returns 0 when unconfigured or the value isn't numeric — never null, so callers
+ * never need to null-guard weight math.
+ */
+export function readItemWeight(item) {
+  const { weightAttribute } = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG);
+  const path = (weightAttribute ?? '').trim();
+  if (!path) return 0;
+  const raw = foundry.utils.getProperty(item, path);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+}

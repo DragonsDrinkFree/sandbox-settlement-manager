@@ -13,7 +13,8 @@ export const TEMPLATE_FIELDS = {
   lodging:      ["name", "beds", "availability", "pricePerDay", "pricePerWeek", "autoWeekly"],
   course:       ["name", "mode", "price", "drawCount", "drawCountMin", "drawCountMax", "refreshCadence", "items", "pool", "priceVarMin", "priceVarMax", "priceVarIndividual", "priceVarRounding"],
   merchantItem: ["name", "itemId", "minSettlementSize", "stockAvailability", "stockFormula", "price"],
-  bank:         ["doesExchange", "exchangeFee", "depositSettings"]
+  bank:         ["doesExchange", "exchangeFee", "depositSettings"],
+  storageType:  ["name", "weightLimit", "retrievalPolicy"]
 };
 
 /** Order-agnostic deep equality for primitives, arrays, and plain objects. */

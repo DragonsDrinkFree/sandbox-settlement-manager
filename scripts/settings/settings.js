@@ -30,7 +30,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Object,
-    default: { inn: [], merchant: [], bank: [] }
+    default: { inn: [], merchant: [], bank: [], storage: [] }
   });
 
   game.settings.register(MODULE_ID, SETTINGS.CURRENCY_CONFIG, {
@@ -44,7 +44,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Object,
-    default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "", itemTypes: [] }
+    default: { nameAttribute: "name", priceFormat: "simple", priceAttribute: "", priceDenominationAttribute: "", weightAttribute: "", itemTypes: [] }
   });
 
   game.settings.register(MODULE_ID, SETTINGS.GLOBAL_DEPOSITS, {

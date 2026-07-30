@@ -176,6 +176,63 @@
     </fieldset>
   </div>
   {{/if}}
+  {{#if showStorageSection}}
+  <div class="storage-only"{{#unless isStorage}} hidden{{/unless}}>
+    <fieldset class="storage-type-templates">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.storageTypesLegend"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.storageTypes'}}"></i></legend>
+      <table class="storage-type-table">
+        <thead>
+          <tr>
+            <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colName"}}</th>
+            <th class="col-num">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colWeightLimit"}}</th>
+            <th class="col-auto">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colUnlimited"}}</th>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colRetrievalPolicy"}}</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each storageTypes}}
+          <tr class="storage-type-row" data-storage-type-id="{{this.id}}">
+            <td class="col-lname">
+              <input type="text" data-field="name" value="{{this.name}}"
+                     placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.namePlaceholder'}}">
+            </td>
+            <td class="col-num">
+              <input type="number" data-field="weightLimit" value="{{this.weightLimitValue}}" min="0" step="1"
+                     class="lodging-num-input"{{#if this.isUnlimited}} disabled{{/if}}>
+            </td>
+            <td class="col-auto">
+              <input type="checkbox" data-field="isUnlimited"{{#if this.isUnlimited}} checked{{/if}}>
+            </td>
+            <td>
+              <select data-field="retrievalPolicy">
+                {{#each this.policyOptions}}
+                <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td class="col-del">
+              <button type="button" class="icon" data-action="deleteStorageType" data-index="{{@index}}"
+                      aria-label="Remove">
+                <i class="fa-solid fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="5" class="lodging-table-empty">
+              <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.noStorageTypes"}}</em>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <button type="button" data-action="addStorageType" class="lodging-add-btn">
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.addStorageType"}}
+      </button>
+    </fieldset>
+  </div>
+  {{/if}}
   {{#if showMerchantSection}}
   <div class="merchant-only"{{#unless isMerchant}} hidden{{/unless}}>
     <nav class="ssm-merchant-tabs">

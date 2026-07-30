@@ -29,7 +29,8 @@ export const SETTINGS = {
 export const LOCATION_TYPE_IDS = {
   INN:           "inn",
   MERCHANT:      "merchant",
-  BANK:          "bank"
+  BANK:          "bank",
+  STORAGE:       "storage"
 };
 
 /**
@@ -98,5 +99,6 @@ export function migrateLocation(location) {
 export const CORE_LOCATION_TYPES = [
   { id: "inn",           name: "Inn",           icon: "fa-solid fa-bed" },
   { id: "merchant",      name: "Merchant",      icon: "fa-solid fa-store" },
-  { id: "bank",          name: "Bank",          icon: "fa-solid fa-coins" }
+  { id: "bank",          name: "Bank",          icon: "fa-solid fa-coins" },
+  { id: "storage",       name: "Storage",       icon: "fa-solid fa-box-archive" }
 ];

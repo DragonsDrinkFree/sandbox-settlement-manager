@@ -684,6 +684,8 @@
           {{/if}}
         </fieldset>
       </div>
+      {{else if this.isStorage}}
+      {{> ssm-storage-tab this.storageData}}
       {{else}}
       <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.location.noDetailView"}}</p>
       {{/if}}

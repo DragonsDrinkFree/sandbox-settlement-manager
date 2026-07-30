@@ -4272,3 +4272,206 @@ hr.ssm-settings-divider {
   padding: 2rem 0;
 }
 
+/* -------------------------------------------- */
+/*  Storage                                     */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .storage-type-row .lodging-num-input:disabled {
+  opacity: 0.5;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-list,
+#sandbox-settlement-manager-location-detail .storage-type-summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-row,
+#sandbox-settlement-manager-location-detail .storage-type-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 3px;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-row.is-overridden .storage-type-summary-name,
+#sandbox-settlement-manager-location-detail .storage-type-summary-row.is-overridden .storage-type-summary-name {
+  font-style: italic;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-name,
+#sandbox-settlement-manager-location-detail .storage-type-summary-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-limit,
+#sandbox-settlement-manager-location-detail .storage-type-summary-limit,
+#sandbox-settlement-manager-settlement-manage .storage-type-summary-policy,
+#sandbox-settlement-manager-location-detail .storage-type-summary-policy {
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-add-group-btn,
+#sandbox-settlement-manager-location-detail .storage-add-group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-section,
+#sandbox-settlement-manager-location-detail .storage-group-section {
+  border: 1px solid var(--color-border-light-secondary, #ccc);
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-header,
+#sandbox-settlement-manager-location-detail .storage-group-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-name,
+#sandbox-settlement-manager-location-detail .storage-group-name {
+  font-weight: 600;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-type-badge,
+#sandbox-settlement-manager-location-detail .storage-group-type-badge {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-weight,
+#sandbox-settlement-manager-location-detail .storage-group-weight {
+  font-size: var(--font-size-12, 12px);
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-access,
+#sandbox-settlement-manager-location-detail .storage-group-access {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-access-chip,
+#sandbox-settlement-manager-location-detail .storage-group-access-chip {
+  font-size: var(--font-size-11, 11px);
+  padding: 0.05rem 0.35rem;
+  border-radius: 8px;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-controls,
+#sandbox-settlement-manager-location-detail .storage-group-controls {
+  display: flex;
+  gap: 0.15rem;
+  margin-left: auto;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-drop-zone,
+#sandbox-settlement-manager-location-detail .storage-group-drop-zone {
+  border: 2px dashed var(--color-border-light-secondary, #aaa);
+  border-radius: 4px;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-12, 12px);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: copy;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.5rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-group-drop-zone.drag-over,
+#sandbox-settlement-manager-location-detail .storage-group-drop-zone.drag-over {
+  border-color: var(--color-text-success, #4a8);
+  color: var(--color-text-dark-primary, #333);
+  background: rgba(68, 170, 136, 0.05);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-item-depositor-group,
+#sandbox-settlement-manager-location-detail .storage-item-depositor-group {
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-item-depositor-name,
+#sandbox-settlement-manager-location-detail .storage-item-depositor-name {
+  margin: 0 0 0.15rem;
+  font-size: var(--font-size-12, 12px);
+  font-weight: 600;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-item-qty,
+#sandbox-settlement-manager-location-detail .storage-item-qty {
+  color: var(--color-text-dark-secondary, #555);
+  font-size: var(--font-size-11, 11px);
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-item-ownership-badge,
+#sandbox-settlement-manager-location-detail .storage-item-ownership-badge {
+  margin-left: 0.4rem;
+  font-size: var(--font-size-11, 11px);
+  padding: 0.05rem 0.35rem;
+  border-radius: 8px;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-fieldset {
+  margin-top: 0.5rem;
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-filter {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.3rem;
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 1px solid var(--color-border-light-secondary, #ccc);
+  border-radius: 4px;
+  padding: 0.4rem;
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--font-size-12, 12px);
+  cursor: pointer;
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-empty {
+  margin: 0;
+  color: var(--color-text-dark-inactive, #999);
+  font-style: italic;
+}
+

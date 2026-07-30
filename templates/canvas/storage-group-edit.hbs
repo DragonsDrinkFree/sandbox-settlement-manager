@@ -1,0 +1,42 @@
+<div class="storage-group-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.nameLabel"}}</label>
+    <input type="text" name="name" value="{{name}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.namePlaceholder'}}">
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.storageTypeLabel"}}</label>
+    <select name="storageTypeId">
+      {{#each storageTypeOptions}}
+      <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.policyOverrideLabel"}}</label>
+    <select name="retrievalPolicyOverride">
+      {{#each policyOptions}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <fieldset class="storage-access-fieldset">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.accessListLabel"}}</legend>
+    <input type="text" class="storage-access-filter"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.accessFilterPlaceholder'}}">
+    <div class="storage-access-list">
+      {{#each actorRows}}
+      <label class="storage-access-row" data-actor-name="{{this.name}}">
+        <input type="checkbox" class="storage-access-actor-checkbox" data-actor-id="{{this.id}}"
+               {{#if this.checked}}checked{{/if}}>
+        {{this.name}}
+      </label>
+      {{else}}
+      <p class="storage-access-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noActors"}}</em></p>
+      {{/each}}
+    </div>
+  </fieldset>
+</div>

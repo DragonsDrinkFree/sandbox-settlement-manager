@@ -1,0 +1,128 @@
+<div class="ssm-storage-detail">
+  <div class="inn-section">
+    <div class="inn-section-header">
+      <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.storageTypesLegend"}}</span>
+      {{#if this.isGM}}
+      <div class="inn-section-actions">
+        <button type="button" class="icon" data-action="editLocationEntry"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+      {{/if}}
+    </div>
+    {{#if this.hasStorageTypes}}
+    <ul class="storage-type-summary-list">
+      {{#each this.storageTypes}}
+      <li class="storage-type-summary-row{{#if this.overridden}} is-overridden{{/if}}">
+        <span class="storage-type-summary-name">{{this.name}}</span>
+        <span class="storage-type-summary-limit">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colWeightLimit"}}: {{this.weightLimitLabel}}</span>
+        <span class="storage-type-summary-policy">
+          {{#if (eq this.retrievalPolicy "anyone")}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.policyAnyone"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.policyDepositorOnly"}}{{/if}}
+        </span>
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.noStorageTypes"}}</em></p>
+    {{/if}}
+  </div>
+
+  <div class="inn-section">
+    <div class="inn-section-header">
+      <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.sectionTitle"}}</span>
+      {{#if this.isGM}}
+      <div class="inn-section-actions">
+        <button type="button" class="storage-add-group-btn" data-action="addStorageGroup"{{#unless this.hasStorageTypes}} disabled{{/unless}}>
+          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.add"}}
+        </button>
+      </div>
+      {{/if}}
+    </div>
+
+    {{#if this.hasGroups}}
+    {{#each this.groups}}
+    <div class="storage-group-section" data-group-id="{{this.id}}">
+      <div class="storage-group-header">
+        <span class="storage-group-name">{{this.name}}</span>
+        <span class="storage-group-type-badge">{{this.storageTypeName}}</span>
+        <span class="storage-group-weight">{{this.weightLabel}}</span>
+        {{#if ../isGM}}
+        <span class="storage-group-access">
+          {{#each this.accessActorNames}}<span class="storage-group-access-chip">{{this}}</span>{{else}}<em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em>{{/each}}
+        </span>
+        <div class="storage-group-controls">
+          <button type="button" class="icon" data-action="editStorageGroup" data-group-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button type="button" class="icon" data-action="deleteStorageGroup" data-group-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+        {{/if}}
+      </div>
+
+      <div class="storage-group-drop-zone" data-group-id="{{this.id}}">
+        <i class="fa-solid fa-box-open"></i>
+        <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.dropHint"}}</span>
+      </div>
+
+      {{#if this.depositors.length}}
+      {{#each this.depositors}}
+      <div class="storage-item-depositor-group">
+        <h5 class="storage-item-depositor-name">{{this.actorName}}</h5>
+        <table class="storage-item-table ssm-table">
+          <tbody>
+            {{#each this.items}}
+            <tr class="storage-item-row">
+              <td class="col-name">
+                {{this.itemData.name}}{{#if this.showQuantity}} <span class="storage-item-qty">×{{this.quantity}}</span>{{/if}}
+                {{#if this.ownershipLabel}}<span class="storage-item-ownership-badge">{{this.ownershipLabel}}</span>{{/if}}
+              </td>
+              <td class="col-num ssm-col-right">{{this.weight}}</td>
+              <td class="ssm-col-action">
+                {{#if this.canTake}}
+                <button type="button" class="buy-button" data-action="takeStorageItem" data-item-id="{{this.id}}">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.item.take"}}
+                </button>
+                {{/if}}
+                {{#if this.canManageOwnership}}
+                {{#unless this.isGroupProperty}}
+                <button type="button" class="icon" data-action="markGroupProperty" data-item-id="{{this.id}}"
+                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.markGroupProperty'}}"
+                        data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.markGroupProperty'}}">
+                  <i class="fa-solid fa-people-group"></i>
+                </button>
+                {{/unless}}
+                <button type="button" class="icon" data-action="giveToActor" data-item-id="{{this.id}}"
+                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.giveToActor'}}"
+                        data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.giveToActor'}}">
+                  <i class="fa-solid fa-hand-holding-heart"></i>
+                </button>
+                {{#if this.ownershipLabel}}
+                <button type="button" class="icon" data-action="resetItemOwnership" data-item-id="{{this.id}}"
+                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.resetOwnership'}}"
+                        data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.resetOwnership'}}">
+                  <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                {{/if}}
+                {{/if}}
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      {{/each}}
+      {{else}}
+      <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.noItems"}}</em></p>
+      {{/if}}
+    </div>
+    {{/each}}
+    {{else}}
+    <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.none"}}</em></p>
+    {{/if}}
+  </div>
+</div>

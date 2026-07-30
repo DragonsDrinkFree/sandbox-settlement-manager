@@ -33,6 +33,17 @@ function syncMerchant(merchantData, templateMerchant) {
   return updated;
 }
 
+/** Full-sync a storage instance's storageTypes against its template. Groups/items are untouched. */
+function syncStorage(storageData, templateStorage) {
+  const storageTypes = syncCollection(
+    storageData.storageTypes ?? [],
+    templateStorage.storageTypes ?? [],
+    TEMPLATE_FIELDS.storageType,
+    { mode: "full" }
+  );
+  return { ...storageData, storageTypes };
+}
+
 export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
   if (!game.user.isGM) return;
 
@@ -96,6 +107,31 @@ export async function syncNewTemplateItems(oldSubTypes, newSubTypes) {
         const syncedMerchant = syncMerchant(currentMerchant, templateMerchant);
         if (JSON.stringify(currentMerchant) !== JSON.stringify(syncedMerchant)) {
           location.typeData[entry.id] = syncedMerchant;
+          dirty = true;
+        }
+      }
+      if (dirty) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+    }
+  }
+
+  // STORAGE: full sync of storageTypes (groups/items are instance-only, never touched here).
+  for (const newTemplate of (newSubTypes[LOCATION_TYPE_IDS.STORAGE] ?? [])) {
+    const templateStorage = newTemplate.typeData?.storage;
+    if (!templateStorage) continue;
+
+    for (const { scene, locations } of scenesData) {
+      let dirty = false;
+      for (const location of locations) {
+        const entry = getTypeEntries(location).find(
+          e => e.typeId === LOCATION_TYPE_IDS.STORAGE && e.subTypeId === newTemplate.id
+        );
+        if (!entry) continue;
+        const currentStorage = location.typeData?.[entry.id];
+        if (!currentStorage) continue;
+
+        const syncedStorage = syncStorage(currentStorage, templateStorage);
+        if (JSON.stringify(currentStorage) !== JSON.stringify(syncedStorage)) {
+          location.typeData[entry.id] = syncedStorage;
           dirty = true;
         }
       }

@@ -35,6 +35,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lodgings = [];
   _menu = { courses: [] };
   _templateInventory = [];
+  _storageTypes = [];
   _merchantTab = "inventory";
   _purchasingProfile = [];
   _stockType = null;        // tracks merchantStockType <select> across re-renders
@@ -83,6 +84,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importFromRollTable:        SubTypeEditApp.#onImportFromRollTable,
       addTemplateInventoryItem:   SubTypeEditApp.#onAddTemplateInventoryItem,
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
+      addStorageType:             SubTypeEditApp.#onAddStorageType,
+      deleteStorageType:          SubTypeEditApp.#onDeleteStorageType,
       sortInventory:              SubTypeEditApp.#onSortInventory,
       importFromCompendium:       SubTypeEditApp.#onImportFromCompendium,
       switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
@@ -105,6 +108,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._menu               = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
       app._purchasingProfile  = foundry.utils.deepClone(subType.typeData?.merchant?.purchasingProfile ?? []);
+      app._storageTypes       = foundry.utils.deepClone(subType.typeData?.storage?.storageTypes ?? []);
       app._resolve  = resolve;
       app.render(true);
     });
@@ -132,6 +136,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       syntheticTypeData.merchant = { stockType: entryData.stockType, restockFrequency: entryData.restockFrequency };
     }
+    if (typeId === LOCATION_TYPE_IDS.STORAGE) {
+      syntheticTypeData.storage = { storageTypes: entryData.storageTypes ?? [] };
+    }
     return new Promise(resolve => {
       const app = new SubTypeEditApp({ name: locationName, typeData: syntheticTypeData });
       app._typeId            = typeId;
@@ -143,6 +150,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._menu              = foundry.utils.deepClone(entryData.menu ?? { courses: [] });
       app._templateInventory = foundry.utils.deepClone(entryData.inventory ?? []);
       app._purchasingProfile = foundry.utils.deepClone(entryData.purchasingProfile ?? []);
+      app._storageTypes      = foundry.utils.deepClone(entryData.storageTypes ?? []);
       app._stockType         = entryData.stockType ?? null;
       app._restockFrequency  = entryData.restockFrequency ?? null;
       app._priceVarMin        = entryData.priceVarMin        ?? null;
@@ -162,11 +170,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const isInn             = this._typeId === LOCATION_TYPE_IDS.INN;
     const isMerchant        = this._typeId === LOCATION_TYPE_IDS.MERCHANT;
-    const isBank            = this._typeId === LOCATION_TYPE_IDS.BANK;
+    const isBank             = this._typeId === LOCATION_TYPE_IDS.BANK;
+    const isStorage          = this._typeId === LOCATION_TYPE_IDS.STORAGE;
     const showTypeSelect    = !this._typeId;
     const showInnSections     = isInn || showTypeSelect;
     const showMerchantSection = isMerchant || showTypeSelect;
     const showBankSection     = isBank || showTypeSelect;
+    const showStorageSection  = isStorage || showTypeSelect;
     const merchantData     = this._subType.typeData?.merchant ?? {};
     const stockType        = this._stockType        ?? merchantData.stockType        ?? "percent";
     const restockFrequency = this._restockFrequency ?? merchantData.restockFrequency ?? "weekly";
@@ -226,6 +236,19 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }));
       }
     }
+    let storageTypes = [];
+    if (showStorageSection) {
+      storageTypes = this._storageTypes.map(st => ({
+        ...st,
+        isUnlimited: st.weightLimit === null || st.weightLimit === undefined,
+        weightLimitValue: (st.weightLimit === null || st.weightLimit === undefined) ? "" : st.weightLimit,
+        policyOptions: [
+          { value: "depositorOnly", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.policyDepositorOnly"), selected: (st.retrievalPolicy ?? "depositorOnly") === "depositorOnly" },
+          { value: "anyone",        label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.policyAnyone"),        selected: st.retrievalPolicy === "anyone" }
+        ]
+      }));
+    }
+
     const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
     const bankData     = this._subType.typeData?.bank ?? {};
 
@@ -246,18 +269,21 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isInn,
       isMerchant,
       isBank,
+      isStorage,
       showTypeSelect,
       showInnSections,
       showMerchantSection,
       showBankSection,
+      showStorageSection,
       bankData,
-      showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection,
+      showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection || showStorageSection,
       coreTypes: CORE_LOCATION_TYPES,
       selectedType: this._selectedType,
       lodgings,
       currencies,
       courses,
       templateInventory,
+      storageTypes,
       settlementTypes,
       stockType,
       restockFrequency,
@@ -291,12 +317,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._typeId) this.#wireTypeSelect();
     this.#wireWeeklyLinks();
     this.#wireMerchantDragDrop();
+    this.#wireStorageUnlimitedToggles();
 
     // Switching stock type swaps the Availability field (number ↔ X-in-6 dropdown), so re-render.
     this.element.querySelector('[name="merchantStockType"]')?.addEventListener('change', () => {
       this.#syncSubTypeName();
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
+      this.#syncStorageTypesFromDOM();
       this.render({ parts: ["form"] });
     });
   }
@@ -307,13 +335,26 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const innSection      = this.element.querySelector('.inn-only');
     const merchantSection = this.element.querySelector('.merchant-only');
     const bankSection     = this.element.querySelector('.bank-only');
+    const storageSection  = this.element.querySelector('.storage-only');
     const toggle = () => {
       if (innSection)      innSection.hidden      = (sel.value !== LOCATION_TYPE_IDS.INN);
       if (merchantSection) merchantSection.hidden = (sel.value !== LOCATION_TYPE_IDS.MERCHANT);
       if (bankSection)     bankSection.hidden     = (sel.value !== LOCATION_TYPE_IDS.BANK);
+      if (storageSection)  storageSection.hidden  = (sel.value !== LOCATION_TYPE_IDS.STORAGE);
     };
     sel.addEventListener('change', toggle);
     toggle();
+  }
+
+  #wireStorageUnlimitedToggles() {
+    this.element.querySelectorAll('.storage-type-row').forEach(row => {
+      const checkbox   = row.querySelector('[data-field="isUnlimited"]');
+      const limitInput = row.querySelector('[data-field="weightLimit"]');
+      if (!checkbox || !limitInput) return;
+      const apply = () => { limitInput.disabled = checkbox.checked; };
+      apply();
+      checkbox.addEventListener('change', apply);
+    });
   }
 
   #wireWeeklyLinks() {
@@ -414,6 +455,24 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  #syncStorageTypesFromDOM() {
+    const rows = this.element?.querySelectorAll('.storage-type-row') ?? [];
+    if (!rows.length && this._storageTypes.length) return;
+    const byId = new Map(this._storageTypes.map(st => [st.id, st]));
+    this._storageTypes = [...rows].map(row => {
+      const id        = row.dataset.storageTypeId || foundry.utils.randomID();
+      const unlimited = !!row.querySelector('[data-field="isUnlimited"]')?.checked;
+      const rawLimit  = row.querySelector('[data-field="weightLimit"]')?.value;
+      return {
+        ...(byId.get(id) ?? {}),
+        id,
+        name:            (row.querySelector('[data-field="name"]')?.value ?? "").trim(),
+        weightLimit:     unlimited ? null : (parseFloat(rawLimit) || 0),
+        retrievalPolicy: row.querySelector('[data-field="retrievalPolicy"]')?.value ?? "depositorOnly"
+      };
+    });
+  }
+
   /** Build a template inventory entry from an Item document. */
   #makeInventoryEntry(item, currencies) {
     return {
@@ -454,6 +513,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncSubTypeName();
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
+      this.#syncStorageTypesFromDOM();
 
       if (data.type === 'Item') {
         const item = await fromUuid(data.uuid).catch(() => null);
@@ -682,6 +742,26 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static #onAddStorageType() {
+    this.#syncSubTypeName();
+    this.#syncStorageTypesFromDOM();
+    this._storageTypes.push({
+      id:              foundry.utils.randomID(),
+      name:            "",
+      weightLimit:     0,
+      retrievalPolicy: "depositorOnly"
+    });
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteStorageType(event, target) {
+    this.#syncSubTypeName();
+    this.#syncStorageTypesFromDOM();
+    const index = parseInt(target.dataset.index);
+    this._storageTypes.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
   static async #onSortInventory() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
@@ -800,6 +880,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncTemplateInventoryFromDOM();
       result.typeData = { merchant: { stockType, restockFrequency, ...pv, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile } };
     }
+    if (typeId === LOCATION_TYPE_IDS.STORAGE) {
+      this.#syncStorageTypesFromDOM();
+      result.typeData = { storage: { storageTypes: this._storageTypes.filter(st => st.name) } };
+    }
     result._templateTypeId = typeId;
 
     const resolve = this._resolve;
@@ -884,6 +968,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await rollMerchantRestock(toRoll, stockType);
 
       result = { ...base, stockType, restockFrequency, ...pv, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
+    } else if (typeId === LOCATION_TYPE_IDS.STORAGE) {
+      this.#syncStorageTypesFromDOM();
+      result = { ...base, storageTypes: this._storageTypes.filter(st => st.name) };
     }
 
     const resolve = this._resolve;

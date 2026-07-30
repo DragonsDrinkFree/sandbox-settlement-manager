@@ -16,12 +16,48 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildEntryTypeData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
+import { StorageGroupEditApp } from "./storage-group-edit-app.js";
+import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity } from "../utils/storage-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+
+/** Prompt for how many of a stack to move (deposit or take). Returns a clamped integer, or null if cancelled. */
+async function promptQuantity(max, { title } = {}) {
+  const result = await foundry.applications.api.DialogV2.prompt({
+    window: { title: title ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptTitle") },
+    content: `<div class="form-group"><label>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptLabel", { max })}</label>
+      <input type="number" name="qty" value="${max}" min="1" max="${max}" step="1"></div>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptConfirm"),
+      callback: (event, btn) => {
+        const v = parseInt(btn.form.querySelector('[name="qty"]')?.value);
+        return Number.isFinite(v) ? Math.max(1, Math.min(max, v)) : null;
+      }
+    }
+  });
+  return result ?? null;
+}
+
+/** Prompt to pick one of several actors (e.g. which of the player's actors receives a taken item). */
+async function promptActorChoice(actors, { title, label } = {}) {
+  if (!actors.length) return null;
+  if (actors.length === 1) return actors[0];
+  const options = actors.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+  const result = await foundry.applications.api.DialogV2.prompt({
+    window: { title: title ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.actorPromptTitle") },
+    content: `<div class="form-group"><label>${label ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.actorPromptLabel")}</label><select name="actorId">${options}</select></div>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
+      callback: (event, btn) => btn.form.querySelector('[name="actorId"]')?.value
+    }
+  });
+  if (!result) return null;
+  return actors.find(a => a.id === result) ?? null;
+}
 
 export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedLocationId = null;
@@ -82,6 +118,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       payOffLoan:             SettlementManageApp.#onPayOffLoan,
       cancelLoan:             SettlementManageApp.#onCancelLoan,
       editLoan:               SettlementManageApp.#onEditLoan,
+      addStorageGroup:        SettlementManageApp.#onAddStorageGroup,
+      editStorageGroup:       SettlementManageApp.#onEditStorageGroup,
+      deleteStorageGroup:     SettlementManageApp.#onDeleteStorageGroup,
+      takeStorageItem:        SettlementManageApp.#onTakeStorageItem,
+      markGroupProperty:      SettlementManageApp.#onMarkGroupProperty,
+      giveToActor:            SettlementManageApp.#onGiveToActor,
+      resetItemOwnership:     SettlementManageApp.#onResetItemOwnership,
       settlementLedger:       SettlementManageApp.#onSettlementLedger,
       clearLedger:            SettlementManageApp.#onClearLedger,
       exportLedgerCsv:        SettlementManageApp.#onExportLedgerCsv
@@ -206,6 +249,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       const isInn      = entry.typeId === LOCATION_TYPE_IDS.INN;
       const isMerchant = entry.typeId === LOCATION_TYPE_IDS.MERCHANT;
       const isBank     = entry.typeId === LOCATION_TYPE_IDS.BANK;
+      const isStorage  = entry.typeId === LOCATION_TYPE_IDS.STORAGE;
       const subType    = entry.subTypeId
         ? (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId) ?? null
         : null;
@@ -213,6 +257,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       if (innData?._needsSave && isGM) this.#saveEntryData(entry.id, innData._updatedInn).catch(err => console.error(`${MODULE_ID} | Failed to save inn menu refresh`, err));
 
       const bankData = isBank ? buildBankData(this, entry, location, currencies) : null;
+      const storageData = isStorage ? buildStorageData(this, entry, location) : null;
 
       let merchantData = null;
       if (isMerchant) {
@@ -225,9 +270,9 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         name:        coreType?.name ?? entry.typeId,
         subTypeName: subType?.name ?? null,
         icon:        coreType?.icon ?? "fa-solid fa-question",
-        typeId: entry.typeId, isInn, isMerchant, isBank,
-        isOther: !isInn && !isMerchant && !isBank,
-        innData, bankData, merchantData
+        typeId: entry.typeId, isInn, isMerchant, isBank, isStorage,
+        isOther: !isInn && !isMerchant && !isBank && !isStorage,
+        innData, bankData, merchantData, storageData
       };
     }));
 
@@ -365,6 +410,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     // Wire bank exchange live preview
     const exchangeSection = this.element.querySelector('.ssm-bank-exchange');
     if (exchangeSection) this.#wireExchangePreview(exchangeSection);
+
+    this.#wireStorageDropZones();
 
     // Wire merchant item sheet links
     this.element.querySelectorAll(".ssm-item-link[data-uuid]").forEach(btn => {
@@ -1342,6 +1389,222 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     };
     bank.loans = loans.map(l => l.id === loanId ? updated : l);
     await this.#saveEntryData(this._activeTab, bank);
+  }
+
+  // --- Storage -------------------------------------------------------------------------------
+
+  static async #onAddStorageGroup() {
+    if (!game.user.isGM) return;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    if (!(storage.storageTypes ?? []).length) return;
+    const result = await StorageGroupEditApp.open(
+      { id: null, name: "", storageTypeId: storage.storageTypes[0].id, accessActorIds: [], retrievalPolicyOverride: null },
+      { storageTypes: storage.storageTypes, actors: game.actors.contents.map(a => ({ id: a.id, name: a.name })).sort((a, b) => a.name.localeCompare(b.name)) }
+    );
+    if (!result) return;
+    storage.groups ??= [];
+    storage.groups.push(result);
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onEditStorageGroup(event, target) {
+    if (!game.user.isGM) return;
+    const groupId = target.dataset.groupId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const group = (storage.groups ?? []).find(g => g.id === groupId);
+    if (!group) return;
+    const result = await StorageGroupEditApp.open(group, {
+      storageTypes: storage.storageTypes ?? [],
+      actors: game.actors.contents.map(a => ({ id: a.id, name: a.name })).sort((a, b) => a.name.localeCompare(b.name))
+    });
+    if (!result) return;
+    const index = storage.groups.findIndex(g => g.id === groupId);
+    storage.groups[index] = result;
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onDeleteStorageGroup(event, target) {
+    if (!game.user.isGM) return;
+    const groupId = target.dataset.groupId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const group = (storage.groups ?? []).find(g => g.id === groupId);
+    if (!group) return;
+    const itemCount = (storage.items ?? []).filter(i => i.groupId === groupId).length;
+    if (itemCount > 0) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.group.deleteBlocked", { count: itemCount }));
+      return;
+    }
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.deleteTitle") },
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.group.deleteConfirm", { name: group.name })}</p>`,
+      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
+      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
+    });
+    if (!confirmed) return;
+    storage.groups = storage.groups.filter(g => g.id !== groupId);
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onTakeStorageItem(event, target) {
+    const itemId = target.dataset.itemId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    const group       = (storage.groups ?? []).find(g => g.id === item.groupId) ?? null;
+    const storageType = (storage.storageTypes ?? []).find(st => st.id === group?.storageTypeId) ?? null;
+
+    const myActors = game.actors.filter(a => a.isOwner && canRetrieve(item, group, storageType, a.id));
+    if (!myActors.length) return;
+    const targetActor = myActors.length === 1
+      ? myActors[0]
+      : await promptActorChoice(myActors, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeActorPromptTitle") });
+    if (!targetActor) return;
+
+    let takeQty = item.quantity ?? 1;
+    if (takeQty > 1) {
+      takeQty = await promptQuantity(takeQty, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeQuantityTitle") });
+      if (!takeQty) return;
+    }
+
+    const itemDataSnapshot = foundry.utils.deepClone(item.itemData);
+    foundry.utils.setProperty(itemDataSnapshot, 'system.quantity', takeQty);
+    await targetActor.createEmbeddedDocuments('Item', [itemDataSnapshot]);
+
+    if (takeQty >= (item.quantity ?? 1)) {
+      storage.items = storage.items.filter(i => i.id !== itemId);
+    } else {
+      const it = storage.items.find(i => i.id === itemId);
+      it.quantity -= takeQty;
+    }
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onMarkGroupProperty(event, target) {
+    const itemId = target.dataset.itemId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
+    item.ownership = { mode: "group", assignedToActorId: null, assignedToActorName: null };
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onGiveToActor(event, target) {
+    const itemId = target.dataset.itemId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
+    const group = (storage.groups ?? []).find(g => g.id === item.groupId);
+    if (!group) return;
+    const eligible = (group.accessActorIds ?? [])
+      .filter(id => id !== item.depositedByActorId)
+      .map(id => game.actors.get(id))
+      .filter(Boolean);
+    if (!eligible.length) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.noEligibleRecipients"));
+      return;
+    }
+    const chosen = await promptActorChoice(eligible, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.giveToActorPromptTitle") });
+    if (!chosen) return;
+    item.ownership = { mode: "assigned", assignedToActorId: chosen.id, assignedToActorName: chosen.name };
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onResetItemOwnership(event, target) {
+    const itemId = target.dataset.itemId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
+    item.ownership = { mode: "private", assignedToActorId: null, assignedToActorName: null };
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  #wireStorageDropZones() {
+    this.element.querySelectorAll('.storage-group-drop-zone').forEach(zone => {
+      zone.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('dragenter', () => zone.classList.add('drag-over'));
+      zone.addEventListener('drop', e => this.#onStorageDrop(e, zone));
+    });
+  }
+
+  async #onStorageDrop(event, zone) {
+    event.preventDefault();
+    zone.classList.remove('drag-over');
+    if (!this._activeTab) return;
+    let data;
+    try { data = JSON.parse(event.dataTransfer.getData('text/plain')); } catch { return; }
+    if (data?.type !== 'Item') return;
+    const item = await fromUuid(data.uuid).catch(() => null);
+    if (!item?.actor) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.notOwnedItem"));
+      return;
+    }
+    if (!game.user.isGM && !item.actor.testUserPermission(game.user, "OWNER")) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.notYourItem"));
+      return;
+    }
+
+    const location = this.#syncSelectedLocation();
+    if (!location) return;
+    const groupId = zone.dataset.groupId;
+    const storage  = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const group    = (storage.groups ?? []).find(g => g.id === groupId);
+    if (!group) return;
+    if (!game.user.isGM && !(group.accessActorIds ?? []).includes(item.actor.id)) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.noGroupAccess"));
+      return;
+    }
+
+    const available = foundry.utils.getProperty(item, 'system.quantity') ?? 1;
+    let qty = available;
+    if (available > 1) {
+      qty = await promptQuantity(available, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.depositQuantityTitle") });
+      if (!qty) return;
+    }
+
+    const itemData = item.toObject();
+    const storageType = (storage.storageTypes ?? []).find(st => st.id === group.storageTypeId) ?? null;
+    const usedWeight   = computeGroupUsedWeight(storage.items, group.id);
+    const addedWeight  = computeItemWeight(itemData, qty);
+    if (wouldExceedCapacity(storageType, usedWeight, addedWeight)) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.overCapacity"));
+      return;
+    }
+
+    if (qty >= available) await item.delete();
+    else await item.update({ 'system.quantity': available - qty });
+
+    foundry.utils.setProperty(itemData, 'system.quantity', qty);
+    storage.items ??= [];
+    storage.items.push({
+      id: foundry.utils.randomID(),
+      groupId,
+      itemData,
+      quantity: qty,
+      depositedByActorId:   item.actor.id,
+      depositedByActorName: item.actor.name,
+      depositedAt:           game.time.worldTime,
+      ownership: { mode: "private", assignedToActorId: null, assignedToActorName: null }
+    });
+
+    await this.#saveEntryData(this._activeTab, storage);
   }
 
   #wireActorWidgets() {

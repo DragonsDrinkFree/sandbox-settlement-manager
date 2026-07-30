@@ -24,6 +24,7 @@ import {
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
 export function getSubTypeMap() {
@@ -82,6 +83,14 @@ export function buildEntryTypeData(typeId, subType) {
       depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
     };
     return { ...bankSettings, _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank), deposits: [], loans: [] };
+  }
+  if (typeId === LOCATION_TYPE_IDS.STORAGE) {
+    const tpl = subType?.typeData?.storage ?? {};
+    return {
+      storageTypes: (tpl.storageTypes ?? []).map(st => instanceFromTemplate(st, TEMPLATE_FIELDS.storageType)),
+      groups: [],
+      items: []
+    };
   }
   return {};
 }
@@ -581,6 +590,91 @@ export function buildBankData(app, entry, location, currencies) {
     isGM: game.user.isGM,
     selectedActorName: game.actors.get(app._bankActorId)?.name ?? null,
     filterActive: game.user.isGM && (!app._bankActorFilter.playerOwned || app._bankActorFilter.types !== null)
+  };
+}
+
+/**
+ * Build storage display data: resolved storage types (with override flags), and — for the
+ * groups the current user can see — effective retrieval policy, used/total weight, and items
+ * grouped by depositor (so cooperative players can see who put what in). GM sees every group;
+ * a non-GM sees only groups where one of their owned actors is on the access list.
+ */
+export function buildStorageData(app, entry, location) {
+  const storage = location.typeData?.[entry.id] ?? { storageTypes: [], groups: [], items: [] };
+
+  const storageTypes = (storage.storageTypes ?? []).map(st => ({
+    ...st,
+    weightLimitLabel: (st.weightLimit === null || st.weightLimit === undefined) ? "∞" : st.weightLimit,
+    overridden: isOverridden(st, TEMPLATE_FIELDS.storageType)
+  }));
+
+  const isGM = game.user.isGM;
+  const myActorIds = game.actors.filter(a => a.testUserPermission(game.user, "OWNER")).map(a => a.id);
+
+  const visibleGroups = isGM
+    ? (storage.groups ?? [])
+    : (storage.groups ?? []).filter(g => (g.accessActorIds ?? []).some(id => myActorIds.includes(id)));
+
+  const groups = visibleGroups.map(group => {
+    const storageType = storageTypes.find(st => st.id === group.storageTypeId) ?? null;
+    const effectivePolicy = resolveEffectivePolicy(group, storageType);
+    const usedWeight = computeGroupUsedWeight(storage.items, group.id);
+    const weightLabel = !storageType
+      ? "—"
+      : (storageType.weightLimit === null || storageType.weightLimit === undefined)
+        ? `${usedWeight} / ∞`
+        : `${usedWeight} / ${storageType.weightLimit}`;
+
+    const groupItems = (storage.items ?? []).filter(i => i.groupId === group.id);
+    const byDepositor = new Map();
+    for (const item of groupItems) {
+      const key = item.depositedByActorId ?? "";
+      if (!byDepositor.has(key)) {
+        byDepositor.set(key, { actorId: item.depositedByActorId, actorName: item.depositedByActorName, items: [] });
+      }
+      const takeableByMyActors = game.actors
+        .filter(a => a.isOwner && canRetrieve(item, group, storageType, a.id))
+        .map(a => ({ id: a.id, name: a.name }));
+      const ownershipMode = item.ownership?.mode ?? "private";
+      byDepositor.get(key).items.push({
+        ...item,
+        weight: computeItemWeight(item.itemData, item.quantity),
+        showQuantity: (item.quantity ?? 1) > 1,
+        canTake: takeableByMyActors.length > 0,
+        takeableByMyActors,
+        canManageOwnership: isGM || myActorIds.includes(item.depositedByActorId),
+        isGroupProperty: ownershipMode === "group",
+        isAssigned: ownershipMode === "assigned",
+        ownershipLabel: ownershipMode === "group"
+          ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.groupPropertyBadge")
+          : ownershipMode === "assigned"
+            ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.item.assignedBadge", { name: item.ownership?.assignedToActorName ?? "?" })
+            : null
+      });
+    }
+
+    return {
+      id:                      group.id,
+      name:                    group.name,
+      storageTypeId:           group.storageTypeId,
+      storageTypeName:         storageType?.name ?? "—",
+      accessActorIds:          group.accessActorIds ?? [],
+      accessActorNames:        (group.accessActorIds ?? []).map(id => game.actors.get(id)?.name).filter(Boolean),
+      retrievalPolicyOverride: group.retrievalPolicyOverride ?? null,
+      effectivePolicy,
+      usedWeight,
+      weightLabel,
+      itemCount:               groupItems.length,
+      depositors:              [...byDepositor.values()]
+    };
+  });
+
+  return {
+    storageTypes,
+    hasStorageTypes: storageTypes.length > 0,
+    groups,
+    hasGroups: groups.length > 0,
+    isGM
   };
 }
 

@@ -67,7 +67,9 @@
         "priceDenominationAttributeLabel": "Price Denomination Attribute",
         "priceDenominationAttributeHint": "Dot-notation path to the denomination string (e.g. system.costDenomination). The value must match a configured currency abbreviation. Only used with the Denomination Field format.",
         "formatManual": "Manual (GM sets prices when adding items)",
-        "globalSection": "Global Settings"
+        "globalSection": "Global Settings",
+        "weightAttributeLabel": "Weight Attribute",
+        "weightAttributeHint": "Dot-notation path to the item's weight value. Leave blank to disable weight-based storage limits. Example: system.weight"
       },
       "currencyConfig": {
         "name": "Currency Configuration",
@@ -116,7 +118,8 @@
       "merchantAvailability": "Chance that this item will be present in a merchant, re-checked each restock period.",
       "merchantStockFormula": "Dice/number formula rolled to set quantity when in stock (e.g. 2d6). Leave blank for infinite stock.",
       "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
-      "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world."
+      "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world.",
+      "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Groups from a Storage Type at each location, assigning actors to each Group's access list."
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -619,6 +622,61 @@
       "addTitle": "Add Item Type",
       "editTitle": "Edit Item Type"
     },
+    "storage": {
+      "storageTypesLegend": "Storage Types",
+      "colName": "Name",
+      "colWeightLimit": "Weight Limit",
+      "colUnlimited": "Unlimited",
+      "colRetrievalPolicy": "Retrieval Policy",
+      "namePlaceholder": "e.g. Private Room",
+      "noStorageTypes": "No storage types configured.",
+      "addStorageType": "Add Storage Type",
+      "policyAnyone": "Anyone with access",
+      "policyDepositorOnly": "Depositor only",
+      "dropHint": "Drag an item here from a character sheet to deposit it",
+      "noItems": "No items stored.",
+      "notOwnedItem": "Only items on a character sheet can be stored.",
+      "notYourItem": "You don't have permission to store that item.",
+      "noGroupAccess": "That character doesn't have access to this storage group.",
+      "depositQuantityTitle": "Deposit Quantity",
+      "overCapacity": "That would exceed this storage group's weight limit.",
+      "quantityPromptTitle": "Choose Quantity",
+      "quantityPromptLabel": "How many (max {max})?",
+      "quantityPromptConfirm": "Confirm",
+      "actorPromptTitle": "Choose Character",
+      "actorPromptLabel": "Character",
+      "group": {
+        "sectionTitle": "Groups",
+        "add": "Add Group",
+        "noAccess": "No access granted",
+        "editTitle": "Edit Storage Group",
+        "addTitle": "Add Storage Group",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Room 3",
+        "storageTypeLabel": "Storage Type",
+        "policyOverrideLabel": "Retrieval Policy",
+        "policyInherit": "Inherit from Storage Type",
+        "accessListLabel": "Access List",
+        "accessFilterPlaceholder": "Filter characters...",
+        "noActors": "No characters found.",
+        "deleteBlocked": "This group still holds {count} item(s). Move or take them out before deleting.",
+        "deleteTitle": "Delete Storage Group",
+        "deleteConfirm": "Delete <strong>{name}</strong>?",
+        "none": "No storage groups yet."
+      },
+      "item": {
+        "take": "Take",
+        "markGroupProperty": "Mark as Group Property",
+        "giveToActor": "Give to Character",
+        "resetOwnership": "Reset to Private",
+        "takeActorPromptTitle": "Take Item — Choose Character",
+        "takeQuantityTitle": "Take Quantity",
+        "noEligibleRecipients": "No other characters have access to this group.",
+        "giveToActorPromptTitle": "Give Item to Character",
+        "groupPropertyBadge": "Group Property",
+        "assignedBadge": "Given to {name}"
+      }
+    },
     "attributePicker": {
       "title": "Browse Attributes",
       "filter": "Filter paths...",
@@ -629,6 +687,7 @@
     "keybinding": {},
     "dialog": {
       "cancel": "Cancel",
+      "confirm": "Confirm",
       "deleteTitle": "Delete",
       "deleteConfirm": "Delete <strong>{name}</strong>? This cannot be undone."
     },
