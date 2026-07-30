@@ -674,7 +674,12 @@
         "noEligibleRecipients": "No other characters have access to this group.",
         "giveToActorPromptTitle": "Give Item to Character",
         "groupPropertyBadge": "Group Property",
-        "assignedBadge": "Given to {name}"
+        "assignedBadge": "Given to {name}",
+        "colDepositor": "Deposited By",
+        "colQuantity": "# Stored",
+        "colWeight": "Weight",
+        "colGroupAccessible": "Group Accessible",
+        "filterPlaceholder": "Filter items..."
       }
     },
     "attributePicker": {

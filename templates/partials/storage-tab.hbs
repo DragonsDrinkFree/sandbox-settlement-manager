@@ -69,19 +69,39 @@
         <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.dropHint"}}</span>
       </div>
 
-      {{#if this.depositors.length}}
-      {{#each this.depositors}}
-      <div class="storage-item-depositor-group">
-        <h5 class="storage-item-depositor-name">{{this.actorName}}</h5>
+      {{#if this.items.length}}
+      <div class="storage-item-table-wrap">
+        <input type="text" class="storage-item-filter"
+               placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.filterPlaceholder'}}">
         <table class="storage-item-table ssm-table">
+          <thead>
+            <tr>
+              <th class="col-name" data-sort-key="name">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.colName"}}</th>
+              <th data-sort-key="depositor">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.item.colDepositor"}}</th>
+              <th class="col-num ssm-col-right" data-sort-key="quantity">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.item.colQuantity"}}</th>
+              <th class="col-num ssm-col-right" data-sort-key="weight">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.item.colWeight"}}</th>
+              <th class="col-auto" data-sort-key="groupAccessible">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.item.colGroupAccessible"}}</th>
+              <th class="ssm-col-action"></th>
+            </tr>
+          </thead>
           <tbody>
             {{#each this.items}}
-            <tr class="storage-item-row">
+            <tr class="storage-item-row"
+                data-name="{{this.itemName}}" data-depositor="{{this.depositorName}}"
+                data-quantity="{{this.quantity}}" data-weight="{{this.weight}}"
+                data-group-accessible="{{#if this.isGroupProperty}}1{{else}}0{{/if}}">
               <td class="col-name">
-                {{this.itemData.name}}{{#if this.showQuantity}} <span class="storage-item-qty">×{{this.quantity}}</span>{{/if}}
+                <a class="storage-item-name-link" data-action="viewStorageItem" data-item-id="{{this.id}}">{{this.itemName}}</a>
                 {{#if this.ownershipLabel}}<span class="storage-item-ownership-badge">{{this.ownershipLabel}}</span>{{/if}}
               </td>
+              <td>{{this.depositorName}}</td>
+              <td class="col-num ssm-col-right">{{this.quantity}}</td>
               <td class="col-num ssm-col-right">{{this.weight}}</td>
+              <td class="col-auto">
+                <input type="checkbox" class="storage-group-accessible-checkbox" data-item-id="{{this.id}}"
+                       {{#if this.isGroupProperty}}checked{{/if}}
+                       {{#unless this.canManageOwnership}}disabled{{/unless}}>
+              </td>
               <td class="ssm-col-action">
                 {{#if this.canTake}}
                 <button type="button" class="buy-button" data-action="takeStorageItem" data-item-id="{{this.id}}">
@@ -89,19 +109,12 @@
                 </button>
                 {{/if}}
                 {{#if this.canManageOwnership}}
-                {{#unless this.isGroupProperty}}
-                <button type="button" class="icon" data-action="markGroupProperty" data-item-id="{{this.id}}"
-                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.markGroupProperty'}}"
-                        data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.markGroupProperty'}}">
-                  <i class="fa-solid fa-people-group"></i>
-                </button>
-                {{/unless}}
                 <button type="button" class="icon" data-action="giveToActor" data-item-id="{{this.id}}"
                         aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.giveToActor'}}"
                         data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.giveToActor'}}">
                   <i class="fa-solid fa-hand-holding-heart"></i>
                 </button>
-                {{#if this.ownershipLabel}}
+                {{#if this.isAssigned}}
                 <button type="button" class="icon" data-action="resetItemOwnership" data-item-id="{{this.id}}"
                         aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.resetOwnership'}}"
                         data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.resetOwnership'}}">
@@ -115,7 +128,6 @@
           </tbody>
         </table>
       </div>
-      {{/each}}
       {{else}}
       <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.noItems"}}</em></p>
       {{/if}}

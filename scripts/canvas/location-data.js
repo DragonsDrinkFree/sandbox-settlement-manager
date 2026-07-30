@@ -625,33 +625,29 @@ export function buildStorageData(app, entry, location) {
         ? `${usedWeight} / ∞`
         : `${usedWeight} / ${storageType.weightLimit}`;
 
-    const groupItems = (storage.items ?? []).filter(i => i.groupId === group.id);
-    const byDepositor = new Map();
-    for (const item of groupItems) {
-      const key = item.depositedByActorId ?? "";
-      if (!byDepositor.has(key)) {
-        byDepositor.set(key, { actorId: item.depositedByActorId, actorName: item.depositedByActorName, items: [] });
-      }
+    const groupItems = (storage.items ?? []).filter(i => i.groupId === group.id).map(item => {
       const takeableByMyActors = game.actors
         .filter(a => a.isOwner && canRetrieve(item, group, storageType, a.id))
         .map(a => ({ id: a.id, name: a.name }));
       const ownershipMode = item.ownership?.mode ?? "private";
-      byDepositor.get(key).items.push({
+      return {
         ...item,
-        weight: computeItemWeight(item.itemData, item.quantity),
-        showQuantity: (item.quantity ?? 1) > 1,
-        canTake: takeableByMyActors.length > 0,
+        itemName:            item.itemData?.name ?? "",
+        depositorName:       item.depositedByActorName ?? "",
+        weight:              computeItemWeight(item.itemData, item.quantity),
+        showQuantity:        (item.quantity ?? 1) > 1,
+        canTake:             takeableByMyActors.length > 0,
         takeableByMyActors,
-        canManageOwnership: isGM || myActorIds.includes(item.depositedByActorId),
-        isGroupProperty: ownershipMode === "group",
-        isAssigned: ownershipMode === "assigned",
+        canManageOwnership:  isGM || myActorIds.includes(item.depositedByActorId),
+        isGroupProperty:     ownershipMode === "group",
+        isAssigned:          ownershipMode === "assigned",
         ownershipLabel: ownershipMode === "group"
           ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.groupPropertyBadge")
           : ownershipMode === "assigned"
             ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.item.assignedBadge", { name: item.ownership?.assignedToActorName ?? "?" })
             : null
-      });
-    }
+      };
+    });
 
     return {
       id:                      group.id,
@@ -665,7 +661,7 @@ export function buildStorageData(app, entry, location) {
       usedWeight,
       weightLabel,
       itemCount:               groupItems.length,
-      depositors:              [...byDepositor.values()]
+      items:                   groupItems
     };
   });
 

@@ -40,9 +40,9 @@ async function promptQuantity(max, { title } = {}) {
 }
 
 /** Prompt to pick one of several actors (e.g. which of the player's actors receives a taken item). */
-async function promptActorChoice(actors, { title, label } = {}) {
+async function promptActorChoice(actors, { title, label, alwaysShow = false } = {}) {
   if (!actors.length) return null;
-  if (actors.length === 1) return actors[0];
+  if (!alwaysShow && actors.length === 1) return actors[0];
   const options = actors.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
   const result = await foundry.applications.api.DialogV2.prompt({
     window: { title: title ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.actorPromptTitle") },
@@ -118,9 +118,9 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       editStorageGroup:         LocationDetailApp.#onEditStorageGroup,
       deleteStorageGroup:       LocationDetailApp.#onDeleteStorageGroup,
       takeStorageItem:          LocationDetailApp.#onTakeStorageItem,
-      markGroupProperty:        LocationDetailApp.#onMarkGroupProperty,
       giveToActor:              LocationDetailApp.#onGiveToActor,
-      resetItemOwnership:       LocationDetailApp.#onResetItemOwnership
+      resetItemOwnership:       LocationDetailApp.#onResetItemOwnership,
+      viewStorageItem:          LocationDetailApp.#onViewStorageItem
     }
   };
 
@@ -164,6 +164,9 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (exchangeSection) this.#wireExchangePreview(exchangeSection);
 
     this.#wireStorageDropZones();
+    this.#wireStorageItemSort();
+    this.#wireStorageItemFilter();
+    this.#wireStorageAccessibleCheckboxes();
   }
 
   static async #onEditLocationEntry() {
@@ -1119,11 +1122,13 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const group       = (storage.groups ?? []).find(g => g.id === item.groupId) ?? null;
     const storageType = (storage.storageTypes ?? []).find(st => st.id === group?.storageTypeId) ?? null;
 
-    const myActors = game.actors.filter(a => a.isOwner && canRetrieve(item, group, storageType, a.id));
-    if (!myActors.length) return;
-    const targetActor = myActors.length === 1
-      ? myActors[0]
-      : await promptActorChoice(myActors, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeActorPromptTitle") });
+    const eligible = game.actors.filter(a => a.isOwner && canRetrieve(item, group, storageType, a.id));
+    if (!eligible.length) return;
+    const allMyActors = game.actors.filter(a => a.isOwner).sort((a, b) => a.name.localeCompare(b.name));
+    const targetActor = await promptActorChoice(allMyActors, {
+      title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeActorPromptTitle"),
+      alwaysShow: true
+    });
     if (!targetActor) return;
 
     let takeQty = item.quantity ?? 1;
@@ -1145,14 +1150,13 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await this.#saveEntryData(this._activeTab, storage);
   }
 
-  static async #onMarkGroupProperty(event, target) {
+  static #onViewStorageItem(event, target) {
     const itemId = target.dataset.itemId;
-    const storage = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
-    const item = (storage.items ?? []).find(i => i.id === itemId);
-    if (!item) return;
-    if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
-    item.ownership = { mode: "group", assignedToActorId: null, assignedToActorName: null };
-    await this.#saveEntryData(this._activeTab, storage);
+    const storage = this._location.typeData?.[this._activeTab];
+    const stored = storage?.items?.find(i => i.id === itemId);
+    if (!stored) return;
+    const tempItem = new CONFIG.Item.documentClass(foundry.utils.deepClone(stored.itemData), { parent: null });
+    tempItem.sheet?.render(true);
   }
 
   static async #onGiveToActor(event, target) {
@@ -1194,6 +1198,61 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       zone.addEventListener('dragenter', () => zone.classList.add('drag-over'));
       zone.addEventListener('drop', e => this.#onStorageDrop(e, zone));
     });
+  }
+
+  /** Clicking a Storage item table column header re-sorts its rows client-side. No save, no re-render. */
+  #wireStorageItemSort() {
+    this.element.querySelectorAll('.storage-item-table').forEach(table => {
+      const headers = [...table.querySelectorAll('th[data-sort-key]')];
+      headers.forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.sortKey;
+          const dir = th.classList.contains('sorted-asc') ? 'desc' : 'asc';
+          headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+          th.classList.add(`sorted-${dir}`);
+
+          const numeric = key === 'quantity' || key === 'weight' || key === 'groupAccessible';
+          const tbody = table.querySelector('tbody');
+          const rows = [...tbody.querySelectorAll('tr.storage-item-row')].sort((a, b) => {
+            const av = a.dataset[key] ?? '';
+            const bv = b.dataset[key] ?? '';
+            const cmp = numeric ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : av.localeCompare(bv);
+            return dir === 'asc' ? cmp : -cmp;
+          });
+          rows.forEach(r => tbody.appendChild(r));
+        });
+      });
+    });
+  }
+
+  /** Filter a Storage item table's rows by name as the GM/player types. */
+  #wireStorageItemFilter() {
+    this.element.querySelectorAll('.storage-item-filter').forEach(input => {
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        const table = input.closest('.storage-item-table-wrap')?.querySelector('.storage-item-table');
+        table?.querySelectorAll('tbody tr.storage-item-row').forEach(row => {
+          row.hidden = q && !(row.dataset.name ?? '').toLowerCase().includes(q);
+        });
+      });
+    });
+  }
+
+  #wireStorageAccessibleCheckboxes() {
+    this.element.querySelectorAll('.storage-group-accessible-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => this.#onToggleGroupAccessible(cb.dataset.itemId, cb.checked));
+    });
+  }
+
+  async #onToggleGroupAccessible(itemId, checked) {
+    const storage = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+    if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
+    item.ownership = checked
+      ? { mode: "group", assignedToActorId: null, assignedToActorName: null }
+      : { mode: "private", assignedToActorId: null, assignedToActorName: null };
+    await this.#saveEntryData(this._activeTab, storage);
   }
 
   async #onStorageDrop(event, zone) {
