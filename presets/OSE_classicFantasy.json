@@ -82,6 +82,7 @@
       "priceFormat": "simple",
       "priceAttribute": "system.cost",
       "priceDenominationAttribute": "",
+      "weightAttribute": "system.weight",
       "itemTypes": [
         {
           "id": "IREayiKOKXoNpuFs",

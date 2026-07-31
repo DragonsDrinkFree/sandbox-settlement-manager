@@ -82,6 +82,7 @@
       "priceFormat": "denomination-field",
       "priceAttribute": "system.price.value",
       "priceDenominationAttribute": "system.price.denomination",
+      "weightAttribute": "system.weight.value",
       "itemTypes": [
         {
           "id": "N7JBwKjmgttRpufm",

@@ -74,7 +74,8 @@
       "nameAttribute": "name",
       "priceFormat": "denomination-field",
       "priceAttribute": "system.cost",
-      "priceDenominationAttribute": "system.costDenomenation",
+      "priceDenominationAttribute": "system.costDenomination",
+      "weightAttribute": "system.weightCoins",
       "itemTypes": [
         {
           "id": "HFy19LdFTHYYmMza",
