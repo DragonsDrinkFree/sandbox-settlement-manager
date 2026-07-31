@@ -275,6 +275,13 @@
   white-space: nowrap;
 }
 
+#sandbox-settlement-manager-settlement-manage .ssm-table .ssm-col-center,
+#sandbox-settlement-manager-location-detail .ssm-table .ssm-col-center,
+#sandbox-settlement-manager-course-edit .ssm-table .ssm-col-center {
+  text-align: center;
+  white-space: nowrap;
+}
+
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-empty,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-empty,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-empty {
@@ -4425,6 +4432,19 @@ hr.ssm-settings-divider {
   margin-bottom: 0.3rem;
 }
 
+#sandbox-settlement-manager-settlement-manage .storage-item-depositor-group,
+#sandbox-settlement-manager-location-detail .storage-item-depositor-group {
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-item-depositor-name,
+#sandbox-settlement-manager-location-detail .storage-item-depositor-name {
+  margin: 0 0 0.15rem;
+  font-size: var(--font-size-12, 12px);
+  font-weight: 600;
+  color: var(--color-text-dark-secondary, #999);
+}
+
 #sandbox-settlement-manager-settlement-manage .storage-item-table th[data-sort-key],
 #sandbox-settlement-manager-location-detail .storage-item-table th[data-sort-key] {
   cursor: pointer;
@@ -4450,12 +4470,8 @@ hr.ssm-settings-divider {
 #sandbox-settlement-manager-settlement-manage .storage-item-name-link,
 #sandbox-settlement-manager-location-detail .storage-item-name-link {
   cursor: pointer;
-  text-decoration: none;
-}
-
-#sandbox-settlement-manager-settlement-manage .storage-item-name-link:hover,
-#sandbox-settlement-manager-location-detail .storage-item-name-link:hover {
   text-decoration: underline;
+  color: var(--color-text-hyperlink, #6699cc);
 }
 
 #sandbox-settlement-manager-settlement-manage .storage-group-accessible-checkbox,

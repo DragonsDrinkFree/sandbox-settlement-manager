@@ -1577,9 +1577,15 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     this.element.querySelectorAll('.storage-item-filter').forEach(input => {
       input.addEventListener('input', () => {
         const q = input.value.trim().toLowerCase();
-        const table = input.closest('.storage-item-table-wrap')?.querySelector('.storage-item-table');
-        table?.querySelectorAll('tbody tr.storage-item-row').forEach(row => {
-          row.hidden = q && !(row.dataset.name ?? '').toLowerCase().includes(q);
+        const wrap = input.closest('.storage-item-table-wrap');
+        wrap?.querySelectorAll('.storage-item-depositor-group').forEach(depositorGroup => {
+          let anyVisible = false;
+          depositorGroup.querySelectorAll('tbody tr.storage-item-row').forEach(row => {
+            const match = !q || (row.dataset.name ?? '').toLowerCase().includes(q);
+            row.hidden = !match;
+            if (match) anyVisible = true;
+          });
+          depositorGroup.hidden = !anyVisible;
         });
       });
     });

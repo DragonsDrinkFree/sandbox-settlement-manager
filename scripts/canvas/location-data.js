@@ -641,13 +641,21 @@ export function buildStorageData(app, entry, location) {
         canManageOwnership:  isGM || myActorIds.includes(item.depositedByActorId),
         isGroupProperty:     ownershipMode === "group",
         isAssigned:          ownershipMode === "assigned",
-        ownershipLabel: ownershipMode === "group"
-          ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.groupPropertyBadge")
-          : ownershipMode === "assigned"
-            ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.item.assignedBadge", { name: item.ownership?.assignedToActorName ?? "?" })
-            : null
+        // "group" mode is conveyed by the Group Accessible checkbox itself — no separate badge needed.
+        ownershipLabel: ownershipMode === "assigned"
+          ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.item.assignedBadge", { name: item.ownership?.assignedToActorName ?? "?" })
+          : null
       };
     });
+
+    const byDepositor = new Map();
+    for (const item of groupItems) {
+      const key = item.depositedByActorId ?? "";
+      if (!byDepositor.has(key)) {
+        byDepositor.set(key, { actorId: item.depositedByActorId, actorName: item.depositorName, items: [] });
+      }
+      byDepositor.get(key).items.push(item);
+    }
 
     return {
       id:                      group.id,
@@ -661,7 +669,7 @@ export function buildStorageData(app, entry, location) {
       usedWeight,
       weightLabel,
       itemCount:               groupItems.length,
-      items:                   groupItems
+      depositors:              [...byDepositor.values()]
     };
   });
 
