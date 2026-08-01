@@ -173,9 +173,23 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #wireActorFilterMenu(btn, actorFilter, signal, onApply) {
+    const applyFromMenu = (menu) => {
+      const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
+      const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
+      const allChecked   = typeCbs.every(cb => cb.checked);
+      const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
+      onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
+    };
+
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      document.querySelector('.ssm-actor-filter-menu')?.remove();
+      const existing = document.querySelector('.ssm-actor-filter-menu');
+      if (existing) {
+        existing.remove();
+        applyFromMenu(existing);
+        return;
+      }
+
       const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
         id,
         label: typeof label === 'string' ? game.i18n.localize(label) : id,
@@ -194,14 +208,11 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       menu.style.left = `${rect.left}px`;
       document.body.appendChild(menu);
       menu.addEventListener('click', e => e.stopPropagation());
-      menu.addEventListener('change', () => {
-        const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
-        const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
-        const allChecked   = typeCbs.every(cb => cb.checked);
-        const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
-        onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
-      });
-      document.addEventListener('click', () => menu.remove(), { once: true, signal });
+      document.addEventListener('click', () => {
+        if (!menu.isConnected) return;
+        menu.remove();
+        applyFromMenu(menu);
+      }, { once: true, signal });
     }, { signal });
   }
 

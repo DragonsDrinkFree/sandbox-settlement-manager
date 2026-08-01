@@ -3194,7 +3194,8 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn,
+#sandbox-settlement-manager-storage-group-edit .ssm-actor-filter-btn {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
@@ -3212,13 +3213,15 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn:hover,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn:hover,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn:hover {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn:hover,
+#sandbox-settlement-manager-storage-group-edit .ssm-actor-filter-btn:hover {
   background: rgba(0, 0, 0, 0.07);
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn.active,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn.active,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn.active {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn.active,
+#sandbox-settlement-manager-storage-group-edit .ssm-actor-filter-btn.active {
   background: rgba(0, 0, 0, 0.12);
   border-color: rgba(0, 0, 0, 0.4);
 }
@@ -4505,10 +4508,17 @@ hr.ssm-settings-divider {
   margin-top: 0.5rem;
 }
 
-#sandbox-settlement-manager-storage-group-edit .storage-access-filter {
-  width: 100%;
-  box-sizing: border-box;
+#sandbox-settlement-manager-storage-group-edit .storage-access-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-bottom: 0.3rem;
+}
+
+#sandbox-settlement-manager-storage-group-edit .storage-access-filter {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 #sandbox-settlement-manager-storage-group-edit .storage-access-list {

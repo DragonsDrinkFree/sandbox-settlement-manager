@@ -25,11 +25,18 @@
 
   <fieldset class="storage-access-fieldset">
     <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.accessListLabel"}}</legend>
-    <input type="text" class="storage-access-filter"
-           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.accessFilterPlaceholder'}}">
+    <div class="storage-access-filter-row">
+      <input type="text" class="storage-access-filter"
+             placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.accessFilterPlaceholder'}}">
+      <button type="button" class="ssm-actor-filter-btn storage-access-filter-btn"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+        <i class="fa-solid fa-filter" inert></i>
+      </button>
+    </div>
     <div class="storage-access-list">
       {{#each actorRows}}
-      <label class="storage-access-row" data-actor-name="{{this.name}}">
+      <label class="storage-access-row" data-actor-name="{{this.name}}" data-actor-type="{{this.type}}"
+             data-player-owned="{{#if this.hasPlayerOwner}}1{{else}}0{{/if}}">
         <input type="checkbox" class="storage-access-actor-checkbox" data-actor-id="{{this.id}}"
                {{#if this.checked}}checked{{/if}}>
         {{this.name}}

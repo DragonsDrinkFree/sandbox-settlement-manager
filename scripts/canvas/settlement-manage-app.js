@@ -1404,7 +1404,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!(storage.storageTypes ?? []).length) return;
     const result = await StorageGroupEditApp.open(
       { id: null, name: "", storageTypeId: storage.storageTypes[0].id, accessActorIds: [], retrievalPolicyOverride: null },
-      { storageTypes: storage.storageTypes, actors: game.actors.contents.map(a => ({ id: a.id, name: a.name })).sort((a, b) => a.name.localeCompare(b.name)) }
+      { storageTypes: storage.storageTypes, actors: game.actors.contents.map(a => ({ id: a.id, name: a.name, type: a.type, hasPlayerOwner: a.hasPlayerOwner })).sort((a, b) => a.name.localeCompare(b.name)) }
     );
     if (!result) return;
     storage.groups ??= [];
@@ -1422,7 +1422,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!group) return;
     const result = await StorageGroupEditApp.open(group, {
       storageTypes: storage.storageTypes ?? [],
-      actors: game.actors.contents.map(a => ({ id: a.id, name: a.name })).sort((a, b) => a.name.localeCompare(b.name))
+      actors: game.actors.contents.map(a => ({ id: a.id, name: a.name, type: a.type, hasPlayerOwner: a.hasPlayerOwner })).sort((a, b) => a.name.localeCompare(b.name))
     });
     if (!result) return;
     const index = storage.groups.findIndex(g => g.id === groupId);
@@ -1748,9 +1748,24 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   #wireActorFilterMenu(btn, actorFilter, signal, onApply) {
+    const applyFromMenu = (menu) => {
+      const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
+      const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
+      const allChecked   = typeCbs.every(cb => cb.checked);
+      const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
+      onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
+    };
+
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      document.querySelector('.ssm-actor-filter-menu')?.remove();
+      const existing = document.querySelector('.ssm-actor-filter-menu');
+      if (existing) {
+        // Toggle-close: clicking the filter button again while the menu is open commits and closes it,
+        // rather than tearing it down and immediately reopening a fresh copy.
+        existing.remove();
+        applyFromMenu(existing);
+        return;
+      }
 
       const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
         id,
@@ -1773,15 +1788,13 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       document.body.appendChild(menu);
 
       menu.addEventListener('click', e => e.stopPropagation());
-      menu.addEventListener('change', () => {
-        const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
-        const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
-        const allChecked   = typeCbs.every(cb => cb.checked);
-        const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
-        onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
-      });
-
-      document.addEventListener('click', () => menu.remove(), { once: true, signal });
+      // Checkbox changes accumulate locally while the menu is open — no apply/render happens until
+      // the menu closes (below), so the user can freely toggle multiple boxes without it disappearing.
+      document.addEventListener('click', () => {
+        if (!menu.isConnected) return; // already closed via the toggle-button path above
+        menu.remove();
+        applyFromMenu(menu);
+      }, { once: true, signal });
     }, { signal });
   }
 

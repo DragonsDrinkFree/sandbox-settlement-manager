@@ -12,7 +12,9 @@ export class StorageGroupEditApp extends HandlebarsApplicationMixin(ApplicationV
   _resolve = null;
   _group;         // { id, name, storageTypeId, accessActorIds, retrievalPolicyOverride }
   _storageTypes;  // [{ id, name }]
-  _actors;        // [{ id, name }]
+  _actors;        // [{ id, name, type, hasPlayerOwner }]
+  _accessSearchQuery = "";
+  _accessFilter = { playerOwned: false, types: null };
 
   constructor(group, { storageTypes, actors }, options = {}) {
     super(options);
@@ -65,7 +67,8 @@ export class StorageGroupEditApp extends HandlebarsApplicationMixin(ApplicationV
         { value: "depositorOnly", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.policyDepositorOnly"),        selected: this._group.retrievalPolicyOverride === "depositorOnly" }
       ],
       actorRows: this._actors.map(a => ({
-        id: a.id, name: a.name, checked: (this._group.accessActorIds ?? []).includes(a.id)
+        id: a.id, name: a.name, type: a.type, hasPlayerOwner: a.hasPlayerOwner,
+        checked: (this._group.accessActorIds ?? []).includes(a.id)
       })),
       buttons: [
         { type: "submit", icon: "fa-solid fa-save",   label: "Save" },
@@ -80,11 +83,83 @@ export class StorageGroupEditApp extends HandlebarsApplicationMixin(ApplicationV
 
     const filterInput = this.element.querySelector('.storage-access-filter');
     filterInput?.addEventListener('input', () => {
-      const q = filterInput.value.trim().toLowerCase();
-      this.element.querySelectorAll('.storage-access-row').forEach(row => {
-        row.hidden = q && !row.dataset.actorName.toLowerCase().includes(q);
-      });
+      this._accessSearchQuery = filterInput.value.trim().toLowerCase();
+      this.#applyAccessFilters();
     });
+
+    this.#wireAccessFilterBtn();
+  }
+
+  /** Hide access-list rows that don't match both the text search and the type/player-owned filter. */
+  #applyAccessFilters() {
+    const q = this._accessSearchQuery;
+    const { playerOwned, types } = this._accessFilter;
+    this.element.querySelectorAll('.storage-access-row').forEach(row => {
+      const matchesText  = !q || (row.dataset.actorName ?? "").toLowerCase().includes(q);
+      const matchesOwned = !playerOwned || row.dataset.playerOwned === "1";
+      const matchesType  = !types || types.has(row.dataset.actorType);
+      row.hidden = !(matchesText && matchesOwned && matchesType);
+    });
+  }
+
+  /**
+   * Actor-type/player-owned filter menu, matching the one used by the Bank/Sell actor pickers
+   * (location-detail-app.js / settlement-manage-app.js #wireActorFilterMenu). Unlike that version,
+   * this list is a small static in-memory array (no server re-fetch needed), so changes apply live
+   * as each box is toggled rather than deferring to close — the menu itself still only closes via an
+   * outside click or a second click of the filter button (true toggle-close), matching that fix.
+   */
+  #wireAccessFilterBtn() {
+    const btn = this.element.querySelector('.storage-access-filter-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const existing = document.querySelector('.ssm-actor-filter-menu');
+      if (existing) {
+        existing.remove();
+        this.#commitAccessMenu(existing, btn);
+        return;
+      }
+
+      const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
+        id,
+        label: typeof label === 'string' ? game.i18n.localize(label) : id,
+        checked: !this._accessFilter.types || this._accessFilter.types.has(id)
+      }));
+
+      const menu = document.createElement('div');
+      menu.className = 'ssm-actor-filter-menu';
+      menu.innerHTML = `
+        <label class="ssm-af-row"><input type="checkbox" class="ssm-af-player-owned"${this._accessFilter.playerOwned ? ' checked' : ''}> ${game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.actor.playerOwned')}</label>
+        <hr class="ssm-af-divider">
+        ${types.map(t => `<label class="ssm-af-row"><input type="checkbox" class="ssm-af-type" data-type="${t.id}"${t.checked ? ' checked' : ''}> ${t.label}</label>`).join('')}
+      `;
+
+      const rect = btn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top  = `${rect.bottom + 2}px`;
+      menu.style.left = `${rect.left}px`;
+      document.body.appendChild(menu);
+
+      menu.addEventListener('click', e => e.stopPropagation());
+      menu.addEventListener('change', () => this.#commitAccessMenu(menu, btn));
+      document.addEventListener('click', () => {
+        if (!menu.isConnected) return;
+        menu.remove();
+        this.#commitAccessMenu(menu, btn);
+      }, { once: true });
+    });
+  }
+
+  #commitAccessMenu(menu, btn) {
+    const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? false;
+    const typeCbs       = [...menu.querySelectorAll('.ssm-af-type')];
+    const allChecked    = typeCbs.every(cb => cb.checked);
+    const checkedTypes  = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
+    this._accessFilter = { playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) };
+    btn.classList.toggle('active', playerOwned || this._accessFilter.types !== null);
+    this.#applyAccessFilters();
   }
 
   static #onCancel() {
