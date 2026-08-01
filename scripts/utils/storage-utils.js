@@ -21,9 +21,25 @@ export function resolveEffectivePolicy(group, storageType) {
   return group?.retrievalPolicyOverride ?? storageType?.retrievalPolicy ?? "depositorOnly";
 }
 
-/** True if the given actor is on the group's access list. */
+/**
+ * Normalizes a group's access list to the current shape (`[{ actorId, level }]`, level is
+ * "primary" | "guest"). Legacy groups only have a flat `accessActorIds` array — those members
+ * become "primary" entries (safest default: preserves their existing full standing rather than
+ * silently demoting them the first time this reads old data).
+ */
+export function getGroupAccessList(group) {
+  if (Array.isArray(group?.access)) return group.access;
+  return (group?.accessActorIds ?? []).map(actorId => ({ actorId, level: "primary" }));
+}
+
+/** True if the given actor is on the group's access list (either level). */
 export function actorHasGroupAccess(group, actorId) {
-  return (group?.accessActorIds ?? []).includes(actorId);
+  return getGroupAccessList(group).some(a => a.actorId === actorId);
+}
+
+/** True if any of the given actor IDs (the current user's owned actors) holds Primary level in this group. */
+export function canManageGuests(group, myActorIds) {
+  return getGroupAccessList(group).some(a => a.level === "primary" && myActorIds.includes(a.actorId));
 }
 
 /**

@@ -664,6 +664,18 @@
         "deleteConfirm": "Delete <strong>{name}</strong>?",
         "none": "No storage groups yet."
       },
+      "access": {
+        "primary": "Primary",
+        "guest": "Guest",
+        "add": "Add",
+        "addTitle": "Add Access",
+        "noCandidates": "No eligible characters to add.",
+        "manageGuests": "Manage Guests",
+        "manageGuestsTitle": "Manage Guests — {name}",
+        "addGuest": "Add Guest",
+        "removeGuestTitle": "Remove Guest",
+        "removeGuestConfirm": "Remove <strong>{name}</strong> from this group?"
+      },
       "item": {
         "take": "Take",
         "markGroupProperty": "Mark as Group Property",

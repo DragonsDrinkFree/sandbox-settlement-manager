@@ -21,7 +21,8 @@ import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
-import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity } from "../utils/storage-utils.js";
+import { StorageAccessManageApp } from "./storage-access-manage-app.js";
+import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests } from "../utils/storage-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -125,6 +126,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       giveToActor:            SettlementManageApp.#onGiveToActor,
       resetItemOwnership:     SettlementManageApp.#onResetItemOwnership,
       viewStorageItem:        SettlementManageApp.#onViewStorageItem,
+      manageStorageGuests:    SettlementManageApp.#onManageStorageGuests,
       settlementLedger:       SettlementManageApp.#onSettlementLedger,
       clearLedger:            SettlementManageApp.#onClearLedger,
       exportLedgerCsv:        SettlementManageApp.#onExportLedgerCsv
@@ -1403,7 +1405,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
     if (!(storage.storageTypes ?? []).length) return;
     const result = await StorageGroupEditApp.open(
-      { id: null, name: "", storageTypeId: storage.storageTypes[0].id, accessActorIds: [], retrievalPolicyOverride: null },
+      { id: null, name: "", storageTypeId: storage.storageTypes[0].id, access: [], retrievalPolicyOverride: null },
       { storageTypes: storage.storageTypes, actors: game.actors.contents.map(a => ({ id: a.id, name: a.name, type: a.type, hasPlayerOwner: a.hasPlayerOwner })).sort((a, b) => a.name.localeCompare(b.name)) }
     );
     if (!result) return;
@@ -1502,6 +1504,63 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     tempItem.sheet?.render(true);
   }
 
+  static #onManageStorageGuests(event, target) {
+    const groupId = target.dataset.groupId;
+    const activeEntry = this.#getActiveEntry();
+    if (!activeEntry) return;
+    const location = this.#syncSelectedLocation();
+    const storage = location?.typeData?.[this._activeTab];
+    const group = storage?.groups?.find(g => g.id === groupId);
+    if (!group) return;
+
+    const myActorIds = game.actors.filter(a => a.testUserPermission(game.user, "OWNER")).map(a => a.id);
+    if (!game.user.isGM && !canManageGuests(group, myActorIds)) return;
+
+    const existingIds = new Set(getGroupAccessList(group).map(a => a.actorId));
+    const candidateActors = game.actors.contents
+      .filter(a => !existingIds.has(a.id))
+      .filter(a => game.user.isGM || a.testUserPermission(game.user, "OBSERVER"))
+      .map(a => ({ id: a.id, name: a.name, type: a.type, hasPlayerOwner: a.hasPlayerOwner }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Builds the display-ready group from a given storage object directly, rather than re-reading
+    // location/scene state — for a non-GM save, the scene flag only reflects the change once the
+    // GM's client has relayed it back over the SAVE_LOCATION socket, so re-reading here would show
+    // stale data; building from the object we just computed and saved is correct immediately either way.
+    const previewGroup = (storageObj) => buildStorageData(this, activeEntry, { typeData: { [this._activeTab]: storageObj } })
+      .groups.find(g => g.id === groupId) ?? null;
+
+    const initialGroup = previewGroup(storage);
+    if (!initialGroup) return;
+
+    StorageAccessManageApp.open(initialGroup, {
+      candidateActors,
+      onAdd: async (entries) => {
+        const freshLocation = this.#syncSelectedLocation();
+        if (!freshLocation) return null;
+        const updatedStorage = foundry.utils.deepClone(freshLocation.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+        const targetGroup = updatedStorage.groups?.find(g => g.id === groupId);
+        if (!targetGroup) return null;
+        targetGroup.access = [...getGroupAccessList(targetGroup), ...entries];
+        await this.#saveEntryData(this._activeTab, updatedStorage);
+        return previewGroup(updatedStorage);
+      },
+      onRemove: async (actorId) => {
+        const freshLocation = this.#syncSelectedLocation();
+        if (!freshLocation) return null;
+        const updatedStorage = foundry.utils.deepClone(freshLocation.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+        const targetGroup = updatedStorage.groups?.find(g => g.id === groupId);
+        if (!targetGroup) return null;
+        const list = getGroupAccessList(targetGroup);
+        const listEntry = list.find(a => a.actorId === actorId);
+        if (!listEntry || listEntry.level === "primary") return null;
+        targetGroup.access = list.filter(a => a.actorId !== actorId);
+        await this.#saveEntryData(this._activeTab, updatedStorage);
+        return previewGroup(updatedStorage);
+      }
+    });
+  }
+
   static async #onGiveToActor(event, target) {
     const itemId = target.dataset.itemId;
     const location = this.#syncSelectedLocation();
@@ -1512,7 +1571,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!game.user.isGM && !game.actors.get(item.depositedByActorId)?.isOwner) return;
     const group = (storage.groups ?? []).find(g => g.id === item.groupId);
     if (!group) return;
-    const eligible = (group.accessActorIds ?? [])
+    const eligible = getGroupAccessList(group)
+      .map(a => a.actorId)
       .filter(id => id !== item.depositedByActorId)
       .map(id => game.actors.get(id))
       .filter(Boolean);
@@ -1633,7 +1693,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const storage  = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
     const group    = (storage.groups ?? []).find(g => g.id === groupId);
     if (!group) return;
-    if (!game.user.isGM && !(group.accessActorIds ?? []).includes(item.actor.id)) {
+    if (!game.user.isGM && !getGroupAccessList(group).some(a => a.actorId === item.actor.id)) {
       ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.noGroupAccess"));
       return;
     }

@@ -34,7 +34,13 @@
         <span class="storage-group-weight">{{this.weightLabel}}</span>
         {{#if ../isGM}}
         <span class="storage-group-access">
-          {{#each this.accessActorNames}}<span class="storage-group-access-chip">{{this}}</span>{{else}}<em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em>{{/each}}
+          {{#each this.access}}
+          <span class="storage-group-access-chip{{#if this.isPrimary}} is-primary{{/if}}">
+            {{this.actorName}} — {{#if this.isPrimary}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}{{/if}}
+          </span>
+          {{else}}
+          <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em>
+          {{/each}}
         </span>
         <div class="storage-group-controls">
           <button type="button" class="icon" data-action="editStorageGroup" data-group-id="{{this.id}}"
@@ -46,6 +52,10 @@
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
+        {{else if this.canManageGuests}}
+        <button type="button" class="storage-manage-guests-btn" data-action="manageStorageGuests" data-group-id="{{this.id}}">
+          <i class="fa-solid fa-user-group"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.manageGuests"}}
+        </button>
         {{/if}}
       </div>
 

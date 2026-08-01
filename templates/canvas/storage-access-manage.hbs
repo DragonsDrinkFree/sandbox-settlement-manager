@@ -1,0 +1,23 @@
+<div class="storage-access-manage-content">
+  <div class="storage-access-list">
+    {{#each members}}
+    <div class="storage-access-row">
+      <span class="storage-access-name">{{this.actorName}}</span>
+      <span class="storage-access-level-badge{{#if this.isPrimary}} is-primary{{/if}}">
+        {{#if this.isPrimary}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}{{/if}}
+      </span>
+      {{#unless this.isPrimary}}
+      <button type="button" class="icon storage-access-remove-btn" data-action="removeGuest" data-actor-id="{{this.actorId}}"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+      {{/unless}}
+    </div>
+    {{else}}
+    <p class="storage-access-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noActors"}}</em></p>
+    {{/each}}
+  </div>
+  <button type="button" class="storage-access-add-btn" data-action="addGuest">
+    <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.addGuest"}}
+  </button>
+</div>

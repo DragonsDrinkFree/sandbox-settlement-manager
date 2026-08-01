@@ -24,7 +24,7 @@ import {
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
-import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve } from "../utils/storage-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
 export function getSubTypeMap() {
@@ -613,7 +613,7 @@ export function buildStorageData(app, entry, location) {
 
   const visibleGroups = isGM
     ? (storage.groups ?? [])
-    : (storage.groups ?? []).filter(g => (g.accessActorIds ?? []).some(id => myActorIds.includes(id)));
+    : (storage.groups ?? []).filter(g => getGroupAccessList(g).some(a => myActorIds.includes(a.actorId)));
 
   const groups = visibleGroups.map(group => {
     const storageType = storageTypes.find(st => st.id === group.storageTypeId) ?? null;
@@ -662,8 +662,13 @@ export function buildStorageData(app, entry, location) {
       name:                    group.name,
       storageTypeId:           group.storageTypeId,
       storageTypeName:         storageType?.name ?? "—",
-      accessActorIds:          group.accessActorIds ?? [],
-      accessActorNames:        (group.accessActorIds ?? []).map(id => game.actors.get(id)?.name).filter(Boolean),
+      access: getGroupAccessList(group).map(a => ({
+        actorId:   a.actorId,
+        actorName: game.actors.get(a.actorId)?.name ?? "?",
+        level:     a.level,
+        isPrimary: a.level === "primary"
+      })),
+      canManageGuests:         isGM || canManageGuests(group, myActorIds),
       retrievalPolicyOverride: group.retrievalPolicyOverride ?? null,
       effectivePolicy,
       usedWeight,

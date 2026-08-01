@@ -1,0 +1,29 @@
+<div class="storage-access-add-form">
+  <div class="storage-access-filter-row">
+    <input type="text" class="storage-access-filter"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.accessFilterPlaceholder'}}">
+    <button type="button" class="ssm-actor-filter-btn storage-access-filter-btn"
+            aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+      <i class="fa-solid fa-filter" inert></i>
+    </button>
+  </div>
+  <div class="storage-access-list">
+    {{#each actorRows}}
+    <div class="storage-access-add-row" data-actor-name="{{this.name}}" data-actor-type="{{this.type}}"
+         data-player-owned="{{#if this.hasPlayerOwner}}1{{else}}0{{/if}}">
+      <label class="storage-access-add-checkbox-label">
+        <input type="checkbox" class="storage-access-add-checkbox" data-actor-id="{{this.id}}">
+        {{this.name}}
+      </label>
+      {{#if ../allowLevelChoice}}
+      <select class="storage-access-add-level-select" data-actor-id="{{this.id}}">
+        <option value="primary" selected>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}</option>
+        <option value="guest">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}</option>
+      </select>
+      {{/if}}
+    </div>
+    {{else}}
+    <p class="storage-access-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.noCandidates"}}</em></p>
+    {{/each}}
+  </div>
+</div>
