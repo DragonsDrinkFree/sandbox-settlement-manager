@@ -4554,6 +4554,8 @@ hr.ssm-settings-divider {
 }
 
 #sandbox-settlement-manager-storage-group-edit .storage-access-level-select {
+  flex: 0 0 auto;
+  width: 7rem;
   font-size: var(--font-size-11, 11px);
 }
 
@@ -4594,6 +4596,8 @@ hr.ssm-settings-divider {
 }
 
 #sandbox-settlement-manager-storage-access-add .storage-access-add-level-select {
+  flex: 0 0 auto;
+  width: 7rem;
   font-size: var(--font-size-11, 11px);
 }
 

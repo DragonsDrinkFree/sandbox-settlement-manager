@@ -38,6 +38,7 @@ export class StorageGroupEditApp extends HandlebarsApplicationMixin(ApplicationV
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-storage-group-edit`,
     tag: "form",
+    classes: ["standard-form"],
     form: { handler: StorageGroupEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 420 },
     actions: {

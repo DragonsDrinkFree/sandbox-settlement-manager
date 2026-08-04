@@ -25,6 +25,7 @@ export class StorageAccessAddApp extends HandlebarsApplicationMixin(ApplicationV
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-storage-access-add`,
     tag: "form",
+    classes: ["standard-form"],
     form: { handler: StorageAccessAddApp.#onSubmit, closeOnSubmit: true },
     position: { width: 420 },
     actions: {
