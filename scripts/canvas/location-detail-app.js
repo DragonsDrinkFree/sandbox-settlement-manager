@@ -19,7 +19,7 @@ import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodgin
 import { BookingEditApp } from "./inn/booking-edit-app.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
-import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests } from "../utils/storage-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem } from "../utils/storage-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -1141,7 +1141,14 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     const itemDataSnapshot = foundry.utils.deepClone(item.itemData);
     foundry.utils.setProperty(itemDataSnapshot, 'system.quantity', takeQty);
-    await targetActor.createEmbeddedDocuments('Item', [itemDataSnapshot]);
+
+    const existingItem = findMatchingActorItem(targetActor, itemDataSnapshot);
+    if (existingItem) {
+      const currentQty = foundry.utils.getProperty(existingItem, 'system.quantity') ?? 1;
+      await existingItem.update({ 'system.quantity': currentQty + takeQty });
+    } else {
+      await targetActor.createEmbeddedDocuments('Item', [itemDataSnapshot]);
+    }
 
     if (takeQty >= (item.quantity ?? 1)) {
       storage.items = storage.items.filter(i => i.id !== itemId);
@@ -1362,16 +1369,21 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     foundry.utils.setProperty(itemData, 'system.quantity', qty);
     storage.items ??= [];
-    storage.items.push({
-      id: foundry.utils.randomID(),
-      groupId,
-      itemData,
-      quantity: qty,
-      depositedByActorId:   item.actor.id,
-      depositedByActorName: item.actor.name,
-      depositedAt:           game.time.worldTime,
-      ownership: { mode: "private", assignedToActorId: null, assignedToActorName: null }
-    });
+    const existingEntry = findMatchingStoredItem(storage.items, group.id, item.actor.id, itemData);
+    if (existingEntry) {
+      existingEntry.quantity += qty;
+    } else {
+      storage.items.push({
+        id: foundry.utils.randomID(),
+        groupId,
+        itemData,
+        quantity: qty,
+        depositedByActorId:   item.actor.id,
+        depositedByActorName: item.actor.name,
+        depositedAt:           game.time.worldTime,
+        ownership: { mode: "private", assignedToActorId: null, assignedToActorName: null }
+      });
+    }
 
     await this.#saveEntryData(this._activeTab, storage);
   }

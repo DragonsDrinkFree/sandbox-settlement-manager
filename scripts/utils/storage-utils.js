@@ -63,3 +63,37 @@ export function wouldExceedCapacity(storageType, currentUsedWeight, addedWeight)
   return storageType?.weightLimit !== null && storageType?.weightLimit !== undefined
     && (currentUsedWeight + addedWeight) > storageType.weightLimit;
 }
+
+/** Fields that legitimately differ between two document instances of "the same" item; never divergence. */
+const STACK_IGNORE_KEYS = ["_id", "sort", "folder", "ownership", "_stats", "flags"];
+
+/**
+ * Best-effort check for whether two item data snapshots are the same "kind" of item and could safely
+ * share a stack. Not a guarantee for arbitrary game systems — callers should treat `false` as "don't
+ * merge, fall back to creating a separate stack," never as a reason to block the action.
+ */
+export function itemsMatchForStacking(a, b) {
+  if (!a || !b) return false;
+  if (a.name !== b.name || a.type !== b.type || a.img !== b.img) return false;
+  const normalize = (obj) => {
+    const clone = foundry.utils.deepClone(obj);
+    for (const key of STACK_IGNORE_KEYS) delete clone[key];
+    foundry.utils.setProperty(clone, "system.quantity", undefined);
+    return clone;
+  };
+  return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
+}
+
+/** Find a live item already on `actor` that `itemData` could stack onto (Take side). */
+export function findMatchingActorItem(actor, itemData) {
+  return actor.items.find(i => itemsMatchForStacking(i.toObject(), itemData)) ?? null;
+}
+
+/** Find an existing stored entry in the same group, deposited by the same actor, matching `itemData` (Deposit side). */
+export function findMatchingStoredItem(items, groupId, depositedByActorId, itemData) {
+  return (items ?? []).find(i =>
+    i.groupId === groupId &&
+    i.depositedByActorId === depositedByActorId &&
+    itemsMatchForStacking(i.itemData, itemData)
+  ) ?? null;
+}
