@@ -119,7 +119,7 @@
       "merchantStockFormula": "Dice/number formula rolled to set quantity when in stock (e.g. 2d6). Leave blank for infinite stock.",
       "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world.",
-      "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Groups from a Storage Type at each location, assigning actors to each Group's access list."
+      "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list."
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -637,20 +637,20 @@
       "noItems": "No items stored.",
       "notOwnedItem": "Only items on a character sheet can be stored.",
       "notYourItem": "You don't have permission to store that item.",
-      "noGroupAccess": "That character doesn't have access to this storage group.",
+      "noGroupAccess": "That character doesn't have access to this storage area.",
       "depositQuantityTitle": "Deposit Quantity",
-      "overCapacity": "That would exceed this storage group's weight limit.",
+      "overCapacity": "That would exceed this storage area's weight limit.",
       "quantityPromptTitle": "Choose Quantity",
       "quantityPromptLabel": "How many (max {max})?",
       "quantityPromptConfirm": "Confirm",
       "actorPromptTitle": "Choose Character",
       "actorPromptLabel": "Character",
       "group": {
-        "sectionTitle": "Groups",
-        "add": "Add Group",
+        "sectionTitle": "Areas",
+        "add": "Add Area",
         "noAccess": "No access granted",
-        "editTitle": "Edit Storage Group",
-        "addTitle": "Add Storage Group",
+        "editTitle": "Edit Storage Area",
+        "addTitle": "Add Storage Area",
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Room 3",
         "storageTypeLabel": "Storage Type",
@@ -659,10 +659,10 @@
         "accessListLabel": "Access List",
         "accessFilterPlaceholder": "Filter characters...",
         "noActors": "No characters found.",
-        "deleteBlocked": "This group still holds {count} item(s). Move or take them out before deleting.",
-        "deleteTitle": "Delete Storage Group",
+        "deleteBlocked": "This area still holds {count} item(s). Move or take them out before deleting.",
+        "deleteTitle": "Delete Storage Area",
         "deleteConfirm": "Delete <strong>{name}</strong>?",
-        "none": "No storage groups yet."
+        "none": "No storage areas yet."
       },
       "access": {
         "primary": "Primary",
@@ -674,7 +674,7 @@
         "manageGuestsTitle": "Manage Guests — {name}",
         "addGuest": "Add Guest",
         "removeGuestTitle": "Remove Guest",
-        "removeGuestConfirm": "Remove <strong>{name}</strong> from this group?"
+        "removeGuestConfirm": "Remove <strong>{name}</strong> from this area?"
       },
       "item": {
         "take": "Take",
@@ -683,7 +683,7 @@
         "resetOwnership": "Reset to Private",
         "takeActorPromptTitle": "Take Item — Choose Character",
         "takeQuantityTitle": "Take Quantity",
-        "noEligibleRecipients": "No other characters have access to this group.",
+        "noEligibleRecipients": "No other characters have access to this area.",
         "giveToActorPromptTitle": "Give Item to Character",
         "groupPropertyBadge": "Group Property",
         "assignedBadge": "Given to {name}",

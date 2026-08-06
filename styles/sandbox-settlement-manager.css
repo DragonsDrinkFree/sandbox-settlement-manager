@@ -3192,6 +3192,66 @@
   font-style: italic;
 }
 
+/* Body-mounted — not scoped to app ID; uses explicit colors like .ssm-actor-dropdown-list above */
+.storage-access-badge-dropdown {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  min-width: 180px;
+  max-height: 240px;
+  background: var(--color-bg-primary, #f0ede0);
+  color: #2a2a2a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+  padding: 0.3rem;
+  gap: 0.15rem;
+}
+
+.storage-access-badge-dropdown.is-open {
+  display: flex;
+}
+
+.storage-access-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0.3rem;
+  font-size: var(--font-size-12, 12px);
+}
+
+.storage-access-badge-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storage-access-badge-level {
+  flex: 0 0 auto;
+  font-size: var(--font-size-11, 11px);
+  padding: 0.05rem 0.4rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  opacity: 0.75;
+}
+
+.storage-access-badge-level.is-primary {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.storage-access-badge-empty {
+  margin: 0;
+  padding: 0.15rem 0.3rem;
+  font-style: italic;
+  opacity: 0.65;
+}
+
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn,
 #sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn,
@@ -3261,7 +3321,8 @@
 /* Dark mode overrides for body-mounted dropdowns */
 @media (prefers-color-scheme: dark) {
   .ssm-actor-dropdown-list,
-  .ssm-actor-filter-menu {
+  .ssm-actor-filter-menu,
+  .storage-access-badge-dropdown {
     background: #2a2a2a;
     color: #d4d4d4;
     border-color: rgba(255, 255, 255, 0.12);
@@ -3288,6 +3349,9 @@
   }
   .ssm-af-apply:hover {
     background: rgba(255, 255, 255, 0.14);
+  }
+  .storage-access-badge-level {
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -4372,22 +4436,28 @@ hr.ssm-settings-divider {
   color: var(--color-text-dark-secondary, #999);
 }
 
-#sandbox-settlement-manager-settlement-manage .storage-group-access,
-#sandbox-settlement-manager-location-detail .storage-group-access {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  flex: 1;
+#sandbox-settlement-manager-settlement-manage .storage-access-badge-widget,
+#sandbox-settlement-manager-location-detail .storage-access-badge-widget {
+  position: relative;
 }
 
-#sandbox-settlement-manager-settlement-manage .storage-group-access-chip,
-#sandbox-settlement-manager-location-detail .storage-group-access-chip {
-  font-size: var(--font-size-11, 11px);
-  padding: 0.05rem 0.35rem;
+#sandbox-settlement-manager-settlement-manage .storage-access-badge,
+#sandbox-settlement-manager-location-detail .storage-access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.5rem;
   border-radius: 8px;
   background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
+  border: 1px solid rgba(0, 0, 0, 0.15);
   color: var(--color-text-dark-secondary, #999);
-  white-space: nowrap;
+  font-size: var(--font-size-11, 11px);
+  cursor: pointer;
+}
+
+#sandbox-settlement-manager-settlement-manage .storage-access-badge:hover,
+#sandbox-settlement-manager-location-detail .storage-access-badge:hover {
+  background: rgba(0, 0, 0, 0.12);
 }
 
 #sandbox-settlement-manager-settlement-manage .storage-group-controls,

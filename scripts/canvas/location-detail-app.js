@@ -1426,6 +1426,36 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
         this.render();
       });
     }
+
+    this.#wireStorageAccessBadges(signal);
+  }
+
+  /**
+   * Read-only "who has access" dropdown on each Storage Area's header badge. Body-mounted like the
+   * actor dropdowns above, reusing the same signal/cleanup array — this is the established mechanism
+   * for any body-mounted, click-to-toggle element tied to this app's render cycle.
+   */
+  #wireStorageAccessBadges(signal) {
+    this.element.querySelectorAll('.storage-access-badge-widget').forEach(widget => {
+      const trigger = widget.querySelector('.storage-access-badge');
+      const dropdown = widget.querySelector('.storage-access-badge-dropdown');
+      if (!trigger || !dropdown) return;
+
+      document.body.appendChild(dropdown);
+      this.#actorDropdownEls.push(dropdown);
+
+      const position = () => {
+        const r = trigger.getBoundingClientRect();
+        dropdown.style.top  = `${r.bottom + 2}px`;
+        dropdown.style.left = `${r.left}px`;
+      };
+      const open  = () => { position(); dropdown.classList.add('is-open'); };
+      const close = () => dropdown.classList.remove('is-open');
+
+      trigger.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.contains('is-open') ? close() : open(); }, { signal });
+      document.addEventListener('click', close, { signal });
+      dropdown.addEventListener('click', e => e.stopPropagation(), { signal });
+    });
   }
 
   #wireActorDropdown(widget, signal, onSelect) {

@@ -667,7 +667,7 @@ export function buildStorageData(app, entry, location) {
         actorName: game.actors.get(a.actorId)?.name ?? "?",
         level:     a.level,
         isPrimary: a.level === "primary"
-      })),
+      })).sort((a, b) => (a.isPrimary === b.isPrimary) ? a.actorName.localeCompare(b.actorName) : (a.isPrimary ? -1 : 1)),
       canManageGuests:         isGM || canManageGuests(group, myActorIds),
       retrievalPolicyOverride: group.retrievalPolicyOverride ?? null,
       effectivePolicy,

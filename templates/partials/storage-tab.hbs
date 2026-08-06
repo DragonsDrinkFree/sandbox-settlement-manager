@@ -33,15 +33,23 @@
         <span class="storage-group-type-badge">{{this.storageTypeName}}</span>
         <span class="storage-group-weight">{{this.weightLabel}}</span>
         {{#if ../isGM}}
-        <span class="storage-group-access">
-          {{#each this.access}}
-          <span class="storage-group-access-chip{{#if this.isPrimary}} is-primary{{/if}}">
-            {{this.actorName}} — {{#if this.isPrimary}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}{{/if}}
-          </span>
-          {{else}}
-          <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em>
-          {{/each}}
-        </span>
+        <div class="storage-access-badge-widget">
+          <button type="button" class="storage-access-badge">
+            <i class="fa-solid fa-users"></i> {{this.access.length}}
+          </button>
+          <div class="storage-access-badge-dropdown">
+            {{#each this.access}}
+            <div class="storage-access-badge-row">
+              <span class="storage-access-badge-name">{{this.actorName}}</span>
+              <span class="storage-access-badge-level{{#if this.isPrimary}} is-primary{{/if}}">
+                {{#if this.isPrimary}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}{{/if}}
+              </span>
+            </div>
+            {{else}}
+            <p class="storage-access-badge-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em></p>
+            {{/each}}
+          </div>
+        </div>
         <div class="storage-group-controls">
           <button type="button" class="icon" data-action="editStorageGroup" data-group-id="{{this.id}}"
                   aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
