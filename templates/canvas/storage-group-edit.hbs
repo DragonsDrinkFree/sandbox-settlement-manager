@@ -15,7 +15,7 @@
   </div>
 
   <div class="form-group">
-    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.policyOverrideLabel"}}</label>
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.policyOverrideLabel"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.retrievalPolicy'}}"></i></label>
     <select name="retrievalPolicyOverride">
       {{#each policyOptions}}
       <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>

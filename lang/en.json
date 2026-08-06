@@ -119,7 +119,8 @@
       "merchantStockFormula": "Dice/number formula rolled to set quantity when in stock (e.g. 2d6). Leave blank for infinite stock.",
       "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world.",
-      "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list."
+      "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list.",
+  "retrievalPolicy": "<ul><li><strong>Group Storage:</strong> All deposited items can be retrieved by anyone with access to the storage area.</li><li><strong>Owner Managed:</strong> The owner of each item determines whether or not it is group accessible by checking the Group Accessible box.</li></ul>"
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -631,8 +632,8 @@
       "namePlaceholder": "e.g. Private Room",
       "noStorageTypes": "No storage types configured.",
       "addStorageType": "Add Storage Type",
-      "policyAnyone": "Anyone with access",
-      "policyDepositorOnly": "Depositor only",
+      "policyAnyone": "Group Storage",
+      "policyDepositorOnly": "Owner Managed",
       "dropHint": "Drag an item here from a character sheet to deposit it",
       "noItems": "No items stored.",
       "notOwnedItem": "Only items on a character sheet can be stored.",

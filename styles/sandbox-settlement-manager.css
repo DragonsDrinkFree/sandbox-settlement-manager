@@ -233,6 +233,7 @@
   padding: 0 0.3rem 0.2rem;
   border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
   white-space: nowrap;
+  vertical-align: bottom;
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-table tbody td,
@@ -4558,8 +4559,8 @@ hr.ssm-settings-divider {
   cursor: not-allowed;
 }
 
-#sandbox-settlement-manager-settlement-manage .storage-item-table .ssm-col-action,
-#sandbox-settlement-manager-location-detail .storage-item-table .ssm-col-action {
+#sandbox-settlement-manager-settlement-manage .storage-item-table td.ssm-col-action,
+#sandbox-settlement-manager-location-detail .storage-item-table td.ssm-col-action {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -4573,6 +4574,15 @@ hr.ssm-settings-divider {
   border-radius: 8px;
   background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
   color: var(--color-text-dark-secondary, #999);
+}
+
+#sandbox-settlement-manager-storage-group-edit .form-group {
+  margin-bottom: 0.6rem;
+}
+
+#sandbox-settlement-manager-storage-group-edit .form-group > label {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 #sandbox-settlement-manager-storage-group-edit .storage-access-fieldset {
