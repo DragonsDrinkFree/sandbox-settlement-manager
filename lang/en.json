@@ -657,6 +657,7 @@
         "policyOverrideLabel": "Retrieval Policy",
         "policyInherit": "Inherit from Storage Type",
         "accessListLabel": "Access List",
+    "capacityLabel": "Capacity",
         "accessFilterPlaceholder": "Filter characters...",
         "noActors": "No characters found.",
         "deleteBlocked": "This area still holds {count} item(s). Move or take them out before deleting.",
