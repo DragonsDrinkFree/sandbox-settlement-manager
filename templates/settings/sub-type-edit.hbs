@@ -195,6 +195,70 @@
         <span>%</span>
       </div>
     </fieldset>
+    <fieldset class="bank-storage-rental-config">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.settingsTitle"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.bankStorageRentals'}}"></i></legend>
+      <div class="lodging-storage-link-config">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.linkedStorageTemplate"}}
+          <select name="bankLinkedStorageTemplateId">
+            <option value=""{{#unless bankLinkedStorageTemplateId}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.noLinkedStorageTemplate"}}</option>
+            {{#each bankStorageTemplateOptions}}
+            <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+            {{/each}}
+          </select>
+        </label>
+      </div>
+      <table class="storage-rental-option-table">
+        <thead>
+          <tr>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colStorageType"}}</th>
+            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colFee"}}</th>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPeriod"}}</th>
+            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colNaming"}}</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each storageRentalOptions}}
+          <tr class="storage-rental-option-row" data-option-id="{{this.id}}">
+            <td>
+              <select data-field="storageTypeId"{{#unless ../bankHasLinkedStorageTemplate}} disabled{{/unless}}>
+                <option value="">—</option>
+                {{#each this.storageTypeOptions}}
+                <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td class="col-price">
+              {{> ssm-price-input attr="data-field" field="fee" price=this.price currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
+            </td>
+            <td>
+              <select data-field="periodUnit">
+                {{#each this.periodOptions}}
+                <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td>
+              <input type="text" data-field="namingTemplate" value="{{this.namingTemplate}}"
+                     placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.namingPlaceholder'}}">
+            </td>
+            <td class="col-del">
+              <button type="button" class="icon" data-action="deleteStorageRentalOption" data-index="{{@index}}" aria-label="Remove">
+                <i class="fa-solid fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="5" class="lodging-table-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.noOptions"}}</em></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <button type="button" data-action="addStorageRentalOption" class="lodging-add-btn"{{#unless bankHasLinkedStorageTemplate}} disabled{{/unless}}>
+        <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.addOption"}}
+      </button>
+    </fieldset>
   </div>
   {{/if}}
   {{#if showStorageSection}}

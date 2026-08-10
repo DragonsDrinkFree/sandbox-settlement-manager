@@ -2,12 +2,13 @@ import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES, get
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue } from "../utils/currency-utils.js";
+import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard } from "../utils/currency-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
-import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan } from "../socket.js";
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan, _handleRentStorage, _handleExtendStorageRental, _handlePayStorageRent } from "../socket.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
 import { LoanOfferApp } from "./loan-offer-app.js";
 import { periodSecondsFor, accrueLoan, insufficientCurrencies, selectPayoffCoins } from "../utils/loan-utils.js";
+import { accrueStorageRent, reclaimExpiredStorageRentals } from "../utils/rental-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
@@ -72,6 +73,28 @@ async function promptActorChoice(actors, { title, label, alwaysShow = false } = 
   return actors.find(a => a.id === result) ?? null;
 }
 
+/** Prompt to pick a Storage Rental Option and how many periods to prepay. Returns { storageOptionId, periods }, or null. */
+async function promptStorageRental(labeledOptions) {
+  if (!labeledOptions.length) return null;
+  const options = labeledOptions.map(o => `<option value="${o.id}">${o.label}</option>`).join("");
+  const result = await foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptTitle") },
+    content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptStorageType")}</label>
+      <select name="storageOptionId">${options}</select></div>
+      <div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptPeriods")}</label>
+      <input type="number" name="periods" value="1" min="1" step="1"></div>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
+      callback: (event, btn) => {
+        const storageOptionId = btn.form.querySelector('[name="storageOptionId"]')?.value;
+        const periods = Math.max(1, parseInt(btn.form.querySelector('[name="periods"]')?.value) || 1);
+        return storageOptionId ? { storageOptionId, periods } : null;
+      }
+    }
+  });
+  return result ?? null;
+}
+
 export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _location;
   _activeTab = null;
@@ -128,11 +151,17 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       payOffLoan:               LocationDetailApp.#onPayOffLoan,
       cancelLoan:               LocationDetailApp.#onCancelLoan,
       editLoan:                 LocationDetailApp.#onEditLoan,
+      rentStorage:              LocationDetailApp.#onRentStorage,
+      extendStorageRental:      LocationDetailApp.#onExtendStorageRental,
+      payStorageRent:           LocationDetailApp.#onPayStorageRent,
+      payOffStorageRent:        LocationDetailApp.#onPayOffStorageRent,
+      cancelStorageRental:      LocationDetailApp.#onCancelStorageRental,
       addStorageGroup:          LocationDetailApp.#onAddStorageGroup,
       editStorageGroupNote:     LocationDetailApp.#onEditStorageGroupNote,
       editStorageGroup:         LocationDetailApp.#onEditStorageGroup,
       deleteStorageGroup:       LocationDetailApp.#onDeleteStorageGroup,
       takeStorageItem:          LocationDetailApp.#onTakeStorageItem,
+      forceTakeStorageItem:     LocationDetailApp.#onForceTakeStorageItem,
       giveToActor:              LocationDetailApp.#onGiveToActor,
       resetItemOwnership:       LocationDetailApp.#onResetItemOwnership,
       viewStorageItem:          LocationDetailApp.#onViewStorageItem,
@@ -193,7 +222,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: this._location.name });
     if (!result) return;
 
-    if (entry.typeId === LOCATION_TYPE_IDS.INN) {
+    if (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK) {
       const subTypeMap = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
       const newStorage = reconcileLinkedStorageForEntry(this._location, result, subTypeMap);
       if (newStorage) {
@@ -1059,6 +1088,184 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await this.#saveEntryData(this._activeTab, bank);
   }
 
+  static async #onRentStorage() {
+    if (!this._bankActorId) return;
+    const actor = game.actors.get(this._bankActorId);
+    if (!actor) return;
+    const bank = this._location.typeData?.[this._activeTab] ?? {};
+    const options = bank.storageRentalOptions ?? [];
+    if (!options.length || !bank.linkedStorageEntryId) return;
+    const storageTypes = this._location.typeData?.[bank.linkedStorageEntryId]?.storageTypes ?? [];
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const labeledOptions = options.map(o => ({
+      id: o.id,
+      label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
+        name:   storageTypes.find(st => st.id === o.storageTypeId)?.name ?? "—",
+        fee:    formatAmounts({ [o.feeCurrencyId]: o.feeAmount }, currencies),
+        period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${o.periodUnit}`)
+      })
+    }));
+    const picked = await promptStorageRental(labeledOptions);
+    if (!picked) return;
+    const option = options.find(o => o.id === picked.storageOptionId);
+    if (!option) return;
+
+    const mode  = currencyConfig.mode ?? 'loose';
+    const coins = { [option.feeCurrencyId]: option.feeAmount * picked.periods };
+    const short = insufficientCurrencies(actor, coins, currencies, mode);
+    if (short.length) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
+      return;
+    }
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmTitle"),
+      content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmBody", { coins: formatAmounts(coins, currencies) })
+    });
+    if (!confirmed) return;
+
+    await removeCoinsFromActor(actor, coins, currencies, mode);
+
+    const payload = {
+      optionId: option.id, periods: picked.periods, actorId: actor.id, actorName: actor.name,
+      locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id
+    };
+    if (game.user.isGM) await _handleRentStorage(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.RENT_STORAGE, payload });
+    this.render();
+  }
+
+  static async #onExtendStorageRental(event, target) {
+    const rentalId = target.dataset.rentalId;
+    const bank = this._location.typeData?.[this._activeTab] ?? {};
+    const rental = (bank.rentals ?? []).find(r => r.id === rentalId);
+    if (!rental || rental.status !== "active") return;
+    const actor = game.actors.get(rental.actorId);
+    if (!actor) return;
+
+    const periods = await promptQuantity(999, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extendPromptTitle") });
+    if (!periods) return;
+
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies = currencyConfig.currencies ?? [];
+    const mode = currencyConfig.mode ?? 'loose';
+    const coins = { [rental.feeCurrencyId]: rental.feeAmount * periods };
+    const short = insufficientCurrencies(actor, coins, currencies, mode);
+    if (short.length) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
+      return;
+    }
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extendConfirmTitle"),
+      content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmBody", { coins: formatAmounts(coins, currencies) })
+    });
+    if (!confirmed) return;
+
+    await removeCoinsFromActor(actor, coins, currencies, mode);
+
+    const payload = { rentalId, periods, locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    if (game.user.isGM) await _handleExtendStorageRental(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.EXTEND_STORAGE_RENTAL, payload });
+    this.render();
+  }
+
+  static async #onPayStorageRent(event, target) {
+    const rentalId = target.dataset.rentalId;
+    const rental = (this._location.typeData?.[this._activeTab]?.rentals ?? []).find(r => r.id === rentalId);
+    if (!rental) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const mode           = currencyConfig.mode ?? 'loose';
+    const container = target.closest('.ssm-rental-entry');
+    const payCoins = {};
+    container?.querySelectorAll('.ssm-rental-pay-input').forEach(input => {
+      const amt = parseInt(input.value) || 0;
+      if (amt > 0) payCoins[input.dataset.currencyId] = amt;
+    });
+    await this.#submitStorageRentPayment(rental, payCoins, currencies, mode);
+  }
+
+  static async #onPayOffStorageRent(event, target) {
+    const rentalId = target.dataset.rentalId;
+    const rental = (this._location.typeData?.[this._activeTab]?.rentals ?? []).find(r => r.id === rentalId);
+    if (!rental) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+    const mode           = currencyConfig.mode ?? 'loose';
+    const actor          = game.actors.get(rental.actorId);
+    const feeStandard    = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
+    const accrued        = accrueStorageRent(rental, game.time.worldTime, feeStandard);
+    const { coins, shortfall } = selectPayoffCoins(actor, accrued.owedStandard, currencies, mode);
+    if (shortfall > 1e-6) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.insufficientPayoff"));
+      return;
+    }
+    await this.#submitStorageRentPayment(rental, coins, currencies, mode);
+  }
+
+  /** Shared by pay (from inputs) and pay-off-in-full: verify funds, confirm (with any change), debit, dispatch. */
+  async #submitStorageRentPayment(rental, payCoins, currencies, mode) {
+    const filtered = {};
+    for (const [cId, amt] of Object.entries(payCoins ?? {})) {
+      const n = Math.max(0, Math.floor(amt));
+      if (n > 0) filtered[cId] = n;
+    }
+    if (!Object.keys(filtered).length) return;
+    const actor = game.actors.get(rental.actorId);
+    if (!actor) return;
+
+    const short = insufficientCurrencies(actor, filtered, currencies, mode);
+    if (short.length) {
+      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
+      return;
+    }
+
+    const feeStandard   = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
+    const owedStandard  = accrueStorageRent(rental, game.time.worldTime, feeStandard).owedStandard;
+    const changeStandard = totalOfferedInStandard(filtered, currencies) - owedStandard;
+    let changeLabel = "";
+    if (changeStandard > 1e-6) {
+      const paidRates = Object.keys(filtered).map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+      const maxDenom  = paidRates.length ? Math.max(...paidRates) : getMaxDenomValue(currencies);
+      changeLabel = formatAmounts(calculateChange(changeStandard, currencies, maxDenom) ?? {}, currencies);
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payConfirmTitle"),
+      content: changeLabel
+        ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBodyChange", { coins: formatAmounts(filtered, currencies), change: changeLabel })
+        : game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBody", { coins: formatAmounts(filtered, currencies) })
+    });
+    if (!confirmed) return;
+
+    await removeCoinsFromActor(actor, filtered, currencies, mode);
+
+    const payload = { rentalId: rental.id, payCoins: filtered, locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    if (game.user.isGM) await _handlePayStorageRent(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PAY_STORAGE_RENT, payload });
+    this.render();
+  }
+
+  static async #onCancelStorageRental(event, target) {
+    if (!game.user.isGM) return;
+    const rentalId = target.dataset.rentalId;
+    const location = foundry.utils.deepClone(this._location);
+    const bank = location.typeData?.[this._activeTab];
+    const rental = bank?.rentals?.find(r => r.id === rentalId);
+    if (!rental) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancelTitle"),
+      content: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancelConfirm")
+    });
+    if (!confirmed) return;
+    rental.paidThroughAt = game.time.worldTime;
+    reclaimExpiredStorageRentals(location, bank, game.time.worldTime);
+    if (bank.linkedStorageEntryId) {
+      await this.#saveEntryData(bank.linkedStorageEntryId, location.typeData[bank.linkedStorageEntryId]);
+    }
+    await this.#saveEntryData(this._activeTab, bank);
+  }
+
   static async #onAddStorageGroup() {
     if (!game.user.isGM) return;
     const storage = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
@@ -1135,6 +1342,52 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!eligible.length) return;
     const allMyActors = game.actors.filter(a => a.isOwner).sort((a, b) => a.name.localeCompare(b.name));
     const targetActor = await promptActorChoice(allMyActors, {
+      title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeActorPromptTitle"),
+      alwaysShow: true
+    });
+    if (!targetActor) return;
+
+    let takeQty = item.quantity ?? 1;
+    if (takeQty > 1) {
+      takeQty = await promptQuantity(takeQty, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeQuantityTitle") });
+      if (!takeQty) return;
+    }
+
+    const itemDataSnapshot = foundry.utils.deepClone(item.itemData);
+    foundry.utils.setProperty(itemDataSnapshot, 'system.quantity', takeQty);
+
+    const existingItem = findMatchingActorItem(targetActor, itemDataSnapshot);
+    if (existingItem) {
+      const currentQty = foundry.utils.getProperty(existingItem, 'system.quantity') ?? 1;
+      await existingItem.update({ 'system.quantity': currentQty + takeQty });
+    } else {
+      await targetActor.createEmbeddedDocuments('Item', [itemDataSnapshot]);
+    }
+
+    if (takeQty >= (item.quantity ?? 1)) {
+      storage.items = storage.items.filter(i => i.id !== itemId);
+    } else {
+      const it = storage.items.find(i => i.id === itemId);
+      it.quantity -= takeQty;
+    }
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  /**
+   * GM-only: remove an item from storage and hand it to any actor, bypassing the normal
+   * canRetrieve eligibility gate entirely. The general "GM should still be able to remove items
+   * to override the limit" escape hatch — useful when no actor satisfies retrieval eligibility
+   * (e.g. a delinquent Bank storage rental has stripped the renter's access).
+   */
+  static async #onForceTakeStorageItem(event, target) {
+    if (!game.user.isGM) return;
+    const itemId = target.dataset.itemId;
+    const storage = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const item = (storage.items ?? []).find(i => i.id === itemId);
+    if (!item) return;
+
+    const allActors = game.actors.contents.sort((a, b) => a.name.localeCompare(b.name));
+    const targetActor = await promptActorChoice(allActors, {
       title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.item.takeActorPromptTitle"),
       alwaysShow: true
     });

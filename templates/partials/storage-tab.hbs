@@ -131,6 +131,13 @@
                   </button>
                   {{/if}}
                   {{/if}}
+                  {{#if this.isGM}}
+                  <button type="button" class="icon storage-item-force-take-btn" data-action="forceTakeStorageItem" data-item-id="{{this.id}}"
+                          aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.forceTake'}}"
+                          data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.item.forceTakeTitle'}}">
+                    <i class="fa-solid fa-user-shield"></i>
+                  </button>
+                  {{/if}}
                 </td>
               </tr>
               {{/each}}

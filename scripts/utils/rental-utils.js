@@ -1,0 +1,47 @@
+/**
+ * Advance a delinquent Bank storage rental's owed balance by one charge per full elapsed period
+ * since lastAccrualAt. Additive (a flat recurring charge), not compounding like loan interest.
+ * Pure: returns a new rental object (or the same reference when nothing changed). Used both for
+ * on-read display and for server-authoritative mutation before a payment is applied.
+ */
+export function accrueStorageRent(rental, now, feeStandard) {
+  if (!rental || rental.status !== "delinquent") return rental;
+  const periodSeconds = rental.periodSeconds;
+  if (!periodSeconds || periodSeconds <= 0) return rental;
+  const elapsed = now - (rental.lastAccrualAt ?? now);
+  const periods = Math.floor(elapsed / periodSeconds);
+  if (periods <= 0) return rental;
+  return {
+    ...rental,
+    owedStandard:  (rental.owedStandard ?? 0) + feeStandard * periods,
+    lastAccrualAt: (rental.lastAccrualAt ?? now) + periods * periodSeconds
+  };
+}
+
+/**
+ * Sweep a Bank's rentals for ones whose paid-through date has passed: an empty Storage Area (and
+ * its rental record) is destroyed outright; an occupied Area has the renter's access revoked and
+ * the rental flips to delinquent so accrueStorageRent starts charging. Mutates `bank.rentals` and
+ * the linked Storage entry's groups in place. Returns true if anything changed.
+ */
+export function reclaimExpiredStorageRentals(location, bank, now) {
+  let changed = false;
+  const kept = [];
+  for (const rental of (bank.rentals ?? [])) {
+    if (rental.status !== "active" || (rental.paidThroughAt ?? Infinity) > now) { kept.push(rental); continue; }
+    changed = true;
+    const storageData = location.typeData?.[bank.linkedStorageEntryId];
+    const group = storageData?.groups?.find(g => g.id === rental.groupId);
+    const itemCount = group ? (storageData.items ?? []).filter(i => i.groupId === group.id).length : 0;
+    if (!group || itemCount === 0) {
+      if (storageData && group) storageData.groups = storageData.groups.filter(g => g.id !== group.id);
+      continue; // empty — drop the rental record too, nothing left to protect
+    }
+    group.access = (group.access ?? []).filter(a => a.actorId !== rental.actorId);
+    rental.status = "delinquent";
+    rental.lastAccrualAt = rental.paidThroughAt;
+    kept.push(rental);
+  }
+  bank.rentals = kept;
+  return changed;
+}

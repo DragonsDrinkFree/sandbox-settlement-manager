@@ -1,5 +1,6 @@
 import { MODULE_ID, SETTINGS, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
 import { reclaimExpiredBookings } from "../canvas/lodging-utils.js";
+import { reclaimExpiredStorageRentals } from "../utils/rental-utils.js";
 
 export function getWorldTimeConfig() {
   return {
@@ -53,6 +54,10 @@ async function reclaimExpiredLodgingBookings() {
       for (const entry of getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.INN)) {
         const inn = location.typeData?.[entry.id];
         if (inn && reclaimExpiredBookings(location, inn, now)) changed = true;
+      }
+      for (const entry of getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.BANK)) {
+        const bank = location.typeData?.[entry.id];
+        if (bank?.rentals?.length && reclaimExpiredStorageRentals(location, bank, now)) changed = true;
       }
     }
     if (changed) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, cloned);

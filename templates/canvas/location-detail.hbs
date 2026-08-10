@@ -502,6 +502,74 @@
         {{/if}}
         {{/if}}
       </fieldset>
+
+      <fieldset class="ssm-bank-section ssm-bank-rentals">
+        <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.title"}}</legend>
+        {{#if this.bankData.selectedActorId}}
+        <div class="ssm-rental-gm-bar">
+          <button type="button" data-action="rentStorage" class="ssm-rental-rent-btn"{{#unless this.bankData.hasStorageRentalOptions}} disabled{{/unless}}>
+            <i class="fa-solid fa-box"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentButton"}}
+          </button>
+        </div>
+        {{#if this.bankData.processedRentals.length}}
+        <ul class="ssm-rentals-list">
+          {{#each this.bankData.processedRentals}}
+          <li class="ssm-rental-entry{{#if this.isDelinquent}} ssm-rental-delinquent{{else}} ssm-rental-active{{/if}}" data-rental-id="{{this.id}}">
+            {{#unless this.isDelinquent}}
+            <div class="ssm-rental-terms">
+              <span class="ssm-rental-storage-type">{{this.storageTypeName}}</span>
+              <span class="ssm-rental-fee">{{this.feeLabel}}</span>
+              <span class="ssm-rental-paid-through">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.paidThrough"}}: {{this.paidThroughLabel}}</span>
+            </div>
+            <div class="ssm-rental-actions">
+              <button type="button" data-action="extendStorageRental" data-rental-id="{{this.id}}" class="ssm-rental-extend-btn">
+                {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extend"}}
+              </button>
+              {{#if ../bankData.isGM}}
+              <button type="button" class="icon ssm-rental-cancel-btn" data-action="cancelStorageRental" data-rental-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancel'}}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              {{/if}}
+            </div>
+            {{else}}
+            <div class="ssm-rental-terms">
+              <span class="ssm-rental-badge">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.delinquentBadge"}}</span>
+              <span class="ssm-rental-storage-type">{{this.storageTypeName}}</span>
+              <span class="ssm-rental-owed-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.owed"}}:</span>
+              <span class="ssm-rental-owed">{{this.owedLabel}}</span>
+              {{#if ../bankData.isGM}}
+              <span class="ssm-rental-gm-actions">
+                <button type="button" class="icon ssm-rental-cancel-btn" data-action="cancelStorageRental" data-rental-id="{{this.id}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancel'}}">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </span>
+              {{/if}}
+            </div>
+            <div class="ssm-rental-pay-form">
+              {{#each ../bankData.currencies}}
+              <div class="ssm-deposit-currency-row">
+                <label class="ssm-deposit-currency-label">{{this.abbreviation}}</label>
+                <input type="number" class="ssm-rental-pay-input" data-currency-id="{{this.id}}" min="0" max="{{this.balance}}" step="1" placeholder="0">
+              </div>
+              {{/each}}
+              <div class="ssm-rental-pay-actions">
+                <button type="button" data-action="payStorageRent" data-rental-id="{{this.id}}" class="ssm-rental-pay-btn">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.pay"}}
+                </button>
+                <button type="button" data-action="payOffStorageRent" data-rental-id="{{this.id}}" class="ssm-rental-payoff-btn">
+                  {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payOff"}}
+                </button>
+              </div>
+            </div>
+            {{/unless}}
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.noRentals"}}</em></p>
+        {{/if}}
+        {{/if}}
+      </fieldset>
     </div>
     {{else if this.isStorage}}
     {{> ssm-storage-tab this.storageData}}

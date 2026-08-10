@@ -1,6 +1,8 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
-import { grantCoinsToActor, grantStandardToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue } from "./utils/currency-utils.js";
-import { accrueLoan } from "./utils/loan-utils.js";
+import { grantCoinsToActor, grantStandardToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
+import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
+import { accrueStorageRent } from "./utils/rental-utils.js";
+import { getWorldTimeConfig } from "./time/world-time.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
@@ -11,7 +13,10 @@ export const SOCKET_TYPES = {
   RECORD_LEDGER_ENTRIES:  "recordLedgerEntries",
   ACCEPT_LOAN:            "acceptLoan",
   DECLINE_LOAN:           "declineLoan",
-  REPAY_LOAN:             "repayLoan"
+  REPAY_LOAN:             "repayLoan",
+  RENT_STORAGE:           "rentStorage",
+  EXTEND_STORAGE_RENTAL:  "extendStorageRental",
+  PAY_STORAGE_RENT:       "payStorageRent"
 };
 
 export function registerSocketHandlers() {
@@ -37,6 +42,12 @@ export function registerSocketHandlers() {
       await _handleDeclineLoan(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.REPAY_LOAN) {
       await _handleRepayLoan(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.RENT_STORAGE) {
+      await _handleRentStorage(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.EXTEND_STORAGE_RENTAL) {
+      await _handleExtendStorageRental(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.PAY_STORAGE_RENT) {
+      await _handlePayStorageRent(data.payload ?? data);
     } else {
       console.warn(`${MODULE_ID} | Unknown socket message type: ${data.type}`);
     }
@@ -316,6 +327,142 @@ export async function _handleRepayLoan({ loanId, payCoins, locationId, entryId, 
   } else {
     bank.loans[idx] = { ...accrued, balanceStandard: newBalance };
   }
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  _refreshBankApps();
+}
+
+/**
+ * Load a location fresh (deepClone) from its scene flag by id. Returns { scene, locations,
+ * location } or null if anything is missing. Shared by the three storage-rental handlers below.
+ */
+function _loadLocation(sceneId, locationId) {
+  const scene = game.scenes.get(sceneId);
+  if (!scene) return null;
+  const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
+  const location  = locations.find(r => r.id === locationId);
+  if (!location) return null;
+  return { scene, locations, location };
+}
+
+/**
+ * GM-side: a player rents a Storage Area from a Bank's linked Storage entry. Re-resolves the
+ * chosen storageRentalOptions row server-side (never trusts client-provided pricing), creates the
+ * Storage Group with the renter as Primary access, and records the rental paid through `periods`
+ * periods from now. Mirrors createNewLodgingBooking's group-creation shape in lodging-fulfillment.js.
+ */
+export async function _handleRentStorage({ optionId, periods, actorId, actorName, locationId, entryId, sceneId, userId }) {
+  if (!_userOwnsActor(userId, actorId)) return;
+  const ctx = _loadLocation(sceneId, locationId);
+  if (!ctx) return;
+  const { scene, locations, location } = ctx;
+  const bank = location.typeData?.[entryId];
+  if (!bank || !bank.linkedStorageEntryId) return;
+  const option = (bank.storageRentalOptions ?? []).find(o => o.id === optionId);
+  if (!option || !(periods > 0)) return;
+  const storageData = location.typeData?.[bank.linkedStorageEntryId];
+  if (!storageData) return;
+
+  const now = game.time.worldTime;
+  const { hoursPerDay } = getWorldTimeConfig();
+  const periodSeconds = periodSecondsFor(option.periodUnit, hoursPerDay * 3600);
+
+  const n = option.nextAreaNumber ?? 1;
+  const group = {
+    id: foundry.utils.randomID(),
+    name: `${option.namingTemplate ?? ""}${n}`,
+    storageTypeId: option.storageTypeId,
+    access: [{ actorId, level: "primary" }],
+    retrievalPolicyOverride: null
+  };
+  storageData.groups = [...(storageData.groups ?? []), group];
+  option.nextAreaNumber = n + 1;
+
+  bank.rentals = [...(bank.rentals ?? []), {
+    id: foundry.utils.randomID(),
+    actorId, actorName,
+    groupId: group.id,
+    storageTypeId: option.storageTypeId,
+    feeAmount: option.feeAmount,
+    feeCurrencyId: option.feeCurrencyId,
+    periodUnit: option.periodUnit,
+    periodSeconds,
+    paidThroughAt: now + periods * periodSeconds,
+    status: "active",
+    owedStandard: 0,
+    lastAccrualAt: null,
+    createdAt: now
+  }];
+
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  _refreshBankApps();
+}
+
+/** GM-side: a player prepays additional periods on an active (not delinquent) storage rental. */
+export async function _handleExtendStorageRental({ rentalId, periods, locationId, entryId, sceneId, userId }) {
+  const ctx = _loadLocation(sceneId, locationId);
+  if (!ctx) return;
+  const { scene, locations, location } = ctx;
+  const bank = location.typeData?.[entryId];
+  const rental = bank?.rentals?.find(r => r.id === rentalId);
+  if (!rental || rental.status !== "active" || !(periods > 0)) return;
+  if (!_userOwnsActor(userId, rental.actorId)) return;
+
+  const now  = game.time.worldTime;
+  const base = Math.max(rental.paidThroughAt ?? now, now);
+  rental.paidThroughAt = base + periods * rental.periodSeconds;
+
+  await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
+  _refreshBankApps();
+}
+
+/**
+ * GM-side: a player pays against a delinquent storage rental's owed balance. The actor was already
+ * debited the paid coins client-side; here we accrue to now (server-authoritative), subtract the
+ * payment, and — once the debt is cleared — flip the rental back to active, re-grant the renter's
+ * access to the Storage Area, and refund any overpayment (same capped-denomination handling as
+ * _handleRepayLoan).
+ */
+export async function _handlePayStorageRent({ rentalId, payCoins, locationId, entryId, sceneId, userId }) {
+  const ctx = _loadLocation(sceneId, locationId);
+  if (!ctx) return;
+  const { scene, locations, location } = ctx;
+  const bank = location.typeData?.[entryId];
+  const idx  = bank?.rentals?.findIndex(r => r.id === rentalId) ?? -1;
+  if (idx === -1) return;
+  const rental = bank.rentals[idx];
+  if (rental.status !== "delinquent") return;
+  if (!_userOwnsActor(userId, rental.actorId)) return;
+
+  const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? { currencies: [] };
+  const currencies     = currencyConfig.currencies ?? [];
+  const mode           = currencyConfig.mode ?? 'loose';
+  const now            = game.time.worldTime;
+
+  const feeStandard = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
+  const accrued      = accrueStorageRent(rental, now, feeStandard);
+  const payStandard   = totalOfferedInStandard(payCoins ?? {}, currencies);
+  const newOwed       = (accrued.owedStandard ?? 0) - payStandard;
+
+  if (newOwed <= 1e-6) {
+    const storageData = location.typeData?.[bank.linkedStorageEntryId];
+    const group = storageData?.groups?.find(g => g.id === rental.groupId);
+    if (group && !(group.access ?? []).some(a => a.actorId === rental.actorId)) {
+      group.access = [...(group.access ?? []), { actorId: rental.actorId, level: "primary" }];
+    }
+    const overpay = -newOwed;
+    if (overpay > 1e-6 && mode !== 'loose') {
+      const actor = game.actors.get(rental.actorId);
+      if (actor) {
+        const paidRates = Object.keys(payCoins ?? {}).map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+        const maxDenom  = paidRates.length ? Math.max(...paidRates) : getMaxDenomValue(currencies);
+        await grantStandardToActor(actor, overpay, currencies, mode, maxDenom);
+      }
+    }
+    bank.rentals[idx] = { ...accrued, status: "active", owedStandard: 0, lastAccrualAt: null, paidThroughAt: now };
+  } else {
+    bank.rentals[idx] = { ...accrued, owedStandard: newOwed };
+  }
+
   await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   _refreshBankApps();
 }

@@ -24,6 +24,7 @@ import {
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
+import { accrueStorageRent } from "../utils/rental-utils.js";
 import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
@@ -85,7 +86,19 @@ export function buildEntryTypeData(typeId, subType) {
       exchangeFee:     tpl.exchangeFee  ?? 0,
       depositSettings: tpl.depositSettings ?? { global: false, depositFee: 0, minDepositDays: 0, earlyWithdrawalFee: 0 }
     };
-    return { ...bankSettings, _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank), deposits: [], loans: [] };
+    return {
+      ...bankSettings,
+      _templateValues: snapshot(bankSettings, TEMPLATE_FIELDS.bank),
+      deposits: [],
+      loans: [],
+      // Which Storage template this Bank offers rentals from, and (once attached) which Storage
+      // entry on this same Location it's linked to — instance-local, not part of TEMPLATE_FIELDS.bank
+      // (same non-diffed treatment as the Inn's linkedStorageTemplateId).
+      linkedStorageTemplateId: tpl.linkedStorageTemplateId ?? null,
+      linkedStorageEntryId:    null,
+      storageRentalOptions: (tpl.storageRentalOptions ?? []).map(o => instanceFromTemplate(o, TEMPLATE_FIELDS.storageRentalOption, { nextAreaNumber: 1 })),
+      rentals: []
+    };
   }
   if (typeId === LOCATION_TYPE_IDS.STORAGE) {
     const tpl = subType?.typeData?.storage ?? {};
@@ -116,30 +129,36 @@ export function ensureStorageEntryForTemplate(entries, linkedTemplateId) {
 }
 
 /**
- * If `typeId`/`subTypeId` is an Inn template with a linked Storage template, ensure a matching
- * Storage entry exists in `entries` (see ensureStorageEntryForTemplate). Forward-only by design: only
- * called at the moment an Inn entry is newly attached, never re-checked for pre-existing Inn entries
- * (see reconcileLinkedStorageForEntry for that). Returns the Storage entry's id, or null if this
- * isn't a linked Inn.
+ * If `typeId`/`subTypeId` is an Inn or Bank template with a linked Storage template, ensure a
+ * matching Storage entry exists in `entries` (see ensureStorageEntryForTemplate). Forward-only by
+ * design: only called at the moment an Inn/Bank entry is newly attached, never re-checked for
+ * pre-existing entries (see reconcileLinkedStorageForEntry for that). Returns the Storage entry's
+ * id, or null if this isn't a linked Inn/Bank. Inn stores its link flat on typeData; Bank nests all
+ * its template fields under typeData.bank, so the link lives at typeData.bank.linkedStorageTemplateId.
  */
 export function ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap) {
-  if (typeId !== LOCATION_TYPE_IDS.INN) return null;
-  const innSubType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
-  return ensureStorageEntryForTemplate(entries, innSubType?.typeData?.linkedStorageTemplateId ?? null);
+  const subType = (subTypeMap[typeId] ?? []).find(s => s.id === subTypeId);
+  const linkedTemplateId =
+    typeId === LOCATION_TYPE_IDS.INN  ? (subType?.typeData?.linkedStorageTemplateId ?? null) :
+    typeId === LOCATION_TYPE_IDS.BANK ? (subType?.typeData?.bank?.linkedStorageTemplateId ?? null) :
+    null;
+  return ensureStorageEntryForTemplate(entries, linkedTemplateId);
 }
 
 /**
- * After saving an Inn entry's own local config (SubTypeEditApp.openForEntry), ensure its
+ * After saving an Inn or Bank entry's own local config (SubTypeEditApp.openForEntry), ensure its
  * linkedStorageTemplateId (if any) has a matching Storage entry attached to this Location — reusing
  * one already attached if present, else creating a new typeEntries item. Mutates
- * `location.typeEntries` in place and stamps `innResult.linkedStorageEntryId`. Returns
+ * `location.typeEntries` in place and stamps `entryResult.linkedStorageEntryId`. Returns
  * { id, data, typeEntries } describing a brand-new Storage entry that still needs its typeData
  * persisted by the caller, or null if nothing new is needed (already linked, or no link configured).
+ * Type-agnostic — only reads/writes `entryResult`'s flat linkedStorageTemplateId/linkedStorageEntryId
+ * fields, which both Inn and Bank instance data carry.
  */
-export function reconcileLinkedStorageForEntry(location, innResult, subTypeMap) {
+export function reconcileLinkedStorageForEntry(location, entryResult, subTypeMap) {
   const entries = getTypeEntries(location);
-  const linkedStorageEntryId = ensureStorageEntryForTemplate(entries, innResult.linkedStorageTemplateId ?? null);
-  innResult.linkedStorageEntryId = linkedStorageEntryId;
+  const linkedStorageEntryId = ensureStorageEntryForTemplate(entries, entryResult.linkedStorageTemplateId ?? null);
+  entryResult.linkedStorageEntryId = linkedStorageEntryId;
   location.typeEntries = entries;
   if (!linkedStorageEntryId || location.typeData?.[linkedStorageEntryId]) return null;
 
@@ -222,6 +241,45 @@ export function buildLoanDisplayList(loans, now, secondsPerDay, currencies) {
       nextInterestDays,
       nextInterestLabel: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.nextInterest", { days: nextInterestDays })
     };
+  });
+}
+
+/**
+ * Turn a Bank's raw storage-rental records into display rows. Delinquent rentals are accrued
+ * on-read (pure) to show the current owed amount growing period-by-period — payments/mutations
+ * persist elsewhere, this only derives what to display, so it never writes.
+ */
+export function buildRentalDisplayList(location, bank, now, currencies) {
+  const periodLabelKey = { day: "day", week: "week", month: "month" };
+  const storageTypes = location.typeData?.[bank.linkedStorageEntryId]?.storageTypes ?? [];
+  return (bank.rentals ?? []).map(raw => {
+    const feeStandard = costInStandard({ currencyId: raw.feeCurrencyId, amount: raw.feeAmount }, currencies);
+    const rental = accrueStorageRent(raw, now, feeStandard);
+    const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${periodLabelKey[rental.periodUnit] ?? "week"}`);
+    const feeLabel = game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.feePerPeriod", {
+      fee: formatAmounts({ [rental.feeCurrencyId]: rental.feeAmount }, currencies), period: periodLabel
+    });
+    const storageTypeName = storageTypes.find(st => st.id === rental.storageTypeId)?.name ?? "—";
+    const isDelinquent = rental.status === "delinquent";
+    const common = {
+      id:         rental.id,
+      actorId:    rental.actorId,
+      actorName:  rental.actorName,
+      groupId:    rental.groupId,
+      status:     rental.status,
+      isDelinquent,
+      storageTypeName,
+      feeLabel
+    };
+    if (isDelinquent) {
+      const owedCoins = computeOwedCoins(rental.owedStandard, currencies);
+      return { ...common, owedLabel: formatAmounts(owedCoins, currencies) };
+    }
+    const remaining = (rental.paidThroughAt ?? now) - now;
+    const paidThroughLabel = remaining <= 0
+      ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.dueNow")
+      : (() => { const { totalDays, hour, minute } = secondsToComponents(remaining); return `${totalDays}d ${hour}h ${String(minute).padStart(2, "0")}m`; })();
+    return { ...common, paidThroughLabel };
   });
 }
 
@@ -621,6 +679,21 @@ export function buildBankData(app, entry, location, currencies) {
   const actorLoans = app._bankActorId ? rawLoans.filter(l => l.actorId === app._bankActorId) : [];
   const processedLoans = buildLoanDisplayList(actorLoans, now, secondsPerDay, currencies);
 
+  const allProcessedRentals = buildRentalDisplayList(location, bankRaw, now, currencies);
+  const processedRentals = app._bankActorId ? allProcessedRentals.filter(r => r.actorId === app._bankActorId) : [];
+  const storageRentalOptionRows = (bankRaw.storageRentalOptions ?? []).map(o => {
+    const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${{ day: "day", week: "week", month: "month" }[o.periodUnit] ?? "week"}`);
+    const storageType = (location.typeData?.[bankRaw.linkedStorageEntryId]?.storageTypes ?? []).find(st => st.id === o.storageTypeId);
+    return {
+      id: o.id,
+      label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
+        name: storageType?.name ?? "—",
+        fee: formatAmounts({ [o.feeCurrencyId]: o.feeAmount }, currencies),
+        period: periodLabel
+      })
+    };
+  });
+
   return {
     doesExchange,
     exchangeFee,
@@ -638,6 +711,10 @@ export function buildBankData(app, entry, location, currencies) {
     depositsTotal,
     processedLoans,
     hasLoans: processedLoans.length > 0,
+    processedRentals,
+    hasRentals: processedRentals.length > 0,
+    storageRentalOptions: storageRentalOptionRows,
+    hasStorageRentalOptions: storageRentalOptionRows.length > 0,
     isOverridden: settingsOverridden,
     hasTemplate,
     isGM: game.user.isGM,
@@ -692,6 +769,7 @@ export function buildStorageData(app, entry, location) {
         canTake:             takeableByMyActors.length > 0,
         takeableByMyActors,
         canManageOwnership:  isGM || myActorIds.includes(item.depositedByActorId),
+        isGM,
         isGroupProperty:     ownershipMode === "group",
         isAssigned:          ownershipMode === "assigned",
         // "group" mode is conveyed by the Group Accessible checkbox itself — no separate badge needed.

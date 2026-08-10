@@ -51,6 +51,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lodgingPriceVarRounding = null;
   _lodgingRefreshCadence = null;
   _linkedStorageTemplateId = null; // tracks the linkedStorageTemplateId <select> across re-renders
+  _bankLinkedStorageTemplateId = null; // tracks the Bank's own linkedStorageTemplateId <select> across re-renders
+  _storageRentalOptions = [];
   _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
@@ -89,6 +91,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
       addStorageType:             SubTypeEditApp.#onAddStorageType,
       deleteStorageType:          SubTypeEditApp.#onDeleteStorageType,
+      addStorageRentalOption:     SubTypeEditApp.#onAddStorageRentalOption,
+      deleteStorageRentalOption:  SubTypeEditApp.#onDeleteStorageRentalOption,
       sortInventory:              SubTypeEditApp.#onSortInventory,
       importFromCompendium:       SubTypeEditApp.#onImportFromCompendium,
       switchMerchantTab:          SubTypeEditApp.#onSwitchMerchantTab,
@@ -112,6 +116,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
       app._purchasingProfile  = foundry.utils.deepClone(subType.typeData?.merchant?.purchasingProfile ?? []);
       app._storageTypes       = foundry.utils.deepClone(subType.typeData?.storage?.storageTypes ?? []);
+      app._storageRentalOptions = foundry.utils.deepClone(subType.typeData?.bank?.storageRentalOptions ?? []);
       app._resolve  = resolve;
       app.render(true);
     });
@@ -133,7 +138,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       syntheticTypeData.bank = {
         doesExchange:    entryData.doesExchange ?? false,
         exchangeFee:     entryData.exchangeFee  ?? 0,
-        depositSettings: entryData.depositSettings ?? {}
+        depositSettings: entryData.depositSettings ?? {},
+        linkedStorageTemplateId: entryData.linkedStorageTemplateId ?? null,
+        storageRentalOptions:    entryData.storageRentalOptions ?? []
       };
     }
     if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
@@ -166,6 +173,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._lodgingPriceVarRounding   = entryData.lodgingPriceVarRounding   ?? null;
       app._lodgingRefreshCadence     = entryData.lodgingRefreshCadence     ?? null;
       app._linkedStorageTemplateId   = entryData.linkedStorageTemplateId  ?? null;
+      app._bankLinkedStorageTemplateId = entryData.linkedStorageTemplateId ?? null;
+      app._storageRentalOptions        = foundry.utils.deepClone(entryData.storageRentalOptions ?? []);
       app._resolve = resolve;
       app.render(true);
     });
@@ -200,10 +209,16 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const storageTemplateOptions = storageTemplates.map(t => ({ id: t.id, name: t.name, selected: t.id === linkedStorageTemplateId }));
     const hasLinkedStorageTemplate = !!linkedStorageTemplateId;
 
+    const bankLinkedStorageTemplateId = this._bankLinkedStorageTemplateId ?? this._subType.typeData?.bank?.linkedStorageTemplateId ?? "";
+    const bankStorageTemplateOptions = storageTemplates.map(t => ({ id: t.id, name: t.name, selected: t.id === bankLinkedStorageTemplateId }));
+    const bankHasLinkedStorageTemplate = !!bankLinkedStorageTemplateId;
+    const bankLinkedStorageTypes = storageTemplates.find(t => t.id === bankLinkedStorageTemplateId)?.typeData?.storage?.storageTypes ?? [];
+
     let lodgings = [];
     let currencies = [];
     let courses = [];
     let templateInventory = [];
+    let storageRentalOptions = [];
     if (showInnSections || showMerchantSection || showBankSection) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
@@ -242,6 +257,19 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
             }));
           }
           return entry;
+        }));
+      }
+      if (showBankSection) {
+        storageRentalOptions = this._storageRentalOptions.map(o => ({
+          id: o.id,
+          price: { currencyId: o.feeCurrencyId || defaultCurrencyId, amount: o.feeAmount ?? 0 },
+          namingTemplate: o.namingTemplate ?? "",
+          storageTypeOptions: bankLinkedStorageTypes.map(st => ({ id: st.id, name: st.name, selected: st.id === o.storageTypeId })),
+          periodOptions: ["day", "week", "month"].map(u => ({
+            id: u,
+            label: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${u}`),
+            selected: (o.periodUnit ?? "week") === u
+          }))
         }));
       }
     }
@@ -309,6 +337,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       linkedStorageTemplateId,
       storageTemplateOptions,
       hasLinkedStorageTemplate,
+      bankLinkedStorageTemplateId,
+      bankStorageTemplateOptions,
+      bankHasLinkedStorageTemplate,
+      storageRentalOptions,
       merchantTab: this._merchantTab,
       purchasingProfile: this._purchasingProfile.map(r => ({
         ...r,
@@ -337,6 +369,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
       this.#syncStorageTypesFromDOM();
+      this.#syncStorageRentalOptionsFromDOM();
       this.render({ parts: ["form"] });
     });
 
@@ -345,6 +378,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelector('[name="linkedStorageTemplateId"]')?.addEventListener('change', () => {
       this.#syncSubTypeName();
       this.#syncLodgingsFromDOM();
+      this.render({ parts: ["form"] });
+    });
+
+    // Same idea for the Bank's own linked Storage template — repopulates every Storage Rental
+    // Option row's Storage Type dropdown.
+    this.element.querySelector('[name="bankLinkedStorageTemplateId"]')?.addEventListener('change', () => {
+      this.#syncSubTypeName();
+      this.#syncStorageRentalOptionsFromDOM();
       this.render({ parts: ["form"] });
     });
   }
@@ -493,6 +534,24 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  #syncStorageRentalOptionsFromDOM() {
+    const rows = this.element?.querySelectorAll('.storage-rental-option-row') ?? [];
+    if (!rows.length && this._storageRentalOptions.length) return;
+    const byId = new Map(this._storageRentalOptions.map(o => [o.id, o]));
+    this._storageRentalOptions = [...rows].map(row => {
+      const id = row.dataset.optionId || foundry.utils.randomID();
+      return {
+        ...(byId.get(id) ?? {}),
+        id,
+        storageTypeId:  row.querySelector('[data-field="storageTypeId"]')?.value || null,
+        feeAmount:      parseFloat(row.querySelector('[data-field="feeAmount"]')?.value) || 0,
+        feeCurrencyId:  row.querySelector('[data-field="feeCurrencyId"]')?.value ?? "",
+        periodUnit:     row.querySelector('[data-field="periodUnit"]')?.value ?? "week",
+        namingTemplate: (row.querySelector('[data-field="namingTemplate"]')?.value ?? "").trim()
+      };
+    });
+  }
+
   /** Build a template inventory entry from an Item document. */
   #makeInventoryEntry(item, currencies) {
     return {
@@ -534,6 +593,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
       this.#syncStorageTypesFromDOM();
+      this.#syncStorageRentalOptionsFromDOM();
 
       if (data.type === 'Item') {
         const item = await fromUuid(data.uuid).catch(() => null);
@@ -595,6 +655,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (lvCad) this._lodgingRefreshCadence = lvCad.value;
     const lst = this.element?.querySelector('[name="linkedStorageTemplateId"]');
     if (lst) this._linkedStorageTemplateId = lst.value || null;
+    const blst = this.element?.querySelector('[name="bankLinkedStorageTemplateId"]');
+    if (blst) this._bankLinkedStorageTemplateId = blst.value || null;
   }
 
   static #onAddLodging() {
@@ -799,6 +861,30 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static #onAddStorageRentalOption() {
+    this.#syncSubTypeName();
+    this.#syncStorageRentalOptionsFromDOM();
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const defaultCurrencyId = getStandardCurrency(currencyConfig.currencies ?? [])?.id ?? "";
+    this._storageRentalOptions.push({
+      id:            foundry.utils.randomID(),
+      storageTypeId: null,
+      feeAmount:     0,
+      feeCurrencyId: defaultCurrencyId,
+      periodUnit:    "week",
+      namingTemplate: ""
+    });
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteStorageRentalOption(event, target) {
+    this.#syncSubTypeName();
+    this.#syncStorageRentalOptionsFromDOM();
+    const index = parseInt(target.dataset.index);
+    this._storageRentalOptions.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
   static async #onSortInventory() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
@@ -902,11 +988,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const depositFee         = Math.max(0, Math.min(100, parseFloat(formData.object.bankDepositFee) || 0));
       const minDepositDays     = Math.max(0, parseInt(formData.object.bankMinDepositDays) || 0);
       const earlyWithdrawalFee = Math.max(0, Math.min(100, parseFloat(formData.object.bankEarlyWithdrawalFee) || 0));
+      const linkedStorageTemplateId = form.querySelector('[name="bankLinkedStorageTemplateId"]')?.value || null;
+      this.#syncStorageRentalOptionsFromDOM();
       result.typeData = {
         bank: {
           doesExchange,
           exchangeFee,
-          depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee }
+          depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee },
+          linkedStorageTemplateId,
+          storageRentalOptions: this._storageRentalOptions.filter(o => o.storageTypeId)
         }
       };
     }
@@ -987,7 +1077,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const depositFee         = Math.max(0, Math.min(100, parseFloat(formData.object.bankDepositFee) || 0));
       const minDepositDays     = Math.max(0, parseInt(formData.object.bankMinDepositDays) || 0);
       const earlyWithdrawalFee = Math.max(0, Math.min(100, parseFloat(formData.object.bankEarlyWithdrawalFee) || 0));
-      result = { ...base, doesExchange, exchangeFee, depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee } };
+      const linkEl = form.querySelector('[name="bankLinkedStorageTemplateId"]');
+      this.#syncStorageRentalOptionsFromDOM();
+      result = {
+        ...base,
+        doesExchange, exchangeFee,
+        depositSettings: { global: depositGlobal, depositFee, minDepositDays, earlyWithdrawalFee },
+        linkedStorageTemplateId: (linkEl ? linkEl.value : this._bankLinkedStorageTemplateId) || null,
+        storageRentalOptions: this._storageRentalOptions.filter(o => o.storageTypeId)
+      };
     } else if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
       const stockType        = (formData.object.merchantStockType        ?? "percent");
       const restockFrequency = (formData.object.merchantRestockFrequency ?? "weekly");

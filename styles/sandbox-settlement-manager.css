@@ -3727,6 +3727,143 @@
   margin: 0.2rem 0 0;
 }
 
+/* Bank storage rentals */
+#sandbox-settlement-manager-settlement-manage .ssm-rental-gm-bar,
+#sandbox-settlement-manager-location-detail .ssm-rental-gm-bar {
+  display: flex;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-rent-btn,
+#sandbox-settlement-manager-location-detail .ssm-rental-rent-btn {
+  font-size: 0.82em;
+  padding: 0.15rem 0.6rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rentals-list,
+#sandbox-settlement-manager-location-detail .ssm-rentals-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-entry,
+#sandbox-settlement-manager-location-detail .ssm-rental-entry {
+  padding: 0.35rem 0.5rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-entry.ssm-rental-delinquent,
+#sandbox-settlement-manager-location-detail .ssm-rental-entry.ssm-rental-delinquent {
+  background: rgba(150,0,0,0.1);
+  border: 1px solid rgba(180,0,0,0.35);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-terms,
+#sandbox-settlement-manager-location-detail .ssm-rental-terms {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-badge,
+#sandbox-settlement-manager-location-detail .ssm-rental-badge {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(180,0,0,0.25);
+  color: var(--color-text-dark-warning, #a80000);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-storage-type,
+#sandbox-settlement-manager-location-detail .ssm-rental-storage-type,
+#sandbox-settlement-manager-settlement-manage .ssm-rental-owed,
+#sandbox-settlement-manager-location-detail .ssm-rental-owed {
+  font-weight: 600;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-owed-label,
+#sandbox-settlement-manager-location-detail .ssm-rental-owed-label {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-fee,
+#sandbox-settlement-manager-location-detail .ssm-rental-fee,
+#sandbox-settlement-manager-settlement-manage .ssm-rental-paid-through,
+#sandbox-settlement-manager-location-detail .ssm-rental-paid-through {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-actions,
+#sandbox-settlement-manager-location-detail .ssm-rental-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-actions button,
+#sandbox-settlement-manager-location-detail .ssm-rental-actions button {
+  font-size: 0.8em;
+  padding: 0.1rem 0.5rem;
+  flex: 0 0 auto;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-gm-actions,
+#sandbox-settlement-manager-location-detail .ssm-rental-gm-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-pay-form,
+#sandbox-settlement-manager-location-detail .ssm-rental-pay-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-top: 0.3rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-pay-input,
+#sandbox-settlement-manager-location-detail .ssm-rental-pay-input {
+  width: 4rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-pay-actions,
+#sandbox-settlement-manager-location-detail .ssm-rental-pay-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-settlement-manage .ssm-rental-pay-actions button,
+#sandbox-settlement-manager-location-detail .ssm-rental-pay-actions button {
+  font-size: 0.8em;
+  padding: 0.1rem 0.5rem;
+  flex: 0 0 auto;
+}
+
+/* GM Force Take on a stored item — visually distinct from the ordinary Take/Give icons */
+#sandbox-settlement-manager-settlement-manage .storage-item-force-take-btn i,
+#sandbox-settlement-manager-location-detail .storage-item-force-take-btn i {
+  color: var(--color-text-dark-warning, #a80000);
+}
+
 /* Withdrawal dialog */
 #sandbox-settlement-manager-withdrawal-dialog .ssm-withdraw-row {
   display: flex;
