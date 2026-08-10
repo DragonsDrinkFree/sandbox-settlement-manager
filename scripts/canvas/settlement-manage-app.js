@@ -43,6 +43,21 @@ async function promptQuantity(max, { title } = {}) {
   return result ?? null;
 }
 
+/** Prompt for a Storage Area's private GM note. Returns the trimmed string, or null if cancelled. */
+async function promptStorageGroupNote(currentNote) {
+  const result = await foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.noteTitle") },
+    content: `<div class="form-group" style="flex-direction: column; align-items: stretch;">
+      <label style="margin-bottom: 0.3rem;">${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.noteLabel")}</label>
+      <textarea name="note" rows="5" style="width: 100%;" placeholder="${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.notePlaceholder")}">${currentNote ?? ""}</textarea></div>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
+      callback: (event, btn) => btn.form.querySelector('[name="note"]')?.value ?? ""
+    }
+  });
+  return result === null ? null : result.trim();
+}
+
 /** Prompt to pick one of several actors (e.g. which of the player's actors receives a taken item). */
 async function promptActorChoice(actors, { title, label, alwaysShow = false } = {}) {
   if (!actors.length) return null;
@@ -118,6 +133,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       cancelLoan:             SettlementManageApp.#onCancelLoan,
       editLoan:               SettlementManageApp.#onEditLoan,
       addStorageGroup:        SettlementManageApp.#onAddStorageGroup,
+      editStorageGroupNote:   SettlementManageApp.#onEditStorageGroupNote,
       editStorageGroup:       SettlementManageApp.#onEditStorageGroup,
       deleteStorageGroup:     SettlementManageApp.#onDeleteStorageGroup,
       takeStorageItem:        SettlementManageApp.#onTakeStorageItem,
@@ -1420,6 +1436,20 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!result) return;
     const index = storage.groups.findIndex(g => g.id === groupId);
     storage.groups[index] = result;
+    await this.#saveEntryData(this._activeTab, storage);
+  }
+
+  static async #onEditStorageGroupNote(event, target) {
+    if (!game.user.isGM) return;
+    const groupId = target.dataset.groupId;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const storage = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { storageTypes: [], groups: [], items: [] });
+    const group = (storage.groups ?? []).find(g => g.id === groupId);
+    if (!group) return;
+    const note = await promptStorageGroupNote(group.note ?? "");
+    if (note === null) return;
+    group.note = note;
     await this.#saveEntryData(this._activeTab, storage);
   }
 

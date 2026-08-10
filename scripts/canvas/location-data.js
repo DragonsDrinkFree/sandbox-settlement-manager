@@ -722,6 +722,8 @@ export function buildStorageData(app, entry, location) {
         isPrimary: a.level === "primary"
       })).sort((a, b) => (a.isPrimary === b.isPrimary) ? a.actorName.localeCompare(b.actorName) : (a.isPrimary ? -1 : 1)),
       canManageGuests:         isGM || canManageGuests(group, myActorIds),
+      note:                    group.note ?? "",
+      hasNote:                 !!(group.note && group.note.trim()),
       retrievalPolicyOverride: group.retrievalPolicyOverride ?? null,
       effectivePolicy,
       usedWeight,

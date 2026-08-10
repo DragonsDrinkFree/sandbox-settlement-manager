@@ -51,6 +51,11 @@
           </div>
         </div>
         <div class="storage-group-controls">
+          <button type="button" class="icon{{#if this.hasNote}} has-note{{/if}}" data-action="editStorageGroupNote" data-group-id="{{this.id}}"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.noteTooltip'}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.storage.group.noteTooltip'}}">
+            <i class="fa-solid fa-note-sticky"></i>
+          </button>
           <button type="button" class="icon" data-action="editStorageGroup" data-group-id="{{this.id}}"
                   aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
             <i class="fa-solid fa-pen-to-square"></i>

@@ -4441,6 +4441,11 @@ hr.ssm-settings-divider {
   margin-left: auto;
 }
 
+#sandbox-settlement-manager-settlement-manage .storage-group-controls .icon.has-note i,
+#sandbox-settlement-manager-location-detail .storage-group-controls .icon.has-note i {
+  color: var(--color-text-success, #4a8);
+}
+
 #sandbox-settlement-manager-settlement-manage .storage-group-drop-zone,
 #sandbox-settlement-manager-location-detail .storage-group-drop-zone {
   border: 2px dashed var(--color-border-light-secondary, #aaa);
