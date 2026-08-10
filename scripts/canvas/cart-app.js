@@ -244,17 +244,17 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const result = await PurchaseDialog.open({ expense, currencies, mode });
       if (!result) return;
       await CartApp.#recordLedgerEntries(items, result.actorId, currencies);
-      await CartApp.#processFulfillments(items, result.actorId, currencies, mode);
+      await CartApp.#processFulfillments(items, result.actorId, currencies, mode, result.receivingActorId);
     } else if (netStd < -1e-9) {
       // Merchant owes player — grant currency constrained to settlement denomination
       await grantStandardToActor(game.actors.get(actorId), Math.abs(netStd), currencies, mode, maxDenomValue);
       await CartApp.#recordLedgerEntries(items, actorId, currencies);
-      await CartApp.#processFulfillments(items, actorId, currencies, mode);
+      await CartApp.#processFulfillments(items, actorId, currencies, mode, actorId);
     } else {
       // Balanced — just fulfill both sides
       if (!items.length) return;
       await CartApp.#recordLedgerEntries(items, actorId, currencies);
-      await CartApp.#processFulfillments(items, actorId, currencies, mode);
+      await CartApp.#processFulfillments(items, actorId, currencies, mode, actorId);
     }
 
     cartManager.clear();
@@ -341,7 +341,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */
-  static async #processFulfillments(items, actorId, currencies = [], mode = 'loose') {
+  static async #processFulfillments(items, actorId, currencies = [], mode = 'loose', receivingActorId = actorId) {
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const secondsPerDay  = hoursPerDay * 3600;
     const secondsPerWeek = secondsPerDay * daysPerWeek;
@@ -479,8 +479,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    // Grant linked Foundry items to the purchasing actor
-    const actor = actorId ? game.actors.get(actorId) : null;
+    // Grant linked Foundry items to the receiving actor
+    const actor = receivingActorId ? game.actors.get(receivingActorId) : null;
     if (actor) {
       for (const item of items.filter(i => (i.type === 'menuItem' || i.type === 'merchantItem') && i.itemLinkedId)) {
         const source = await fromUuid(item.itemLinkedId).catch(() => null);

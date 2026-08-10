@@ -221,7 +221,8 @@
     "purchase": {
       "title": "Purchase",
       "buy": "Buy",
-      "actorLabel": "Character",
+      "actorLabel": "Purchasing Character",
+      "receivingActorLabel": "Receiving Character",
       "balanceHeader": "Current Balance",
       "paymentHeader": "Payment",
       "offering": "Offering",

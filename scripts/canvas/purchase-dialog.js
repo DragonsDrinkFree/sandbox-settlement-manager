@@ -19,10 +19,12 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   _currencies;
   _mode;
   _actor = null;
+  _receivingActor = null;
   _pendingPayment = null;
   _actorFilter = { playerOwned: true, types: null };
+  _receivingActorFilter = { playerOwned: true, types: null };
   #actorWidgetAbort = null;
-  #actorDropdownEl = null;
+  #actorDropdownEls = [];
 
   constructor(expense, currencies, mode, options = {}) {
     super(options);
@@ -32,6 +34,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this._actor = game.user.character
       ?? game.actors.find(a => game.user.isGM ? a.hasPlayerOwner : a.testUserPermission(game.user, "OWNER"))
       ?? null;
+    this._receivingActor = this._actor;
   }
 
   get title() { return game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.title"); }
@@ -66,6 +69,13 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return true;
     };
     const ownedActors = game.actors.filter(actorFilter).map(a => ({ id: a.id, name: a.name }));
+    const receivingActorFilter = (a) => {
+      if (!game.user.isGM) return a.testUserPermission(game.user, "OBSERVER");
+      if (this._receivingActorFilter.playerOwned && !a.hasPlayerOwner) return false;
+      if (this._receivingActorFilter.types?.size && !this._receivingActorFilter.types.has(a.type)) return false;
+      return true;
+    };
+    const receivingActors = game.actors.filter(receivingActorFilter).map(a => ({ id: a.id, name: a.name }));
     const costCurrency = this._currencies.find(c => c.id === this._expense.currencyId);
     const balance = {};
     if (this._actor && isAttributeOrItem) {
@@ -98,6 +108,10 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       selectedActorId: this._actor?.id ?? "",
       selectedActorName: this._actor?.name ?? "",
       filterActive: game.user.isGM && (!this._actorFilter.playerOwned || this._actorFilter.types !== null),
+      receivingActors,
+      selectedReceivingActorId: this._receivingActor?.id ?? "",
+      selectedReceivingActorName: this._receivingActor?.name ?? "",
+      receivingFilterActive: game.user.isGM && (!this._receivingActorFilter.playerOwned || this._receivingActorFilter.types !== null),
       balance,
       showBalance: isAttributeOrItem && this._actor !== null
     };
@@ -110,7 +124,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRender(context, options) {
     await super._onRender(context, options);
 
-    this.#wireActorWidget();
+    this.#wireActorWidgets();
 
     this.element.querySelectorAll(".payment-input").forEach(input => {
       input.addEventListener("input", () => this.#updateLiveCalc());
@@ -119,26 +133,42 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#updateLiveCalc();
   }
 
-  #wireActorWidget() {
+  #wireActorWidgets() {
     this.#actorWidgetAbort?.abort();
     this.#actorWidgetAbort = new AbortController();
     const { signal } = this.#actorWidgetAbort;
-    this.#actorDropdownEl?.remove();
-    this.#actorDropdownEl = null;
+    this.#actorDropdownEls.forEach(el => el.remove());
+    this.#actorDropdownEls = [];
     document.querySelector('.ssm-actor-filter-menu')?.remove();
 
-    const widget = this.element.querySelector('.ssm-actor-dropdown-widget');
-    if (widget) {
-      this.#wireActorDropdown(widget, signal, id => {
+    const payingWidget = this.element.querySelector('.ssm-actor-dropdown-widget[data-actor-context="paying"]');
+    if (payingWidget) {
+      this.#wireActorDropdown(payingWidget, signal, id => {
         this._actor = game.actors.get(id) ?? null;
         this.render({ parts: ["form"] });
       });
     }
 
-    const filterBtn = this.element.querySelector('.ssm-actor-filter-btn');
-    if (filterBtn) {
-      this.#wireActorFilterMenu(filterBtn, this._actorFilter, signal, f => {
+    const payingFilterBtn = this.element.querySelector('.ssm-actor-filter-btn[data-actor-context="paying"]');
+    if (payingFilterBtn) {
+      this.#wireActorFilterMenu(payingFilterBtn, this._actorFilter, signal, f => {
         this._actorFilter = f;
+        this.render({ parts: ["form"] });
+      });
+    }
+
+    const receivingWidget = this.element.querySelector('.ssm-actor-dropdown-widget[data-actor-context="receiving"]');
+    if (receivingWidget) {
+      this.#wireActorDropdown(receivingWidget, signal, id => {
+        this._receivingActor = game.actors.get(id) ?? null;
+        this.render({ parts: ["form"] });
+      });
+    }
+
+    const receivingFilterBtn = this.element.querySelector('.ssm-actor-filter-btn[data-actor-context="receiving"]');
+    if (receivingFilterBtn) {
+      this.#wireActorFilterMenu(receivingFilterBtn, this._receivingActorFilter, signal, f => {
+        this._receivingActorFilter = f;
         this.render({ parts: ["form"] });
       });
     }
@@ -149,7 +179,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const list    = widget.querySelector('.ssm-actor-dropdown-list');
     if (!trigger || !list) return;
     document.body.appendChild(list);
-    this.#actorDropdownEl = list;
+    this.#actorDropdownEls.push(list);
     const position = () => {
       const r = trigger.getBoundingClientRect();
       list.style.top      = `${r.bottom + 2}px`;
@@ -349,7 +379,7 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.complete"));
     const resolve = this._resolve;
     this._resolve = null;
-    resolve?.({ actorId: this._actor?.id ?? null });
+    resolve?.({ actorId: this._actor?.id ?? null, receivingActorId: this._receivingActor?.id ?? null });
   }
 
   async #executeLooseTransaction(payment, change) {
@@ -373,7 +403,8 @@ export class PurchaseDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClose(options) {
     await super._onClose(options);
     this.#actorWidgetAbort?.abort();
-    this.#actorDropdownEl?.remove();
+    this.#actorDropdownEls.forEach(el => el.remove());
+    this.#actorDropdownEls = [];
     document.querySelector('.ssm-actor-filter-menu')?.remove();
     this._resolve?.(null);
     this._resolve = null;

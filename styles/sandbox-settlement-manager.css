@@ -1844,6 +1844,10 @@
   font-size: var(--font-size-13, 13px);
 }
 
+#sandbox-settlement-manager-purchase-dialog .ssm-purchase-actor-row {
+  margin-bottom: 0.6rem;
+}
+
 #sandbox-settlement-manager-purchase-dialog .balance-display {
   background: var(--color-bg-option, rgba(0,0,0,0.05));
   border-radius: 3px;

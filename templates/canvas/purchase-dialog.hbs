@@ -8,7 +8,7 @@
   <div class="form-group ssm-purchase-actor-row">
     <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.actorLabel"}}</label>
     <div class="ssm-actor-picker-row">
-      <div class="ssm-actor-dropdown-widget">
+      <div class="ssm-actor-dropdown-widget" data-actor-context="paying">
         <button type="button" class="ssm-actor-dropdown-trigger">
           <span class="ssm-actor-selected-name">{{#if selectedActorName}}{{selectedActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
           <i class="fa-solid fa-caret-down" inert></i>
@@ -23,7 +23,7 @@
         </ul>
       </div>
       {{#if isGM}}
-      <button type="button" class="ssm-actor-filter-btn{{#if filterActive}} active{{/if}}"
+      <button type="button" class="ssm-actor-filter-btn{{#if filterActive}} active{{/if}}" data-actor-context="paying"
               aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
         <i class="fa-solid fa-filter" inert></i>
       </button>
@@ -45,6 +45,32 @@
   </div>
   {{/if}}
   {{/if}}
+
+  <div class="form-group ssm-purchase-actor-row">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.receivingActorLabel"}}</label>
+    <div class="ssm-actor-picker-row">
+      <div class="ssm-actor-dropdown-widget" data-actor-context="receiving">
+        <button type="button" class="ssm-actor-dropdown-trigger">
+          <span class="ssm-actor-selected-name">{{#if selectedReceivingActorName}}{{selectedReceivingActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
+          <i class="fa-solid fa-caret-down" inert></i>
+        </button>
+        <ul class="ssm-actor-dropdown-list">
+          <li class="ssm-actor-dropdown-search-row">
+            <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+          </li>
+          {{#each receivingActors}}
+          <li class="ssm-actor-option{{#if (eq this.id ../selectedReceivingActorId)}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#if isGM}}
+      <button type="button" class="ssm-actor-filter-btn{{#if receivingFilterActive}} active{{/if}}" data-actor-context="receiving"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+        <i class="fa-solid fa-filter" inert></i>
+      </button>
+      {{/if}}
+    </div>
+  </div>
 
   <div class="payment-section">
     <h4>{{localize "SANDBOX_SETTLEMENT_MANAGER.purchase.paymentHeader"}}</h4>

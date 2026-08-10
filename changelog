@@ -3,6 +3,7 @@
 - Price variations for merchants (Buying and selling)
 - Price variation/refresh added to Inns
 - Storage template Type added.
+- "Cart" for purchases now allows for choosing who receives a purchased item.
 
 # v0.9.1
 ## Minor
