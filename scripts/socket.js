@@ -2,6 +2,7 @@ import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
 import { grantCoinsToActor, grantStandardToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
 import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
 import { accrueStorageRent } from "./utils/rental-utils.js";
+import { resolveInstanceStorageType } from "./utils/storage-utils.js";
 import { getWorldTimeConfig } from "./time/world-time.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
@@ -361,6 +362,10 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
   if (!option || !(periods > 0)) return;
   const storageData = location.typeData?.[bank.linkedStorageEntryId];
   if (!storageData) return;
+  // option.storageTypeId is a *template* Storage Type id (the only kind available when the Storage
+  // Rental Option was configured) — translate it to this Location's instance Storage Type.
+  const instanceStorageType = resolveInstanceStorageType(storageData.storageTypes, option.storageTypeId);
+  if (!instanceStorageType) return;
 
   const now = game.time.worldTime;
   const { hoursPerDay } = getWorldTimeConfig();
@@ -370,7 +375,7 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
   const group = {
     id: foundry.utils.randomID(),
     name: `${option.namingTemplate ?? ""}${n}`,
-    storageTypeId: option.storageTypeId,
+    storageTypeId: instanceStorageType.id,
     access: [{ actorId, level: "primary" }],
     retrievalPolicyOverride: null
   };
@@ -381,7 +386,7 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
     id: foundry.utils.randomID(),
     actorId, actorName,
     groupId: group.id,
-    storageTypeId: option.storageTypeId,
+    storageTypeId: instanceStorageType.id,
     feeAmount: option.feeAmount,
     feeCurrencyId: option.feeCurrencyId,
     periodUnit: option.periodUnit,

@@ -20,7 +20,7 @@ import { BookingEditApp } from "./inn/booking-edit-app.js";
 import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from "./lodging-fulfillment.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
-import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem } from "../utils/storage-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem, resolveInstanceStorageType } from "../utils/storage-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -1101,7 +1101,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const labeledOptions = options.map(o => ({
       id: o.id,
       label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
-        name:   storageTypes.find(st => st.id === o.storageTypeId)?.name ?? "—",
+        name:   resolveInstanceStorageType(storageTypes, o.storageTypeId)?.name ?? "—",
         fee:    formatAmounts({ [o.feeCurrencyId]: o.feeAmount }, currencies),
         period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${o.periodUnit}`)
       })
@@ -1110,6 +1110,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!picked) return;
     const option = options.find(o => o.id === picked.storageOptionId);
     if (!option) return;
+    if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return;
 
     const mode  = currencyConfig.mode ?? 'loose';
     const coins = { [option.feeCurrencyId]: option.feeAmount * picked.periods };

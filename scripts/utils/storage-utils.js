@@ -58,6 +58,20 @@ export function canRetrieve(item, group, storageType, actorId) {
   return resolveEffectivePolicy(group, storageType) === "anyone" && actorHasGroupAccess(group, actorId);
 }
 
+/**
+ * Resolve a *template* Storage Type id (the only kind available where Inn lodgings/Bank rental
+ * options are configured, since a shared template can be attached to many Locations) into the
+ * matching *instance* Storage Type on one specific attached Storage entry. Template and instance
+ * ids always differ — each attachment gets its own fresh clone via instanceFromTemplate — so this
+ * bridges them via the templateItemId that clone stamps. Returns null if no matching instance
+ * exists yet (e.g. the Storage Type was added to the template after this Location's Storage entry
+ * was last synced).
+ */
+export function resolveInstanceStorageType(instanceStorageTypes, templateStorageTypeId) {
+  if (!templateStorageTypeId) return null;
+  return (instanceStorageTypes ?? []).find(st => st.templateItemId === templateStorageTypeId) ?? null;
+}
+
 /** Whether adding `addedWeight` to a group already holding `currentUsedWeight` would exceed its storage type's limit. */
 export function wouldExceedCapacity(storageType, currentUsedWeight, addedWeight) {
   return storageType?.weightLimit !== null && storageType?.weightLimit !== undefined

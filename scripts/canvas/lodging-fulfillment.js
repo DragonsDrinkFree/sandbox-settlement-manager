@@ -1,4 +1,5 @@
 import { consumeLodgingAvailability } from "./lodging-utils.js";
+import { resolveInstanceStorageType } from "../utils/storage-utils.js";
 
 /**
  * Shared lodging-booking fulfillment logic, used identically by cart checkout and the GM's manual
@@ -36,15 +37,18 @@ export function createNewLodgingBooking(location, inn, lodging, receivingActorId
 
   consumeLodgingAvailability(inn, lodging.id);
 
-  const storageTypeId = lodging.storageConfig?.storageTypeId ?? null;
-  if (storageTypeId && inn.linkedStorageEntryId && receivingActorId) {
+  const storageTemplateTypeId = lodging.storageConfig?.storageTypeId ?? null;
+  if (storageTemplateTypeId && inn.linkedStorageEntryId && receivingActorId) {
     const storageData = location.typeData?.[inn.linkedStorageEntryId];
-    if (storageData) {
+    // storageConfig.storageTypeId is a *template* Storage Type id (the only kind available when the
+    // lodging's storage was configured) — translate it to this Location's instance Storage Type.
+    const instanceStorageType = resolveInstanceStorageType(storageData?.storageTypes, storageTemplateTypeId);
+    if (storageData && instanceStorageType) {
       const n = lodging.storageNextAreaNumber ?? 1;
       const group = {
         id: foundry.utils.randomID(),
         name: `${lodging.storageConfig.namingTemplate ?? ""}${n}`,
-        storageTypeId,
+        storageTypeId: instanceStorageType.id,
         access: [{ actorId: receivingActorId, level: "primary" }],
         retrievalPolicyOverride: lodging.storageConfig.retrievalPolicyOverride ?? null
       };

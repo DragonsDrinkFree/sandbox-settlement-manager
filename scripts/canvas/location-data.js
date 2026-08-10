@@ -25,7 +25,7 @@ import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
 import { accrueStorageRent } from "../utils/rental-utils.js";
-import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests } from "../utils/storage-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests, resolveInstanceStorageType } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
 export function getSubTypeMap() {
@@ -683,7 +683,7 @@ export function buildBankData(app, entry, location, currencies) {
   const processedRentals = app._bankActorId ? allProcessedRentals.filter(r => r.actorId === app._bankActorId) : [];
   const storageRentalOptionRows = (bankRaw.storageRentalOptions ?? []).map(o => {
     const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${{ day: "day", week: "week", month: "month" }[o.periodUnit] ?? "week"}`);
-    const storageType = (location.typeData?.[bankRaw.linkedStorageEntryId]?.storageTypes ?? []).find(st => st.id === o.storageTypeId);
+    const storageType = resolveInstanceStorageType(location.typeData?.[bankRaw.linkedStorageEntryId]?.storageTypes, o.storageTypeId);
     return {
       id: o.id,
       label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
