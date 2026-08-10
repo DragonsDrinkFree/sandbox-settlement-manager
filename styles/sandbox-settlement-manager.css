@@ -4585,7 +4585,7 @@ hr.ssm-settings-divider {
 }
 
 #sandbox-settlement-manager-storage-group-edit .form-group > label {
-  flex: 0 0 auto;
+  flex: 0 0 8.5rem;
   white-space: nowrap;
 }
 
