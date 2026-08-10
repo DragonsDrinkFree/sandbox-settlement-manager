@@ -13,7 +13,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, reconcileLinkedStorageForEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -179,6 +179,15 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const entryData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? {});
     const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: this._location.name });
     if (!result) return;
+
+    if (entry.typeId === LOCATION_TYPE_IDS.INN) {
+      const subTypeMap = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+      const newStorage = reconcileLinkedStorageForEntry(this._location, result, subTypeMap);
+      if (newStorage) {
+        await this.#saveEntryData(newStorage.id, newStorage.data, { typeEntries: newStorage.typeEntries });
+      }
+    }
+
     await this.#saveEntryData(this._activeTab, result);
   }
 
@@ -261,12 +270,13 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     };
   }
 
-  async #saveEntryData(entryId, data) {
+  async #saveEntryData(entryId, data, { typeEntries } = {}) {
     const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
     const r = locations.find(r => r.id === this._location.id);
     if (!r) return;
     r.typeData ??= {};
     r.typeData[entryId] = data;
+    if (typeEntries) r.typeEntries = typeEntries;
     this._location = r;
     // Storage's player-initiated mutations (deposit/take/ownership) are the first callers of this
     // helper that aren't GM-only — players lack scene write permission, so route through the GM.

@@ -99,16 +99,12 @@ export function buildEntryTypeData(typeId, subType) {
 }
 
 /**
- * If `typeId`/`subTypeId` is an Inn template with a linked Storage template, ensure a matching
- * Storage entry exists in `entries` — reusing one already attached from that same Storage template
- * if present, otherwise pushing a new one. Mutates `entries` in place (push only, never removes).
- * Forward-only by design: only called at the moment an Inn entry is newly attached, never re-checked
- * for pre-existing Inn entries. Returns the Storage entry's id, or null if this isn't a linked Inn.
+ * Given an already-resolved Storage template id, ensure `entries` has a matching Storage entry —
+ * reusing one already attached from that same Storage template if present, otherwise pushing a new
+ * one. Mutates `entries` in place (push only, never removes). Returns the Storage entry's id, or
+ * null if `linkedTemplateId` is null.
  */
-export function ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap) {
-  if (typeId !== LOCATION_TYPE_IDS.INN) return null;
-  const innSubType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
-  const linkedTemplateId = innSubType?.typeData?.linkedStorageTemplateId ?? null;
+export function ensureStorageEntryForTemplate(entries, linkedTemplateId) {
   if (!linkedTemplateId) return null;
 
   const existing = entries.find(e => e.typeId === LOCATION_TYPE_IDS.STORAGE && e.subTypeId === linkedTemplateId);
@@ -117,6 +113,39 @@ export function ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap)
   const newEntry = { id: foundry.utils.randomID(), typeId: LOCATION_TYPE_IDS.STORAGE, subTypeId: linkedTemplateId };
   entries.push(newEntry);
   return newEntry.id;
+}
+
+/**
+ * If `typeId`/`subTypeId` is an Inn template with a linked Storage template, ensure a matching
+ * Storage entry exists in `entries` (see ensureStorageEntryForTemplate). Forward-only by design: only
+ * called at the moment an Inn entry is newly attached, never re-checked for pre-existing Inn entries
+ * (see reconcileLinkedStorageForEntry for that). Returns the Storage entry's id, or null if this
+ * isn't a linked Inn.
+ */
+export function ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap) {
+  if (typeId !== LOCATION_TYPE_IDS.INN) return null;
+  const innSubType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
+  return ensureStorageEntryForTemplate(entries, innSubType?.typeData?.linkedStorageTemplateId ?? null);
+}
+
+/**
+ * After saving an Inn entry's own local config (SubTypeEditApp.openForEntry), ensure its
+ * linkedStorageTemplateId (if any) has a matching Storage entry attached to this Location — reusing
+ * one already attached if present, else creating a new typeEntries item. Mutates
+ * `location.typeEntries` in place and stamps `innResult.linkedStorageEntryId`. Returns
+ * { id, data, typeEntries } describing a brand-new Storage entry that still needs its typeData
+ * persisted by the caller, or null if nothing new is needed (already linked, or no link configured).
+ */
+export function reconcileLinkedStorageForEntry(location, innResult, subTypeMap) {
+  const entries = getTypeEntries(location);
+  const linkedStorageEntryId = ensureStorageEntryForTemplate(entries, innResult.linkedStorageTemplateId ?? null);
+  innResult.linkedStorageEntryId = linkedStorageEntryId;
+  location.typeEntries = entries;
+  if (!linkedStorageEntryId || location.typeData?.[linkedStorageEntryId]) return null;
+
+  const storageEntry = entries.find(e => e.id === linkedStorageEntryId);
+  const storageSubType = (subTypeMap[LOCATION_TYPE_IDS.STORAGE] ?? []).find(s => s.id === storageEntry?.subTypeId);
+  return { id: linkedStorageEntryId, data: buildEntryTypeData(LOCATION_TYPE_IDS.STORAGE, storageSubType), typeEntries: entries };
 }
 
 /** Collapse an actor's deposits into a single matured row plus per-deposit unmatured rows. */

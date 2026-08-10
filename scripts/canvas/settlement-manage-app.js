@@ -16,7 +16,7 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -605,6 +605,19 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const entryData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
     const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name });
     if (!result) return;
+
+    if (entry.typeId === LOCATION_TYPE_IDS.INN) {
+      const newStorage = reconcileLinkedStorageForEntry(location, result, this.#getSubTypeMap());
+      if (newStorage) {
+        // Persist the new Storage entry (typeEntries + its typeData) in one shot, on this exact
+        // object — #saveEntryData re-fetches the location fresh internally, which wouldn't see the
+        // typeEntries mutation above until it's actually been saved.
+        location.typeData ??= {};
+        location.typeData[newStorage.id] = newStorage.data;
+        await this.#saveLocationData(location);
+      }
+    }
+
     await this.#saveEntryData(this._activeTab, result);
   }
 
