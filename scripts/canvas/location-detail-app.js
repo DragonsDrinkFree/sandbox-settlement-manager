@@ -1,5 +1,4 @@
 import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES, getTypeEntries } from "../constants.js";
-import { LodgingEditApp } from "./inn/lodging-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
@@ -85,8 +84,6 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     actions: {
       switchTab:          LocationDetailApp.#onSwitchTab,
       editLocationEntry:  LocationDetailApp.#onEditLocationEntry,
-      editLodging:        LocationDetailApp.#onEditLodging,
-      deleteLodging:      LocationDetailApp.#onDeleteLodging,
       rentLodging:        LocationDetailApp.#onRentLodging,
       dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
       editBooking:        LocationDetailApp.#onEditBooking,
@@ -339,24 +336,6 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.render();
   }
 
-  static async #onEditLodging(event, target) {
-    if (!game.user.isGM) return;
-    const lodgingId = target.dataset.lodgingId;
-    if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
-    const index   = innData.lodgings.findIndex(l => l.id === lodgingId);
-    if (index === -1) return;
-    const lodging         = innData.lodgings[index];
-    const template        = lodging.templateItemId ? this.#getTemplateForEntry(this.#getActiveEntry()) : null;
-    const templateLodging = template
-      ? (template.typeData?.lodgings ?? []).find(l => l.id === lodging.templateItemId) ?? null
-      : null;
-    const result = await LodgingEditApp.open(lodging, templateLodging);
-    if (!result) return;
-    innData.lodgings[index] = result;
-    await this.#saveEntryData(this._activeTab, innData);
-  }
-
   #getTemplateForEntry(entry) {
     if (!entry?.subTypeId) return null;
     const subTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
@@ -365,24 +344,6 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   #getActiveEntry() {
     return getTypeEntries(this._location).find(e => e.id === this._activeTab) ?? null;
-  }
-
-  static async #onDeleteLodging(event, target) {
-    if (!game.user.isGM) return;
-    const lodgingId = target.dataset.lodgingId;
-    if (!lodgingId) return;
-    const innData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
-    const lodging = innData.lodgings.find(l => l.id === lodgingId);
-    if (!lodging) return;
-    const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.deleteLodgingConfirm", { name: lodging.name })}</p>`,
-      yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.location.delete"), icon: "fa-solid fa-trash" },
-      no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
-    });
-    if (!confirmed) return;
-    innData.lodgings = innData.lodgings.filter(l => l.id !== lodgingId);
-    await this.#saveEntryData(this._activeTab, innData);
   }
 
   static async #onRentLodging(event, target) {

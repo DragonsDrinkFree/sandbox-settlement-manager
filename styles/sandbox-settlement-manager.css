@@ -1764,67 +1764,6 @@
   color: var(--color-text-hyperlink, #4472c4);
 }
 
-/* Lodging edit dialog */
-#sandbox-settlement-manager-lodging-edit .lodging-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-compact-row {
-  display: grid;
-  grid-template-columns: 2fr 0.5fr 1.5fr;
-  gap: 0.4rem;
-  align-items: end;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-compact-row label {
-  display: block;
-  font-size: var(--font-size-11, 11px);
-  margin-bottom: 0.1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-compact-row input[type="text"],
-#sandbox-settlement-manager-lodging-edit .lodging-compact-row input[type="number"] {
-  width: 100%;
-}
-
-#sandbox-settlement-manager-lodging-edit .price-field-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-#sandbox-settlement-manager-lodging-edit .price-amount-input {
-  flex: 1;
-  min-width: 0;
-}
-
-#sandbox-settlement-manager-lodging-edit .price-currency-select {
-  width: auto;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-check-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  margin: 0;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-hint {
-  font-size: var(--font-size-11, 11px);
-  opacity: 0.7;
-}
-
-#sandbox-settlement-manager-lodging-edit .lodging-week-row .price-field-row {
-  margin-top: 0.25rem;
-}
-
 /* Lodging rental dialog */
 #sandbox-settlement-manager-lodging-rental .rental-lodging-header {
   display: flex;

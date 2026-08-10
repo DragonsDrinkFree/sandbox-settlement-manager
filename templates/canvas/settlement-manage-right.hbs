@@ -69,11 +69,6 @@
     <div class="inn-section">
       <div class="inn-section-header">
         <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodgingSection"}}</span>
-        {{#if this.innData.isGM}}
-        <button type="button" class="icon" data-action="addLodging" aria-label="Add Lodging">
-          <i class="fa-solid fa-plus"></i>
-        </button>
-        {{/if}}
       </div>
       <ul class="inn-lodging-list">
         {{#each this.innData.lodgings}}
@@ -83,16 +78,6 @@
             <span class="lodging-meta">{{this.beds}} beds &middot; {{this.pricePerDayLabel}}/day &middot; {{this.pricePerWeekLabel}}/wk</span>
           </div>
           <div class="controls">
-            {{#if ../innData.isGM}}
-            <button type="button" class="icon" data-action="editLodging" data-lodging-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button type="button" class="icon" data-action="deleteLodging" data-lodging-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-            {{/if}}
             <button type="button" class="inn-rent-btn" data-action="rentLodging" data-lodging-id="{{this.id}}">
               {{localize "SANDBOX_SETTLEMENT_MANAGER.inn.rent"}}
             </button>

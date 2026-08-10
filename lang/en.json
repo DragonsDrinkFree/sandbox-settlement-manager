@@ -270,8 +270,6 @@
     },
     "inn": {
       "rent": "Rent",
-      "deleteLodgingTitle": "Delete Lodging",
-      "deleteLodgingConfirm": "Delete lodging <strong>{name}</strong>? This cannot be undone.",
       "dismissEntryTitle": "Dismiss Booking",
       "dismissEntryConfirm": "Dismiss the booking for <strong>{actor}</strong> ({lodging})?",
       "noLodgings": "No lodgings configured.",
@@ -300,8 +298,6 @@
       },
       "refreshed": "Inn refreshed.",
       "lodging": {
-        "addTitle": "Add Lodging",
-        "editTitle": "Edit Lodging",
         "add": "Add Lodging",
         "name": "Name",
         "beds": "Beds",

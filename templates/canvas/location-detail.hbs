@@ -86,7 +86,6 @@
         <table class="inn-lodging-table ssm-table">
           <thead>
             <tr>
-              {{#if this.innData.isGM}}<th class="ssm-col-controls"></th>{{/if}}
               <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colName"}}</th>
               <th class="col-beds ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colBeds"}}</th>
               {{#if this.innData.isGM}}<th class="col-avail ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.table.colAvail"}}</th>{{/if}}
@@ -98,18 +97,6 @@
           <tbody>
             {{#each this.innData.lodgings}}
             <tr class="inn-lodging-row{{#if this.overridden}} is-overridden{{/if}}">
-              {{#if ../innData.isGM}}
-              <td class="ssm-col-controls">
-                <button type="button" class="icon lodging-ctrl-btn" data-action="editLodging" data-lodging-id="{{this.id}}"
-                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button type="button" class="icon lodging-ctrl-btn" data-action="deleteLodging" data-lodging-id="{{this.id}}"
-                        aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </td>
-              {{/if}}
               <td class="col-name">{{this.name}}</td>
               <td class="col-beds ssm-col-right">{{this.beds}}</td>
               {{#if ../innData.isGM}}<td class="col-avail ssm-col-right">{{this.availabilityDisplay}}</td>{{/if}}
@@ -124,7 +111,7 @@
             </tr>
             {{else}}
             <tr>
-              <td class="ssm-empty" colspan="7"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noLodgings"}}</em></td>
+              <td class="ssm-empty" colspan="6"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noLodgings"}}</em></td>
             </tr>
             {{/each}}
           </tbody>
