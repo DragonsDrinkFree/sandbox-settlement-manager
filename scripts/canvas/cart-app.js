@@ -346,7 +346,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const secondsPerDay  = hoursPerDay * 3600;
     const secondsPerWeek = secondsPerDay * daysPerWeek;
 
-    const actorName = actorId ? (game.actors.get(actorId)?.name ?? '') : '';
+    const receivingActorName = receivingActorId ? (game.actors.get(receivingActorId)?.name ?? '') : '';
 
     // Fulfill sell items actor-side first (remove the sold item) and collect buyback entries to be
     // written into the location flag below, grouped by `${sceneId}:${locationId}`.
@@ -419,8 +419,8 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
           lodgingId:       cartItem.lodgingId,
           lodgingName:     cartItem.lodgingName,
           beds:            cartItem.beds,
-          actorId:         actorId ?? '',
-          actorName,
+          actorId:         receivingActorId ?? '',
+          actorName:       receivingActorName,
           purchasedAt,
           durationSeconds,
           expiresAt: purchasedAt + durationSeconds,
