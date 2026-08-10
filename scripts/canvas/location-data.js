@@ -43,7 +43,7 @@ export function buildEntryTypeData(typeId, subType) {
   if (typeId === LOCATION_TYPE_IDS.INN) {
     const innTpl = subType?.typeData ?? {};
     return {
-      lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
+      lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging, { storageNextAreaNumber: 1 })),
       ledger: [],
       menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) },
       // Lodging-level price-variation config (single set for all lodgings) + its refresh cadence.
@@ -52,7 +52,10 @@ export function buildEntryTypeData(typeId, subType) {
       lodgingPriceVarIndividual: innTpl.lodgingPriceVarIndividual ?? false,
       lodgingPriceVarRounding:   innTpl.lodgingPriceVarRounding   ?? "same",
       lodgingRefreshCadence:     innTpl.lodgingRefreshCadence     ?? "weekly",
-      lodgingLastRefreshed:      null
+      lodgingLastRefreshed:      null,
+      // Which Storage entry on this same Location this Inn is linked to, if any (stamped by the
+      // attach-site caller right after this is built — see ensureLinkedStorageEntry below).
+      linkedStorageEntryId:      null
     };
   }
   if (typeId === LOCATION_TYPE_IDS.MERCHANT) {
@@ -93,6 +96,27 @@ export function buildEntryTypeData(typeId, subType) {
     };
   }
   return {};
+}
+
+/**
+ * If `typeId`/`subTypeId` is an Inn template with a linked Storage template, ensure a matching
+ * Storage entry exists in `entries` — reusing one already attached from that same Storage template
+ * if present, otherwise pushing a new one. Mutates `entries` in place (push only, never removes).
+ * Forward-only by design: only called at the moment an Inn entry is newly attached, never re-checked
+ * for pre-existing Inn entries. Returns the Storage entry's id, or null if this isn't a linked Inn.
+ */
+export function ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap) {
+  if (typeId !== LOCATION_TYPE_IDS.INN) return null;
+  const innSubType = (subTypeMap[LOCATION_TYPE_IDS.INN] ?? []).find(s => s.id === subTypeId);
+  const linkedTemplateId = innSubType?.typeData?.linkedStorageTemplateId ?? null;
+  if (!linkedTemplateId) return null;
+
+  const existing = entries.find(e => e.typeId === LOCATION_TYPE_IDS.STORAGE && e.subTypeId === linkedTemplateId);
+  if (existing) return existing.id;
+
+  const newEntry = { id: foundry.utils.randomID(), typeId: LOCATION_TYPE_IDS.STORAGE, subTypeId: linkedTemplateId };
+  entries.push(newEntry);
+  return newEntry.id;
 }
 
 /** Collapse an actor's deposits into a single matured row plus per-deposit unmatured rows. */

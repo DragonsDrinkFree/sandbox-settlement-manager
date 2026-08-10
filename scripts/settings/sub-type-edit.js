@@ -6,6 +6,7 @@ import { costInStandard, getStandardCurrency } from "../utils/currency-utils.js"
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 import { rollMerchantRestock } from "../canvas/location-data.js";
+import { LodgingStorageConfigApp } from "./lodging-storage-config-app.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -49,6 +50,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _lodgingPriceVarIndividual = null;
   _lodgingPriceVarRounding = null;
   _lodgingRefreshCadence = null;
+  _linkedStorageTemplateId = null; // tracks the linkedStorageTemplateId <select> across re-renders
   _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
@@ -77,6 +79,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       addLodging:                 SubTypeEditApp.#onAddLodging,
       deleteLodging:              SubTypeEditApp.#onDeleteLodging,
+      configureLodgingStorage:    SubTypeEditApp.#onConfigureLodgingStorage,
       addCourse:                  SubTypeEditApp.#onAddCourse,
       editCourse:                 SubTypeEditApp.#onEditCourse,
       deleteCourse:               SubTypeEditApp.#onDeleteCourse,
@@ -162,6 +165,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._lodgingPriceVarIndividual = entryData.lodgingPriceVarIndividual ?? null;
       app._lodgingPriceVarRounding   = entryData.lodgingPriceVarRounding   ?? null;
       app._lodgingRefreshCadence     = entryData.lodgingRefreshCadence     ?? null;
+      app._linkedStorageTemplateId   = entryData.linkedStorageTemplateId  ?? null;
       app._resolve = resolve;
       app.render(true);
     });
@@ -191,6 +195,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const lodgingPriceVarIndividual = this._lodgingPriceVarIndividual ?? innData.lodgingPriceVarIndividual ?? false;
     const lodgingPriceVarRounding   = this._lodgingPriceVarRounding   ?? innData.lodgingPriceVarRounding   ?? "same";
     const lodgingRefreshCadence     = this._lodgingRefreshCadence     ?? innData.lodgingRefreshCadence     ?? "weekly";
+    const linkedStorageTemplateId   = this._linkedStorageTemplateId   ?? innData.linkedStorageTemplateId   ?? "";
+    const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
+    const storageTemplateOptions = storageTemplates.map(t => ({ id: t.id, name: t.name, selected: t.id === linkedStorageTemplateId }));
+    const hasLinkedStorageTemplate = !!linkedStorageTemplateId;
 
     let lodgings = [];
     let currencies = [];
@@ -205,7 +213,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ...l,
           autoWeekly:   !l.pricePerWeek,
           pricePerDay:  l.pricePerDay  ?? { currencyId: defaultCurrencyId, amount: 0 },
-          pricePerWeek: l.pricePerWeek ?? { currencyId: defaultCurrencyId, amount: 0 }
+          pricePerWeek: l.pricePerWeek ?? { currencyId: defaultCurrencyId, amount: 0 },
+          hasStorageConfig: !!l.storageConfig?.storageTypeId
         }));
         courses = (this._menu.courses ?? []).map((c, i) => ({
           name:      c.name,
@@ -297,6 +306,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lodgingPriceVarIndividual,
       lodgingPriceVarRounding,
       lodgingRefreshCadence,
+      linkedStorageTemplateId,
+      storageTemplateOptions,
+      hasLinkedStorageTemplate,
       merchantTab: this._merchantTab,
       purchasingProfile: this._purchasingProfile.map(r => ({
         ...r,
@@ -325,6 +337,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncLodgingsFromDOM();
       this.#syncTemplateInventoryFromDOM();
       this.#syncStorageTypesFromDOM();
+      this.render({ parts: ["form"] });
+    });
+
+    // Changing the linked Storage template enables/disables every row's Storage config button and
+    // repopulates its Storage Type options, so re-render.
+    this.element.querySelector('[name="linkedStorageTemplateId"]')?.addEventListener('change', () => {
+      this.#syncSubTypeName();
+      this.#syncLodgingsFromDOM();
       this.render({ parts: ["form"] });
     });
   }
@@ -573,6 +593,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (lvRnd) this._lodgingPriceVarRounding = lvRnd.value;
     const lvCad = this.element?.querySelector('[name="lodgingRefreshCadence"]');
     if (lvCad) this._lodgingRefreshCadence = lvCad.value;
+    const lst = this.element?.querySelector('[name="linkedStorageTemplateId"]');
+    if (lst) this._linkedStorageTemplateId = lst.value || null;
   }
 
   static #onAddLodging() {
@@ -597,6 +619,21 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncLodgingsFromDOM();
     const index = parseInt(target.dataset.index);
     this._lodgings.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onConfigureLodgingStorage(event, target) {
+    this.#syncSubTypeName();
+    this.#syncLodgingsFromDOM();
+    const lodgingId = target.dataset.lodgingId;
+    const lodging = this._lodgings.find(l => l.id === lodgingId);
+    if (!lodging) return;
+    const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
+    const linkedTemplate = storageTemplates.find(t => t.id === this._linkedStorageTemplateId);
+    const storageTypes = linkedTemplate?.typeData?.storage?.storageTypes ?? [];
+    const result = await LodgingStorageConfigApp.open(lodging, storageTypes);
+    if (!result) return; // cancelled
+    lodging.storageConfig = result;
     this.render({ parts: ["form"] });
   }
 
@@ -919,12 +956,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #readLodgingConfigFromForm(form) {
     const pv = this.#readPriceVarFromForm(form, "lodging", "lodging");
     const cadenceEl = form.querySelector('[name="lodgingRefreshCadence"]');
+    const linkEl = form.querySelector('[name="linkedStorageTemplateId"]');
     return {
       lodgingPriceVarMin:        pv.priceVarMin,
       lodgingPriceVarMax:        pv.priceVarMax,
       lodgingPriceVarIndividual: pv.priceVarIndividual,
       lodgingPriceVarRounding:   pv.priceVarRounding,
-      lodgingRefreshCadence:     cadenceEl ? cadenceEl.value : (this._lodgingRefreshCadence ?? "weekly")
+      lodgingRefreshCadence:     cadenceEl ? cadenceEl.value : (this._lodgingRefreshCadence ?? "weekly"),
+      linkedStorageTemplateId:   (linkEl ? linkEl.value : this._linkedStorageTemplateId) || null
     };
   }
 

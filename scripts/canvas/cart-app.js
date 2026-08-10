@@ -4,6 +4,7 @@ import { PurchaseDialog } from './purchase-dialog.js';
 import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue, grantStandardToActor, removeCoinsFromActor, readActorBalance } from '../utils/currency-utils.js';
 import { getWorldTimeConfig } from '../time/world-time.js';
 import { SOCKET_CHANNEL, SOCKET_TYPES } from '../socket.js';
+import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from './lodging-fulfillment.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -243,8 +244,9 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const expense = { id: 'cart-total', name: game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.cart.title'), ...total };
       const result = await PurchaseDialog.open({ expense, currencies, mode });
       if (!result) return;
+      const lodgingDecisions = await CartApp.#resolveLodgingDecisions(items, result.receivingActorId);
       await CartApp.#recordLedgerEntries(items, result.actorId, currencies);
-      await CartApp.#processFulfillments(items, result.actorId, currencies, mode, result.receivingActorId);
+      await CartApp.#processFulfillments(items, result.actorId, currencies, mode, result.receivingActorId, lodgingDecisions);
     } else if (netStd < -1e-9) {
       // Merchant owes player — grant currency constrained to settlement denomination
       await grantStandardToActor(game.actors.get(actorId), Math.abs(netStd), currencies, mode, maxDenomValue);
@@ -258,6 +260,33 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     cartManager.clear();
+  }
+
+  /**
+   * For each lodging cart item, check whether the receiving actor already holds an active or
+   * expired-but-not-yet-reclaimed booking for that exact room — if so, ask New Room vs Extend.
+   * Returns a Map<cartItemId, {mode: 'new'|'extend', existingEntryId}> for items the player chose
+   * to extend (items resolved as 'new', or with no conflict, are simply absent from the map).
+   */
+  static async #resolveLodgingDecisions(items, receivingActorId) {
+    const decisions = new Map();
+    if (!receivingActorId) return decisions;
+
+    for (const item of items.filter(i => i.type === 'lodging')) {
+      const location = game.scenes.get(item.sceneId)?.getFlag(MODULE_ID, FLAGS.LOCATIONS)?.find(r => r.id === item.locationId);
+      const entryId  = item.entryId ?? getTypeEntries(location ?? {}).find(
+        e => e.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[e.id]?.lodgings ?? []).some(l => l.id === item.lodgingId)
+      )?.id;
+      const inn = location?.typeData?.[entryId];
+      if (!inn) continue;
+
+      const existing = findActiveBookingForLodging(inn, item.lodgingId, receivingActorId);
+      if (!existing) continue;
+
+      const choice = await promptNewOrExtendLodging(item.lodgingName);
+      decisions.set(item.id, { mode: choice, existingEntryId: existing.id });
+    }
+    return decisions;
   }
 
   static async #recordLedgerEntries(items, actorId, currencies) {
@@ -333,15 +362,25 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const entryId  = w.entryId ?? getTypeEntries(location ?? {}).find(
         e => e.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[e.id]?.lodgings ?? []).some(l => l.id === w.lodgingId)
       )?.id;
-      const avail    = location?.typeData?.[entryId]?.lodgings?.find(l => l.id === w.lodgingId)?.availability;
-      if (typeof avail === 'number' && w.qty > avail) short.push(w.name);
+      const inn   = location?.typeData?.[entryId];
+      const avail = inn?.lodgings?.find(l => l.id === w.lodgingId)?.availability;
+      if (typeof avail !== 'number') continue;
+      const shortfall = w.qty - avail;
+      if (shortfall <= 0) continue;
+      // A room already occupied by an actor the acting user could plausibly rebook as receiving actor
+      // (likely extending their own stay, not double-booking) doesn't count against the shortfall.
+      const explainedByOwnBookings = (inn.ledger ?? []).filter(e =>
+        e.lodgingId === w.lodgingId && !e.reclaimed &&
+        (game.user.isGM || game.actors.get(e.actorId)?.testUserPermission(game.user, "OBSERVER"))
+      ).length;
+      if (shortfall > explainedByOwnBookings) short.push(w.name);
     }
 
     return short;
   }
 
   /** After a successful payment, create ledger entries, grant linked items, and fulfill sell items. */
-  static async #processFulfillments(items, actorId, currencies = [], mode = 'loose', receivingActorId = actorId) {
+  static async #processFulfillments(items, actorId, currencies = [], mode = 'loose', receivingActorId = actorId, lodgingDecisions = new Map()) {
     const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
     const secondsPerDay  = hoursPerDay * 3600;
     const secondsPerWeek = secondsPerDay * daysPerWeek;
@@ -395,41 +434,28 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const locations = foundry.utils.deepClone(scene.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []);
       const dirtyIds  = new Set();
 
-      // Lodging bookings: append ledger entry + decrement availability.
+      // Lodging bookings: create a new booking (ledger entry + availability + storage Area), or
+      // extend an existing one if the player chose to at checkout.
       for (const cartItem of items.filter(i => i.type === 'lodging' && i.sceneId === sceneId)) {
         const location = locations.find(r => r.id === cartItem.locationId);
-        const inn = cartItem.entryId
-          ? location?.typeData?.[cartItem.entryId]
-          : (() => {
-              const e = getTypeEntries(location ?? {}).find(
-                en => en.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[en.id]?.lodgings ?? []).some(l => l.id === cartItem.lodgingId)
-              );
-              return e ? location?.typeData?.[e.id] : null;
-            })();
-        if (!inn) continue;
+        const entryId = cartItem.entryId ?? getTypeEntries(location ?? {}).find(
+          e => e.typeId === LOCATION_TYPE_IDS.INN && (location.typeData?.[e.id]?.lodgings ?? []).some(l => l.id === cartItem.lodgingId)
+        )?.id;
+        const inn = location?.typeData?.[entryId];
+        if (!inn || !location) continue;
 
         const durationSeconds = cartItem.unit === 'weeks'
           ? cartItem.duration * secondsPerWeek
           : cartItem.duration * secondsPerDay;
+        const now = game.time.worldTime;
+        const decision = lodgingDecisions.get(cartItem.id);
 
-        const purchasedAt = game.time.worldTime;
-        inn.ledger ??= [];
-        inn.ledger.push({
-          id: foundry.utils.randomID(),
-          lodgingId:       cartItem.lodgingId,
-          lodgingName:     cartItem.lodgingName,
-          beds:            cartItem.beds,
-          actorId:         receivingActorId ?? '',
-          actorName:       receivingActorName,
-          purchasedAt,
-          durationSeconds,
-          expiresAt: purchasedAt + durationSeconds,
-          reclaimed: false
-        });
-
-        const lodging = (inn.lodgings ?? []).find(l => l.id === cartItem.lodgingId);
-        if (lodging && typeof lodging.availability === 'number') {
-          lodging.availability = Math.max(0, lodging.availability - 1);
+        if (decision?.mode === 'extend') {
+          const existingEntry = inn.ledger?.find(e => e.id === decision.existingEntryId);
+          if (existingEntry) extendLodgingBooking(location, inn, existingEntry, durationSeconds, now);
+        } else {
+          const lodging = (inn.lodgings ?? []).find(l => l.id === cartItem.lodgingId);
+          if (lodging) createNewLodgingBooking(location, inn, lodging, receivingActorId, receivingActorName, durationSeconds, now);
         }
         dirtyIds.add(cartItem.locationId);
       }

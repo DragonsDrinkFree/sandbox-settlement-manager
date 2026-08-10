@@ -16,10 +16,11 @@ import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
+import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from "./lodging-fulfillment.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
 import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem } from "../utils/storage-utils.js";
@@ -529,8 +530,22 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         location.typeEntries = entries;
         location.typeData ??= {};
 
-        const subType = (this.#getSubTypeMap()[typeId] ?? []).find(s => s.id === subTypeId);
+        const subTypeMap = this.#getSubTypeMap();
+        const subType = (subTypeMap[typeId] ?? []).find(s => s.id === subTypeId);
         location.typeData[newEntry.id] = buildEntryTypeData(typeId, subType);
+
+        // Forward-only Inn->Storage auto-attach: if this Inn template declares a linked Storage
+        // template, ensure a matching Storage entry exists on this Location too (reusing one already
+        // attached from that template if present), and record which entry the Inn is linked to.
+        const linkedStorageEntryId = ensureLinkedStorageEntry(entries, typeId, subTypeId, subTypeMap);
+        if (linkedStorageEntryId) {
+          if (!location.typeData[linkedStorageEntryId]) {
+            const storageEntry = entries.find(e => e.id === linkedStorageEntryId);
+            const storageSubType = (subTypeMap[LOCATION_TYPE_IDS.STORAGE] ?? []).find(s => s.id === storageEntry?.subTypeId);
+            location.typeData[linkedStorageEntryId] = buildEntryTypeData(LOCATION_TYPE_IDS.STORAGE, storageSubType);
+          }
+          location.typeData[newEntry.id].linkedStorageEntryId = linkedStorageEntryId;
+        }
 
         this._activeTab = newEntry.id;
         dropdown.classList.remove("is-open");
@@ -842,22 +857,29 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const lodging = innData.lodgings.find(l => l.id === result.lodgingId);
     if (!lodging) return;
 
-    innData.ledger ??= [];
-    innData.ledger.push({
-      id:                foundry.utils.randomID(),
-      lodgingId:         lodging.id,
-      lodgingName:       lodging.name,
-      beds:              lodging.beds,
-      actorId:           result.actorId,
-      actorName:         result.actorName,
-      purchasedAt:       now,
-      durationSeconds:   result.days * secondsPerDay,
-      expiresAt:         now + result.days * secondsPerDay,
-      reclaimed:         false
-    });
-    consumeLodgingAvailability(innData, lodging.id);
+    const durationSeconds = result.days * secondsPerDay;
+    const existing = findActiveBookingForLodging(innData, lodging.id, result.actorId);
+    const choice = existing ? await promptNewOrExtendLodging(lodging.name) : "new";
+
+    // Wrapper so createNewLodgingBooking/extendLodgingBooking can resolve+mutate the linked Storage
+    // entry's typeData alongside the Inn's own; each touched entry is persisted separately below.
+    const storageEntryId = innData.linkedStorageEntryId ?? null;
+    const storageData = storageEntryId
+      ? foundry.utils.deepClone(location.typeData?.[storageEntryId] ?? { storageTypes: [], groups: [], items: [] })
+      : null;
+    const locationWithDrafts = {
+      ...location,
+      typeData: { ...location.typeData, [this._activeTab]: innData, ...(storageEntryId ? { [storageEntryId]: storageData } : {}) }
+    };
+
+    if (choice === "extend" && existing) {
+      extendLodgingBooking(locationWithDrafts, innData, existing, durationSeconds, now);
+    } else {
+      createNewLodgingBooking(locationWithDrafts, innData, lodging, result.actorId, result.actorName, durationSeconds, now);
+    }
 
     await this.#saveEntryData(this._activeTab, innData);
+    if (storageEntryId) await this.#saveEntryData(storageEntryId, locationWithDrafts.typeData[storageEntryId]);
   }
 
   static async #onRestoreFromTemplate() {

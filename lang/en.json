@@ -120,6 +120,7 @@
       "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world.",
       "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list.",
+  "linkedStorageTemplate": "Attach a Storage template to this Inn. When this Inn is placed on a Location, the linked Storage template is automatically attached too, as its own tab — letting a lodging row (configured via its Storage button) auto-create a personal Area for the renter when their room is booked.",
   "retrievalPolicy": "<ul><li><strong>Group Storage:</strong> All deposited items can be retrieved by anyone with access to the storage area.</li><li><strong>Owner Managed:</strong> The owner of each item determines whether or not it is group accessible by checking the Group Accessible box.</li></ul>"
     },
     "importExport": {
@@ -291,6 +292,12 @@
       "noDefaultLodgings": "No default lodgings.",
       "lodgingRefreshPeriod": "Refresh Period",
       "forceRefreshLabel": "Refresh Prices & Menu",
+      "lodgingConflict": {
+        "title": "Existing Booking Found",
+        "body": "This character already has a booking for <strong>{lodging}</strong>. Rent a new room, or extend the existing booking?",
+        "newRoom": "New Room",
+        "extend": "Extend Existing Booking"
+      },
       "refreshed": "Inn refreshed.",
       "lodging": {
         "addTitle": "Add Lodging",
@@ -303,7 +310,18 @@
         "availabilityHint": "Number of rooms available. Leave blank for unlimited.",
         "pricePerDay": "Price per Day",
         "pricePerWeek": "Price per Week",
-        "autoWeekly": "Auto (days/wk × daily price)"
+        "autoWeekly": "Auto (days/wk × daily price)",
+        "storage": "Storage",
+        "storageHint": "Configure how this room auto-creates a Storage Area for the renter.",
+        "storageDisabledHint": "Link a Storage template above to configure this.",
+        "linkedStorageTemplate": "Attached Storage Template",
+        "noLinkedStorageTemplate": "None",
+        "storageConfigTitle": "Room Storage — {name}",
+        "storageTypeLabel": "Storage Type",
+        "storageNotConfigured": "Not configured",
+        "namingTemplateLabel": "Area Naming Template",
+        "namingTemplatePlaceholder": "e.g. Room: ",
+        "loseAccessOnExpiryLabel": "Player loses access when Lodging expires"
       },
       "rental": {
         "title": "Rent Lodging",

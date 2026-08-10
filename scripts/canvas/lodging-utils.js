@@ -40,9 +40,14 @@ export function consumeLodgingAvailability(inn, lodgingId) {
 /**
  * Restore availability for every booking that has expired (`expiresAt <= now`) and not yet been
  * reclaimed, marking each `reclaimed` so it only restores once. The entry itself is kept (shown as
- * expired) until a GM dismisses it. Mutates `inn`; returns true if anything changed.
+ * expired) until a GM dismisses it. If the booking's lodging row has storage configured with
+ * "loses access on expiry" checked, also strips that renter from the linked Storage Area's access
+ * list (the Area itself is never deleted — only that one actor's access entry is removed). Mutates
+ * `inn` (and, when access is stripped, the Storage entry on `location`); returns true if anything
+ * changed. `location` is only used to resolve the linked Storage entry — pass null to skip the
+ * access-strip step (e.g. if the caller doesn't have the whole Location handy).
  */
-export function reclaimExpiredBookings(inn, now) {
+export function reclaimExpiredBookings(location, inn, now) {
   let changed = false;
   for (const entry of (inn?.ledger ?? [])) {
     if (entry.reclaimed) continue;
@@ -50,6 +55,15 @@ export function reclaimExpiredBookings(inn, now) {
     restoreLodgingAvailability(inn, entry);
     entry.reclaimed = true;
     changed = true;
+
+    if (location && entry.storageGroupId && inn.linkedStorageEntryId) {
+      const lodging = (inn.lodgings ?? []).find(l => l.id === entry.lodgingId);
+      if (lodging?.storageConfig?.loseAccessOnExpiry) {
+        const storageData = location.typeData?.[inn.linkedStorageEntryId];
+        const group = storageData?.groups?.find(g => g.id === entry.storageGroupId);
+        if (group) group.access = (group.access ?? []).filter(a => a.actorId !== entry.actorId);
+      }
+    }
   }
   return changed;
 }

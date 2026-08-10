@@ -52,7 +52,7 @@ async function reclaimExpiredLodgingBookings() {
     for (const location of cloned) {
       for (const entry of getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.INN)) {
         const inn = location.typeData?.[entry.id];
-        if (inn && reclaimExpiredBookings(inn, now)) changed = true;
+        if (inn && reclaimExpiredBookings(location, inn, now)) changed = true;
       }
     }
     if (changed) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, cloned);

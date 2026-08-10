@@ -17,6 +17,7 @@ import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildSto
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
+import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from "./lodging-fulfillment.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
 import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem } from "../utils/storage-utils.js";
@@ -464,22 +465,29 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const lodging = innData.lodgings.find(l => l.id === result.lodgingId);
     if (!lodging) return;
 
-    innData.ledger ??= [];
-    innData.ledger.push({
-      id:                foundry.utils.randomID(),
-      lodgingId:         lodging.id,
-      lodgingName:       lodging.name,
-      beds:              lodging.beds,
-      actorId:           result.actorId,
-      actorName:         result.actorName,
-      purchasedAt:       now,
-      durationSeconds:   result.days * secondsPerDay,
-      expiresAt:         now + result.days * secondsPerDay,
-      reclaimed:         false
-    });
-    consumeLodgingAvailability(innData, lodging.id);
+    const durationSeconds = result.days * secondsPerDay;
+    const existing = findActiveBookingForLodging(innData, lodging.id, result.actorId);
+    const choice = existing ? await promptNewOrExtendLodging(lodging.name) : "new";
+
+    // Wrapper so createNewLodgingBooking/extendLodgingBooking can resolve+mutate the linked Storage
+    // entry's typeData alongside the Inn's own; each touched entry is persisted separately below.
+    const storageEntryId = innData.linkedStorageEntryId ?? null;
+    const storageData = storageEntryId
+      ? foundry.utils.deepClone(this._location.typeData?.[storageEntryId] ?? { storageTypes: [], groups: [], items: [] })
+      : null;
+    const location = {
+      ...this._location,
+      typeData: { ...this._location.typeData, [this._activeTab]: innData, ...(storageEntryId ? { [storageEntryId]: storageData } : {}) }
+    };
+
+    if (choice === "extend" && existing) {
+      extendLodgingBooking(location, innData, existing, durationSeconds, now);
+    } else {
+      createNewLodgingBooking(location, innData, lodging, result.actorId, result.actorName, durationSeconds, now);
+    }
 
     await this.#saveEntryData(this._activeTab, innData);
+    if (storageEntryId) await this.#saveEntryData(storageEntryId, location.typeData[storageEntryId]);
   }
 
   static async #onRefreshCourse(event, target) {

@@ -1,0 +1,31 @@
+<div class="lodging-storage-config-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storageTypeLabel"}}</label>
+    <select name="storageTypeId">
+      <option value="">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storageNotConfigured"}}</option>
+      {{#each storageTypeOptions}}
+      <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.policyOverrideLabel"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.retrievalPolicy'}}"></i></label>
+    <select name="retrievalPolicyOverride">
+      {{#each policyOptions}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.namingTemplateLabel"}}</label>
+    <input type="text" name="namingTemplate" value="{{namingTemplate}}"
+           placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.namingTemplatePlaceholder'}}">
+  </div>
+
+  <div class="form-group lodging-storage-checkbox-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.loseAccessOnExpiryLabel"}}</label>
+    <input type="checkbox" name="loseAccessOnExpiry"{{#if loseAccessOnExpiry}} checked{{/if}}>
+  </div>
+</div>

@@ -1620,6 +1620,36 @@
   margin-top: 0.2rem;
 }
 
+#sandbox-settlement-manager-sub-type-edit .lodging-storage-link-config {
+  margin-top: 0.5rem;
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-storage-config-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--color-text-dark-inactive, #999);
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  line-height: 1;
+  font-size: var(--font-size-14, 14px);
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-storage-config-btn.is-configured {
+  color: var(--color-text-hyperlink, #4472c4);
+  background: rgba(68, 114, 196, 0.12);
+  border-color: rgba(68, 114, 196, 0.3);
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-storage-config-btn:hover:not(:disabled) {
+  color: var(--color-text-hyperlink, #4472c4);
+}
+
+#sandbox-settlement-manager-sub-type-edit .lodging-storage-config-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Sub-type edit — inline course list */
 #sandbox-settlement-manager-sub-type-edit .menu-courses {
   border: 1px solid var(--color-border-light-tertiary, #ccc);
@@ -4591,6 +4621,15 @@ hr.ssm-settings-divider {
 
 #sandbox-settlement-manager-storage-group-edit .storage-access-fieldset {
   margin-top: 0.5rem;
+}
+
+#sandbox-settlement-manager-lodging-storage-config .form-group {
+  margin-bottom: 0.6rem;
+}
+
+#sandbox-settlement-manager-lodging-storage-config .form-group > label {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 #sandbox-settlement-manager-storage-access-add .storage-access-filter-row {

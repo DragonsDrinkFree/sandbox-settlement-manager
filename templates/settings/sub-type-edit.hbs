@@ -30,6 +30,7 @@
             <th class="col-price">cost/day</th>
             <th class="col-auto"><i class="fa-solid fa-link" title="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.autoWeekly'}}"></i></th>
             <th class="col-price">cost/wk</th>
+            <th class="col-auto">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storage"}}</th>
             <th class="col-del"></th>
           </tr>
         </thead>
@@ -69,6 +70,15 @@
                 {{/each}}
               </select>
             </td>
+            <td class="col-auto">
+              <button type="button" class="icon lodging-storage-config-btn{{#if this.hasStorageConfig}} is-configured{{/if}}"
+                      data-action="configureLodgingStorage" data-lodging-id="{{this.id}}"
+                      {{#unless ../hasLinkedStorageTemplate}}disabled{{/unless}}
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storage'}}"
+                      data-tooltip="{{#if ../hasLinkedStorageTemplate}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storageHint'}}{{else}}{{localize 'SANDBOX_SETTLEMENT_MANAGER.inn.lodging.storageDisabledHint'}}{{/if}}">
+                <i class="fa-solid fa-box{{#if this.hasStorageConfig}}-open{{/if}}"></i>
+              </button>
+            </td>
             <td class="col-del">
               <button type="button" class="icon" data-action="deleteLodging" data-index="{{@index}}"
                       aria-label="Remove">
@@ -78,7 +88,7 @@
           </tr>
           {{else}}
           <tr>
-            <td colspan="7" class="lodging-table-empty">
+            <td colspan="8" class="lodging-table-empty">
               <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.noDefaultLodgings"}}</em>
             </td>
           </tr>
@@ -95,6 +105,17 @@
             <option value="daily"{{#if (eq lodgingRefreshCadence "daily")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockDaily"}}</option>
             <option value="weekly"{{#if (eq lodgingRefreshCadence "weekly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockWeekly"}}</option>
             <option value="monthly"{{#if (eq lodgingRefreshCadence "monthly")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.restockMonthly"}}</option>
+          </select>
+        </label>
+      </div>
+      <div class="lodging-storage-link-config">
+        <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.linkedStorageTemplate"}}
+          <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.linkedStorageTemplate'}}"></i>
+          <select name="linkedStorageTemplateId">
+            <option value=""{{#unless linkedStorageTemplateId}} selected{{/unless}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.lodging.noLinkedStorageTemplate"}}</option>
+            {{#each storageTemplateOptions}}
+            <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+            {{/each}}
           </select>
         </label>
       </div>

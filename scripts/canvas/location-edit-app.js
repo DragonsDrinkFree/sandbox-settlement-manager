@@ -1,5 +1,5 @@
 import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
-import { buildEntryTypeData } from "./location-data.js";
+import { buildEntryTypeData, ensureLinkedStorageEntry } from "./location-data.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -186,14 +186,28 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim() || this.#generateDefaultName();
 
-    // Init typeData keyed by entry.id for each new entry that has no data yet.
-    let typeData = this._location.typeData ?? {};
     const subTypeMap = this.#getSubTypeMap();
 
+    // Forward-only Inn->Storage auto-attach: for each newly-picked Inn entry whose template declares
+    // a linked Storage template, ensure a matching Storage entry exists in _typeEntries too (reusing
+    // one already picked from that template if present) before building typeData for anything.
+    const linkedStorageByInnEntryId = new Map();
+    for (const entry of [...this._typeEntries]) {
+      const linkedStorageEntryId = ensureLinkedStorageEntry(this._typeEntries, entry.typeId, entry.subTypeId, subTypeMap);
+      if (linkedStorageEntryId) linkedStorageByInnEntryId.set(entry.id, linkedStorageEntryId);
+    }
+
+    // Init typeData keyed by entry.id for each new entry that has no data yet.
+    let typeData = this._location.typeData ?? {};
     for (const entry of this._typeEntries) {
       if (typeData[entry.id] !== undefined) continue; // already has data
       const subType = (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId);
       typeData = { ...typeData, [entry.id]: buildEntryTypeData(entry.typeId, subType) };
+    }
+
+    // Stamp the resolved linked Storage entry id onto each Inn entry's typeData.
+    for (const [innEntryId, linkedStorageEntryId] of linkedStorageByInnEntryId) {
+      if (typeData[innEntryId]) typeData[innEntryId] = { ...typeData[innEntryId], linkedStorageEntryId };
     }
 
     const resolve = this._resolve;
