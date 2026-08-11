@@ -796,6 +796,9 @@ export function buildStorageData(app, entry, location) {
       name:                    group.name,
       storageTypeId:           group.storageTypeId,
       storageTypeName:         storageType?.name ?? "—",
+      policyTooltip: `${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.group.currentPolicy", {
+        policy: game.i18n.localize(effectivePolicy === "anyone" ? "SANDBOX_SETTLEMENT_MANAGER.storage.policyAnyone" : "SANDBOX_SETTLEMENT_MANAGER.storage.policyDepositorOnly")
+      })}<br><br>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.help.retrievalPolicy")}`,
       access: getGroupAccessList(group).map(a => ({
         actorId:   a.actorId,
         actorName: game.actors.get(a.actorId)?.name ?? "?",

@@ -122,7 +122,9 @@
       "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list.",
   "linkedStorageTemplate": "Attach a Storage template to this Inn. When this Inn is placed on a Location, the linked Storage template is automatically attached too, as its own tab — letting a lodging row (configured via its Storage button) auto-create a personal Area for the renter when their room is booked.",
   "retrievalPolicy": "<ul><li><strong>Group Storage:</strong> All deposited items can be retrieved by anyone with access to the storage area.</li><li><strong>Owner Managed:</strong> The owner of each item determines whether or not it is group accessible by checking the Group Accessible box.</li></ul>",
-  "bankStorageRentals": "Attach a Storage template to this Bank and price each of its Storage Types for rent (a fee per Daily/Weekly/Monthly period). Players rent a Storage Area directly from the Bank tab, prepaying for a chosen number of periods. If rent lapses, the renter loses access; an empty Area is destroyed automatically, while an occupied one accrues an owed balance until paid."
+  "bankStorageRentals": "Attach a Storage template to this Bank and price each of its Storage Types for rent (a fee per Daily/Weekly/Monthly period). Players rent a Storage Area directly from the Bank tab, prepaying for a chosen number of periods. If rent lapses, the renter loses access; an empty Area is destroyed automatically, while an occupied one accrues an owed balance until paid.",
+  "storageAccessLevels": "<ul><li><strong>Primary:</strong> One or more characters can be assigned Primary access, giving them the ability to use the storage and invite guests to use the storage space. Players may only invite guests from a list of Actors they have at least \"Observer\" permission for.</li><li><strong>Guest:</strong> Guests have the ability to use the storage but cannot invite additional guests.</li></ul>",
+  "manageGuests": "Adding a guest allows them to access the storage area, but guests do not have the ability to invite additional guests. This is an excellent way of giving mounts/retainers access to add things to/from their character sheets."
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -709,6 +711,7 @@
         "noteTooltip": "GM Note",
         "noteLabel": "Private GM note (players never see this)",
         "notePlaceholder": "e.g. Reserved for the Blackwood contract...",
+        "currentPolicy": "Current policy: <strong>{policy}</strong>",
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Room 3",
         "storageTypeLabel": "Storage Type",

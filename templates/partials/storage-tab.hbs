@@ -30,13 +30,16 @@
     <div class="storage-group-section" data-group-id="{{this.id}}">
       <div class="storage-group-header">
         <span class="storage-group-name">{{this.name}}</span>
-        <span class="storage-group-type-badge">{{this.storageTypeName}}</span>
+        <span class="storage-group-type-badge">{{this.storageTypeName}}
+          <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{{this.policyTooltip}}}"></i>
+        </span>
         <span class="storage-group-weight">{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.capacityLabel"}}: {{this.weightLabel}}</span>
         {{#if ../isGM}}
         <div class="storage-access-badge-widget">
           <button type="button" class="storage-access-badge">
             <i class="fa-solid fa-users"></i> {{this.access.length}}
           </button>
+          <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.storageAccessLevels'}}"></i>
           <div class="storage-access-badge-dropdown">
             {{#each this.access}}
             <div class="storage-access-badge-row">

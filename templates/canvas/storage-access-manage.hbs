@@ -17,9 +17,12 @@
     <p class="storage-access-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noActors"}}</em></p>
     {{/each}}
   </div>
-  <button type="button" class="storage-access-add-btn" data-action="addGuest">
-    <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.addGuest"}}
-  </button>
+  <div class="storage-access-manage-add-row">
+    <button type="button" class="storage-access-add-btn" data-action="addGuest">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.addGuest"}}
+    </button>
+    <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.manageGuests'}}"></i>
+  </div>
   <div class="storage-access-manage-footer">
     <button type="button" class="storage-access-save-btn" data-action="closeManageGuests">
       <i class="fa-solid fa-save"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.save"}}
