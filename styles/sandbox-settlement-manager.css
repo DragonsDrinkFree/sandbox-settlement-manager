@@ -4784,6 +4784,20 @@ hr.ssm-settings-divider {
   gap: 0.3rem;
 }
 
+#sandbox-settlement-manager-storage-access-manage .storage-access-manage-footer {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+}
+
+#sandbox-settlement-manager-storage-access-manage .storage-access-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  justify-content: center;
+}
+
 #sandbox-settlement-manager-storage-access-add .storage-access-add-row {
   display: flex;
   align-items: center;

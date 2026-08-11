@@ -32,8 +32,9 @@ export class StorageAccessManageApp extends HandlebarsApplicationMixin(Applicati
     id: `${MODULE_ID}-storage-access-manage`,
     position: { width: 380 },
     actions: {
-      addGuest:    StorageAccessManageApp.#onAddGuest,
-      removeGuest: StorageAccessManageApp.#onRemoveGuest
+      addGuest:         StorageAccessManageApp.#onAddGuest,
+      removeGuest:      StorageAccessManageApp.#onRemoveGuest,
+      closeManageGuests: StorageAccessManageApp.#onCloseManageGuests
     }
   };
 
@@ -79,5 +80,9 @@ export class StorageAccessManageApp extends HandlebarsApplicationMixin(Applicati
 
     const updated = await this._onRemove(actorId);
     if (updated) { this._group = updated; this.render(); }
+  }
+
+  static #onCloseManageGuests() {
+    this.close();
   }
 }

@@ -1,9 +1,11 @@
-# v1.0
+# v1.0.0
 ## Major
 - Price variations for merchants (Buying and selling)
 - Price variation/refresh added to Inns
 - Storage template Type added.
 - "Cart" for purchases now allows for choosing who receives a purchased item.
+- Storage Template rentals added to banks
+- Storage template ties to rented room
 
 # v0.9.1
 ## Minor

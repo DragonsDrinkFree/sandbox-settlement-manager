@@ -732,6 +732,7 @@
         "manageGuests": "Manage Guests",
         "manageGuestsTitle": "Manage Guests — {name}",
         "addGuest": "Add Guest",
+        "save": "Save",
         "removeGuestTitle": "Remove Guest",
         "removeGuestConfirm": "Remove <strong>{name}</strong> from this area?"
       },
