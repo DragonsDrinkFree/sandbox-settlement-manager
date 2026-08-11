@@ -351,7 +351,7 @@ function _loadLocation(sceneId, locationId) {
  * Storage Group with the renter as Primary access, and records the rental paid through `periods`
  * periods from now. Mirrors createNewLodgingBooking's group-creation shape in lodging-fulfillment.js.
  */
-export async function _handleRentStorage({ optionId, periods, actorId, actorName, locationId, entryId, sceneId, userId }) {
+export async function _handleRentStorage({ optionId, periods, actorId, actorName, areaName, locationId, entryId, sceneId, userId }) {
   if (!_userOwnsActor(userId, actorId)) return;
   const ctx = _loadLocation(sceneId, locationId);
   if (!ctx) return;
@@ -374,7 +374,7 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
   const n = option.nextAreaNumber ?? 1;
   const group = {
     id: foundry.utils.randomID(),
-    name: `${option.namingTemplate ?? ""}${n}`,
+    name: (areaName ?? "").trim() || `${option.namingTemplate ?? ""}${n}`,
     storageTypeId: instanceStorageType.id,
     access: [{ actorId, level: "primary" }],
     retrievalPolicyOverride: null

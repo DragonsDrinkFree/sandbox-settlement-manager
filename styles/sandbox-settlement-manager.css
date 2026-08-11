@@ -3785,8 +3785,8 @@
   color: var(--color-text-dark-warning, #a80000);
 }
 
-#sandbox-settlement-manager-settlement-manage .ssm-rental-storage-type,
-#sandbox-settlement-manager-location-detail .ssm-rental-storage-type,
+#sandbox-settlement-manager-settlement-manage .ssm-rental-area-name,
+#sandbox-settlement-manager-location-detail .ssm-rental-area-name,
 #sandbox-settlement-manager-settlement-manage .ssm-rental-owed,
 #sandbox-settlement-manager-location-detail .ssm-rental-owed {
   font-weight: 600;
@@ -3798,6 +3798,8 @@
   color: var(--color-text-dark-secondary, #555);
 }
 
+#sandbox-settlement-manager-settlement-manage .ssm-rental-storage-type,
+#sandbox-settlement-manager-location-detail .ssm-rental-storage-type,
 #sandbox-settlement-manager-settlement-manage .ssm-rental-fee,
 #sandbox-settlement-manager-location-detail .ssm-rental-fee,
 #sandbox-settlement-manager-settlement-manage .ssm-rental-paid-through,

@@ -685,7 +685,8 @@
             <li class="ssm-rental-entry{{#if this.isDelinquent}} ssm-rental-delinquent{{else}} ssm-rental-active{{/if}}" data-rental-id="{{this.id}}">
               {{#unless this.isDelinquent}}
               <div class="ssm-rental-terms">
-                <span class="ssm-rental-storage-type">{{this.storageTypeName}}</span>
+                <span class="ssm-rental-area-name">{{this.areaName}}</span>
+                <span class="ssm-rental-storage-type">({{this.storageTypeName}})</span>
                 <span class="ssm-rental-fee">{{this.feeLabel}}</span>
                 <span class="ssm-rental-paid-through">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.paidThrough"}}: {{this.paidThroughLabel}}</span>
               </div>
@@ -702,7 +703,8 @@
               {{else}}
               <div class="ssm-rental-terms">
                 <span class="ssm-rental-badge">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.delinquentBadge"}}</span>
-                <span class="ssm-rental-storage-type">{{this.storageTypeName}}</span>
+                <span class="ssm-rental-area-name">{{this.areaName}}</span>
+                <span class="ssm-rental-storage-type">({{this.storageTypeName}})</span>
                 <span class="ssm-rental-owed-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.owed"}}:</span>
                 <span class="ssm-rental-owed">{{this.owedLabel}}</span>
                 {{#if ../bankData.isGM}}

@@ -251,7 +251,8 @@ export function buildLoanDisplayList(loans, now, secondsPerDay, currencies) {
  */
 export function buildRentalDisplayList(location, bank, now, currencies) {
   const periodLabelKey = { day: "day", week: "week", month: "month" };
-  const storageTypes = location.typeData?.[bank.linkedStorageEntryId]?.storageTypes ?? [];
+  const storageData  = location.typeData?.[bank.linkedStorageEntryId];
+  const storageTypes = storageData?.storageTypes ?? [];
   return (bank.rentals ?? []).map(raw => {
     const feeStandard = costInStandard({ currencyId: raw.feeCurrencyId, amount: raw.feeAmount }, currencies);
     const rental = accrueStorageRent(raw, now, feeStandard);
@@ -260,6 +261,7 @@ export function buildRentalDisplayList(location, bank, now, currencies) {
       fee: formatAmounts({ [rental.feeCurrencyId]: rental.feeAmount }, currencies), period: periodLabel
     });
     const storageTypeName = storageTypes.find(st => st.id === rental.storageTypeId)?.name ?? "—";
+    const areaName = storageData?.groups?.find(g => g.id === rental.groupId)?.name ?? "—";
     const isDelinquent = rental.status === "delinquent";
     const common = {
       id:         rental.id,
@@ -268,6 +270,7 @@ export function buildRentalDisplayList(location, bank, now, currencies) {
       groupId:    rental.groupId,
       status:     rental.status,
       isDelinquent,
+      areaName,
       storageTypeName,
       feeLabel
     };

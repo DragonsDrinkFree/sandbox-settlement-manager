@@ -534,6 +534,8 @@
         "rentPromptTitle": "Rent Storage",
         "rentPromptStorageType": "Storage Type",
         "rentPromptPeriods": "Periods to prepay",
+        "areaNamePromptTitle": "Name Storage Area",
+        "areaNamePromptLabel": "Give this Area a name you'll recognize later",
         "rentConfirmTitle": "Confirm Rental",
         "rentConfirmBody": "Rent this Storage Area for {coins}?",
         "extendPromptTitle": "Extend Rental",

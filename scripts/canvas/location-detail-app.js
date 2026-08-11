@@ -95,6 +95,21 @@ async function promptStorageRental(labeledOptions) {
   return result ?? null;
 }
 
+/** Prompt for the name of a newly-rented Storage Area, pre-filled with the auto-generated default. Returns the (possibly-edited) name, or null if cancelled. */
+async function promptStorageAreaName(defaultName) {
+  const result = await foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.areaNamePromptTitle") },
+    content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.areaNamePromptLabel")}</label>
+      <input type="text" name="areaName" value="${defaultName}"></div>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
+      callback: (event, btn) => (btn.form.querySelector('[name="areaName"]')?.value ?? "").trim()
+    }
+  });
+  if (result === null) return null;
+  return result || defaultName;
+}
+
 export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _location;
   _activeTab = null;
@@ -1112,6 +1127,10 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!option) return;
     if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return;
 
+    const defaultAreaName = `${option.namingTemplate ?? ""}${option.nextAreaNumber ?? 1}`;
+    const areaName = await promptStorageAreaName(defaultAreaName);
+    if (areaName === null) return;
+
     const mode  = currencyConfig.mode ?? 'loose';
     const coins = { [option.feeCurrencyId]: option.feeAmount * picked.periods };
     const short = insufficientCurrencies(actor, coins, currencies, mode);
@@ -1128,7 +1147,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await removeCoinsFromActor(actor, coins, currencies, mode);
 
     const payload = {
-      optionId: option.id, periods: picked.periods, actorId: actor.id, actorName: actor.name,
+      optionId: option.id, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
       locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id
     };
     if (game.user.isGM) await _handleRentStorage(payload);
