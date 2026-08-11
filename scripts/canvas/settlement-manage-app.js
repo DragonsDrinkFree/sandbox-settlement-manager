@@ -5,7 +5,7 @@ import { CartApp } from "./cart-app.js";
 import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
 import { PurchaseDialog } from "./purchase-dialog.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard } from "../utils/currency-utils.js";
+import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard, settlePayment } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan, _handleRentStorage, _handleExtendStorageRental, _handlePayStorageRent } from "../socket.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
@@ -13,6 +13,7 @@ import { LoanOfferApp } from "./loan-offer-app.js";
 import { periodSecondsFor, accrueLoan, insufficientCurrencies, selectPayoffCoins } from "../utils/loan-utils.js";
 import { accrueStorageRent, reclaimExpiredStorageRentals } from "../utils/rental-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
+import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
@@ -1477,20 +1478,15 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const areaName = await promptStorageAreaName(defaultAreaName);
     if (areaName === null) return;
 
-    const mode  = currencyConfig.mode ?? 'loose';
-    const coins = { [option.feeCurrencyId]: option.feeAmount * picked.periods };
-    const short = insufficientCurrencies(actor, coins, currencies, mode);
-    if (short.length) {
-      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
-      return;
-    }
-    const confirmed = await foundry.applications.api.DialogV2.confirm({
-      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmTitle"),
-      content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmBody", { coins: formatAmounts(coins, currencies) })
+    const mode    = currencyConfig.mode ?? 'loose';
+    const expense = { currencyId: option.feeCurrencyId, amount: option.feeAmount * picked.periods };
+    const result  = await CurrencyPaymentDialog.open({
+      actor, expense, currencies, mode,
+      title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmTitle")
     });
-    if (!confirmed) return;
+    if (!result) return;
 
-    await removeCoinsFromActor(actor, coins, currencies, mode);
+    await settlePayment(actor, result, currencies, mode);
 
     const payload = {
       optionId: option.id, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
@@ -1515,20 +1511,15 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies = currencyConfig.currencies ?? [];
-    const mode = currencyConfig.mode ?? 'loose';
-    const coins = { [rental.feeCurrencyId]: rental.feeAmount * periods };
-    const short = insufficientCurrencies(actor, coins, currencies, mode);
-    if (short.length) {
-      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
-      return;
-    }
-    const confirmed = await foundry.applications.api.DialogV2.confirm({
-      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extendConfirmTitle"),
-      content: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmBody", { coins: formatAmounts(coins, currencies) })
+    const mode    = currencyConfig.mode ?? 'loose';
+    const expense = { currencyId: rental.feeCurrencyId, amount: rental.feeAmount * periods };
+    const result  = await CurrencyPaymentDialog.open({
+      actor, expense, currencies, mode,
+      title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extendConfirmTitle")
     });
-    if (!confirmed) return;
+    if (!result) return;
 
-    await removeCoinsFromActor(actor, coins, currencies, mode);
+    await settlePayment(actor, result, currencies, mode);
 
     const payload = { rentalId, periods, locationId: location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
     if (game.user.isGM) await _handleExtendStorageRental(payload);
@@ -1623,13 +1614,38 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const bank = location.typeData?.[this._activeTab];
     const rental = bank?.rentals?.find(r => r.id === rentalId);
     if (!rental) return;
+    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
+    const currencies     = currencyConfig.currencies ?? [];
+
+    if (rental.status === "delinquent") {
+      const storageData = location.typeData?.[bank.linkedStorageEntryId];
+      const group = storageData?.groups?.find(g => g.id === rental.groupId);
+      const itemCount = group ? (storageData.items ?? []).filter(i => i.groupId === group.id).length : 0;
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.clearTitle"),
+        content: itemCount > 0
+          ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.clearWarnConfirm", { count: itemCount })
+          : game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.clearConfirm")
+      });
+      if (!confirmed) return;
+
+      if (group && storageData) {
+        storageData.groups = storageData.groups.filter(g => g.id !== group.id);
+        storageData.items  = (storageData.items ?? []).filter(i => i.groupId !== group.id);
+      }
+      bank.rentals = bank.rentals.filter(r => r.id !== rentalId);
+
+      await this.#saveLocationData(location);
+      return;
+    }
+
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancelTitle"),
       content: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.cancelConfirm")
     });
     if (!confirmed) return;
     rental.paidThroughAt = game.time.worldTime;
-    reclaimExpiredStorageRentals(location, bank, game.time.worldTime);
+    reclaimExpiredStorageRentals(location, bank, game.time.worldTime, currencies);
     await this.#saveLocationData(location);
   }
 

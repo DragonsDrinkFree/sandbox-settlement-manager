@@ -1911,6 +1911,133 @@
 }
 
 /* -------------------------------------------- */
+/*  Currency Payment Dialog                     */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-cost {
+  color: var(--color-text-dark-inactive, #999);
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .balance-display {
+  background: var(--color-bg-option, rgba(0,0,0,0.05));
+  border-radius: 3px;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .balance-display h4 {
+  font-size: var(--font-size-12, 12px);
+  margin: 0 0 0.25rem;
+  font-weight: bold;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .balance-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .balance-list li {
+  font-size: var(--font-size-12, 12px);
+  display: flex;
+  gap: 0.25rem;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .balance-currency { color: var(--color-text-dark-inactive, #999); }
+
+#sandbox-settlement-manager-currency-payment-dialog .payment-section h4 {
+  font-size: var(--font-size-13, 13px);
+  font-weight: bold;
+  margin: 0.5rem 0 0.25rem;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .payment-inputs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .payment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .payment-row label {
+  flex: 1;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .payment-input {
+  width: 5rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .fill-button {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  font-weight: bold;
+  font-size: var(--font-size-14, 14px);
+  line-height: 1;
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .fill-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .calc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
+  margin-top: 0.5rem;
+  font-size: var(--font-size-12, 12px);
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .calc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-error {
+  color: var(--color-level-error, #c53030);
+  font-size: var(--font-size-12, 12px);
+  min-height: 1em;
+  margin: 0.25rem 0;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-error:empty { display: none; }
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-actions {
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+#sandbox-settlement-manager-currency-payment-dialog .purchase-actions button {
+  padding: 0.3rem 1rem;
+}
+
+/* -------------------------------------------- */
 /*  Location Type Config (Sub-type manager)     */
 /* -------------------------------------------- */
 

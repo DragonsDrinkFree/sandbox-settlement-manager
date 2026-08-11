@@ -1,8 +1,13 @@
+import { costInStandard } from "./currency-utils.js";
+
 /**
  * Advance a delinquent Bank storage rental's owed balance by one charge per full elapsed period
  * since lastAccrualAt. Additive (a flat recurring charge), not compounding like loan interest.
- * Pure: returns a new rental object (or the same reference when nothing changed). Used both for
- * on-read display and for server-authoritative mutation before a payment is applied.
+ * Rent is prepaid, so the period that just lapsed at the active→delinquent transition is charged
+ * immediately by reclaimExpiredStorageRentals below — this only bills any *further* full periods
+ * that elapse after that. Pure: returns a new rental object (or the same reference when nothing
+ * changed). Used both for on-read display and for server-authoritative mutation before a payment
+ * is applied.
  */
 export function accrueStorageRent(rental, now, feeStandard) {
   if (!rental || rental.status !== "delinquent") return rental;
@@ -21,10 +26,13 @@ export function accrueStorageRent(rental, now, feeStandard) {
 /**
  * Sweep a Bank's rentals for ones whose paid-through date has passed: an empty Storage Area (and
  * its rental record) is destroyed outright; an occupied Area has the renter's access revoked and
- * the rental flips to delinquent so accrueStorageRent starts charging. Mutates `bank.rentals` and
- * the linked Storage entry's groups in place. Returns true if anything changed.
+ * the rental flips to delinquent so accrueStorageRent starts charging. Since rent is prepaid, the
+ * period that just lapsed was never paid for — it's charged immediately here rather than waiting
+ * for a further full period to elapse (accrueStorageRent only bills periods *after* this one).
+ * Mutates `bank.rentals` and the linked Storage entry's groups in place. Returns true if anything
+ * changed.
  */
-export function reclaimExpiredStorageRentals(location, bank, now) {
+export function reclaimExpiredStorageRentals(location, bank, now, currencies) {
   let changed = false;
   const kept = [];
   for (const rental of (bank.rentals ?? [])) {
@@ -38,7 +46,9 @@ export function reclaimExpiredStorageRentals(location, bank, now) {
       continue; // empty — drop the rental record too, nothing left to protect
     }
     group.access = (group.access ?? []).filter(a => a.actorId !== rental.actorId);
+    const feeStandard = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies ?? []);
     rental.status = "delinquent";
+    rental.owedStandard = (rental.owedStandard ?? 0) + feeStandard;
     rental.lastAccrualAt = rental.paidThroughAt;
     kept.push(rental);
   }

@@ -43,6 +43,7 @@ export function registerWorldTimeHooks() {
 async function reclaimExpiredLodgingBookings() {
   if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
   const now = game.time.worldTime;
+  const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? {}).currencies ?? [];
 
   for (const scene of game.scenes) {
     const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
@@ -57,7 +58,7 @@ async function reclaimExpiredLodgingBookings() {
       }
       for (const entry of getTypeEntries(location).filter(e => e.typeId === LOCATION_TYPE_IDS.BANK)) {
         const bank = location.typeData?.[entry.id];
-        if (bank?.rentals?.length && reclaimExpiredStorageRentals(location, bank, now)) changed = true;
+        if (bank?.rentals?.length && reclaimExpiredStorageRentals(location, bank, now, currencies)) changed = true;
       }
     }
     if (changed) await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, cloned);
