@@ -173,7 +173,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       editLoan:               SettlementManageApp.#onEditLoan,
       rentStorage:            SettlementManageApp.#onRentStorage,
       extendStorageRental:    SettlementManageApp.#onExtendStorageRental,
-      payStorageRent:         SettlementManageApp.#onPayStorageRent,
       payOffStorageRent:      SettlementManageApp.#onPayOffStorageRent,
       cancelStorageRental:    SettlementManageApp.#onCancelStorageRental,
       addStorageGroup:        SettlementManageApp.#onAddStorageGroup,
@@ -1527,23 +1526,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     this.render({ parts: ["content"] });
   }
 
-  static async #onPayStorageRent(event, target) {
-    const rentalId = target.dataset.rentalId;
-    const location = this.#syncSelectedLocation();
-    const rental = (location?.typeData?.[this._activeTab]?.rentals ?? []).find(r => r.id === rentalId);
-    if (!rental) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const mode           = currencyConfig.mode ?? 'loose';
-    const container = target.closest('.ssm-rental-entry');
-    const payCoins = {};
-    container?.querySelectorAll('.ssm-rental-pay-input').forEach(input => {
-      const amt = parseInt(input.value) || 0;
-      if (amt > 0) payCoins[input.dataset.currencyId] = amt;
-    });
-    await this.#submitStorageRentPayment(rental, location, payCoins, currencies, mode);
-  }
-
   static async #onPayOffStorageRent(event, target) {
     const rentalId = target.dataset.rentalId;
     const location = this.#syncSelectedLocation();
@@ -1563,7 +1545,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await this.#submitStorageRentPayment(rental, location, coins, currencies, mode);
   }
 
-  /** Shared by pay (from inputs) and pay-off-in-full: verify funds, confirm (with any change), debit, dispatch. */
+  /** Pay off a delinquent rental in full: verify funds, confirm (with any change), debit, dispatch. */
   async #submitStorageRentPayment(rental, location, payCoins, currencies, mode) {
     const filtered = {};
     for (const [cId, amt] of Object.entries(payCoins ?? {})) {

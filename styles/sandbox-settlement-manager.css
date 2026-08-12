@@ -3966,12 +3966,6 @@
   padding-top: 0.3rem;
 }
 
-#sandbox-settlement-manager-settlement-manage .ssm-rental-pay-input,
-#sandbox-settlement-manager-location-detail .ssm-rental-pay-input {
-  width: 4rem;
-  text-align: right;
-}
-
 #sandbox-settlement-manager-settlement-manage .ssm-rental-pay-actions,
 #sandbox-settlement-manager-location-detail .ssm-rental-pay-actions {
   margin-left: auto;

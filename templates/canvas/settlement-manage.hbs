@@ -716,16 +716,7 @@
                 {{/if}}
               </div>
               <div class="ssm-rental-pay-form">
-                {{#each ../bankData.currencies}}
-                <div class="ssm-deposit-currency-row">
-                  <label class="ssm-deposit-currency-label">{{this.abbreviation}}</label>
-                  <input type="number" class="ssm-rental-pay-input" data-currency-id="{{this.id}}" min="0" max="{{this.balance}}" step="1" placeholder="0">
-                </div>
-                {{/each}}
                 <div class="ssm-rental-pay-actions">
-                  <button type="button" data-action="payStorageRent" data-rental-id="{{this.id}}" class="ssm-rental-pay-btn">
-                    {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.pay"}}
-                  </button>
                   <button type="button" data-action="payOffStorageRent" data-rental-id="{{this.id}}" class="ssm-rental-payoff-btn">
                     {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payOff"}}
                   </button>

@@ -552,7 +552,6 @@
         "clearWarnConfirm": "This Storage Area still contains {count} item(s). Clearing this rental will permanently delete the Area and everything in it. Continue?",
         "delinquentBadge": "Delinquent",
         "owed": "Owed",
-        "pay": "Pay",
         "payOff": "Pay Off",
         "payConfirmTitle": "Make Rent Payment",
         "insufficientPayoff": "This character can't afford to pay off this rental.",
