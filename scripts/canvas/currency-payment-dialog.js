@@ -5,9 +5,7 @@ import {
   totalOfferedInStandard,
   calculateChange,
   formatAmounts,
-  readActorBalance,
-  getStandardCurrency,
-  getMaxDenomValue
+  readActorBalance
 } from "../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -73,16 +71,7 @@ export class CurrencyPaymentDialog extends HandlebarsApplicationMixin(Applicatio
     return {
       ...context,
       submitLabel: this._submitLabel || game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.purchase.confirm"),
-      expenseCostLabel: (() => {
-        const totalStd = costInStandard(this._expense, this._currencies);
-        const standardCurrency = getStandardCurrency(this._currencies);
-        const stdRate = standardCurrency ? parseExchangeRate(standardCurrency.exchangeRate) : 0;
-        const maxRate = stdRate > 1e-9 ? stdRate : getMaxDenomValue(this._currencies);
-        const breakdown = calculateChange(totalStd, this._currencies, maxRate);
-        return (breakdown && Object.values(breakdown).some(v => v > 0))
-          ? formatAmounts(breakdown, this._currencies)
-          : `${this._expense.amount} ${costCurrency?.abbreviation ?? "?"}`;
-      })(),
+      expenseCostLabel: `${this._expense.amount} ${costCurrency?.abbreviation ?? "?"}`,
       currencies: this._currencies.map(c => ({
         ...c,
         fillDisabled: isAttributeOrItem && (balance[c.id] ?? 0) === 0

@@ -275,8 +275,9 @@ export function buildRentalDisplayList(location, bank, now, currencies) {
       feeLabel
     };
     if (isDelinquent) {
-      const owedCoins = computeOwedCoins(rental.owedStandard, currencies);
-      return { ...common, owedLabel: formatAmounts(owedCoins, currencies) };
+      const feeCurrency = currencies.find(c => c.id === rental.feeCurrencyId);
+      const periodsOwed = feeStandard > 1e-9 ? Math.max(0, Math.round(rental.owedStandard / feeStandard)) : 0;
+      return { ...common, owedLabel: `${periodsOwed * rental.feeAmount} ${feeCurrency?.abbreviation ?? "?"}` };
     }
     const remaining = (rental.paidThroughAt ?? now) - now;
     const paidThroughLabel = remaining <= 0

@@ -463,7 +463,12 @@ export async function _handlePayStorageRent({ rentalId, payCoins, locationId, en
         await grantStandardToActor(actor, overpay, currencies, mode, maxDenom);
       }
     }
-    bank.rentals[idx] = { ...accrued, status: "active", owedStandard: 0, lastAccrualAt: null, paidThroughAt: now };
+    // Rent is prepaid: clearing the debt buys back the period(s) it represented, extending the
+    // original schedule (accrued.paidThroughAt, never mutated by accrual) rather than resetting
+    // the clock to "now" — otherwise the very next sweep would immediately re-flip to delinquent.
+    const periodsCovered  = feeStandard > 1e-9 ? Math.max(1, Math.round(accrued.owedStandard / feeStandard)) : 1;
+    const newPaidThroughAt = (accrued.paidThroughAt ?? now) + periodsCovered * accrued.periodSeconds;
+    bank.rentals[idx] = { ...accrued, status: "active", owedStandard: 0, lastAccrualAt: null, paidThroughAt: newPaidThroughAt };
   } else {
     bank.rentals[idx] = { ...accrued, owedStandard: newOwed };
   }
