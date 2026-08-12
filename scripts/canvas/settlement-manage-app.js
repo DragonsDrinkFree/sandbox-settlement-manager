@@ -1535,54 +1535,25 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const currencies     = currencyConfig.currencies ?? [];
     const mode           = currencyConfig.mode ?? 'loose';
     const actor          = game.actors.get(rental.actorId);
-    const feeStandard    = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
-    const accrued        = accrueStorageRent(rental, game.time.worldTime, feeStandard);
-    const { coins, shortfall } = selectPayoffCoins(actor, accrued.owedStandard, currencies, mode);
-    if (shortfall > 1e-6) {
-      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.insufficientPayoff"));
-      return;
-    }
-    await this.#submitStorageRentPayment(rental, location, coins, currencies, mode);
-  }
-
-  /** Pay off a delinquent rental in full: verify funds, confirm (with any change), debit, dispatch. */
-  async #submitStorageRentPayment(rental, location, payCoins, currencies, mode) {
-    const filtered = {};
-    for (const [cId, amt] of Object.entries(payCoins ?? {})) {
-      const n = Math.max(0, Math.floor(amt));
-      if (n > 0) filtered[cId] = n;
-    }
-    if (!Object.keys(filtered).length || !location) return;
-    const actor = game.actors.get(rental.actorId);
     if (!actor) return;
 
-    const short = insufficientCurrencies(actor, filtered, currencies, mode);
-    if (short.length) {
-      ui.notifications.warn(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.insufficientFunds", { coins: short.join(", ") }));
-      return;
-    }
-
-    const feeStandard   = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
-    const owedStandard  = accrueStorageRent(rental, game.time.worldTime, feeStandard).owedStandard;
-    const changeStandard = totalOfferedInStandard(filtered, currencies) - owedStandard;
-    let changeLabel = "";
-    if (changeStandard > 1e-6) {
-      const paidRates = Object.keys(filtered).map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
-      const maxDenom  = paidRates.length ? Math.max(...paidRates) : getMaxDenomValue(currencies);
-      changeLabel = formatAmounts(calculateChange(changeStandard, currencies, maxDenom) ?? {}, currencies);
-    }
-
-    const confirmed = await foundry.applications.api.DialogV2.confirm({
-      title:   game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payConfirmTitle"),
-      content: changeLabel
-        ? game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBodyChange", { coins: formatAmounts(filtered, currencies), change: changeLabel })
-        : game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.loans.payConfirmBody", { coins: formatAmounts(filtered, currencies) })
+    const feeStandard  = costInStandard({ currencyId: rental.feeCurrencyId, amount: rental.feeAmount }, currencies);
+    const owedStandard = accrueStorageRent(rental, game.time.worldTime, feeStandard).owedStandard;
+    const periodsOwed  = feeStandard > 1e-9 ? Math.max(1, Math.round(owedStandard / feeStandard)) : 1;
+    const expense       = { currencyId: rental.feeCurrencyId, amount: periodsOwed * rental.feeAmount };
+    const result = await CurrencyPaymentDialog.open({
+      actor, expense, currencies, mode,
+      title:       game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payConfirmTitle"),
+      submitLabel: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.payOff")
     });
-    if (!confirmed) return;
+    if (!result) return;
 
-    await removeCoinsFromActor(actor, filtered, currencies, mode);
+    // Owed rent can keep accruing between opening this dialog and the server processing the
+    // payment, so — unlike Rent/Extend — change is computed and granted server-authoritatively
+    // in _handlePayStorageRent rather than settled here; only the chosen payment is debited now.
+    await removeCoinsFromActor(actor, result.payment, currencies, mode);
 
-    const payload = { rentalId: rental.id, payCoins: filtered, locationId: location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
+    const payload = { rentalId: rental.id, payCoins: result.payment, locationId: location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id };
     if (game.user.isGM) await _handlePayStorageRent(payload);
     else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PAY_STORAGE_RENT, payload });
     this.render({ parts: ["content"] });
