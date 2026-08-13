@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../../constants.js";
+import { MODULE_ID } from "../../constants.js";
 import { getCurrencyContext } from "../../utils/currency-utils.js";
 import { MenuItemEditApp } from "./menu-item-edit-app.js";
 import { snapshot, TEMPLATE_FIELDS } from "../template-link.js";

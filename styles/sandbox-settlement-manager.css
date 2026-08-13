@@ -1267,11 +1267,13 @@
   width: 3.5rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-price {
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-price,
+#sandbox-settlement-manager-sub-type-edit .storage-rental-option-table .col-price {
   white-space: nowrap;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-auto {
+#sandbox-settlement-manager-sub-type-edit .lodging-edit-table .col-auto,
+#sandbox-settlement-manager-sub-type-edit .storage-rental-option-table .col-auto {
   width: 2rem;
   text-align: center;
 }

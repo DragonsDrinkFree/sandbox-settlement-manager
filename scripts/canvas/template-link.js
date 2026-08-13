@@ -15,7 +15,7 @@ export const TEMPLATE_FIELDS = {
   merchantItem: ["name", "itemId", "minSettlementSize", "stockAvailability", "stockFormula", "price"],
   bank:         ["doesExchange", "exchangeFee", "depositSettings"],
   storageType:  ["name", "weightLimit", "retrievalPolicy"],
-  storageRentalOption: ["storageTypeId", "feeAmount", "feeCurrencyId", "periodUnit", "namingTemplate"]
+  storageRentalOption: ["storageTypeId", "pricePerDay", "pricePerWeek", "pricePerMonth", "minPeriodUnit", "namingTemplate"]
 };
 
 /** Order-agnostic deep equality for primitives, arrays, and plain objects. */

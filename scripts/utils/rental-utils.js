@@ -1,4 +1,36 @@
 import { costInStandard } from "./currency-utils.js";
+import { LOAN_PERIOD_DAYS } from "./loan-utils.js";
+
+/** Rental period units, shortest first. */
+const PERIOD_ORDER = ["day", "week", "month"];
+
+/** Round a derived price to whole hundredths — the step the price inputs use. */
+const roundPrice = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/**
+ * Resolve a Bank storage rental option to its three concrete rates plus its minimum period.
+ *
+ * A null pricePerWeek/pricePerMonth means "auto-derive from the day price" — the same
+ * null-means-auto convention the Inn's lodgings use for pricePerWeek. Derivation multiplies by
+ * LOAN_PERIOD_DAYS (7 and 30) rather than the world's daysPerWeek, because a rental's *duration*
+ * comes from periodSecondsFor, which uses that same fixed ladder; deriving the price from a
+ * different day count than the duration would silently under- or over-charge.
+ */
+export function resolveRentalPricing(option) {
+  const day = option?.pricePerDay ?? { currencyId: "", amount: 0 };
+  return {
+    day,
+    week:  option?.pricePerWeek  ?? { currencyId: day.currencyId, amount: roundPrice((day.amount ?? 0) * LOAN_PERIOD_DAYS.week) },
+    month: option?.pricePerMonth ?? { currencyId: day.currencyId, amount: roundPrice((day.amount ?? 0) * LOAN_PERIOD_DAYS.month) },
+    minPeriodUnit: PERIOD_ORDER.includes(option?.minPeriodUnit) ? option.minPeriodUnit : "day"
+  };
+}
+
+/** Period units a renter may choose for this option — those at or above its minimum. */
+export function availablePeriodUnits(minPeriodUnit) {
+  const i = PERIOD_ORDER.indexOf(minPeriodUnit);
+  return PERIOD_ORDER.slice(i === -1 ? 0 : i);
+}
 
 /**
  * Advance a delinquent Bank storage rental's owed balance by one charge per full elapsed period

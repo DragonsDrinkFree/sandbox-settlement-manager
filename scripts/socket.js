@@ -1,7 +1,7 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
 import { grantCoinsToActor, grantStandardToActor, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
 import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
-import { accrueStorageRent } from "./utils/rental-utils.js";
+import { accrueStorageRent, resolveRentalPricing, availablePeriodUnits } from "./utils/rental-utils.js";
 import { resolveInstanceStorageType, nextFreeAreaName } from "./utils/storage-utils.js";
 import { getWorldTimeConfig } from "./time/world-time.js";
 
@@ -357,7 +357,7 @@ function _loadLocation(sceneId, locationId) {
  * Storage Group with the renter as Primary access, and records the rental paid through `periods`
  * periods from now. Mirrors createNewLodgingBooking's group-creation shape in lodging-fulfillment.js.
  */
-export async function _handleRentStorage({ optionId, periods, actorId, actorName, areaName, locationId, entryId, sceneId, userId }) {
+export async function _handleRentStorage({ optionId, periodUnit, periods, actorId, actorName, areaName, locationId, entryId, sceneId, userId }) {
   if (!_userOwnsActor(userId, actorId)) return;
   const ctx = _loadLocation(sceneId, locationId);
   if (!ctx) return;
@@ -373,9 +373,15 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
   const instanceStorageType = resolveInstanceStorageType(storageData.storageTypes, option.storageTypeId);
   if (!instanceStorageType) return;
 
+  // Re-resolve pricing server-side rather than trusting the client's chosen rate, and reject any
+  // period shorter than this option's configured minimum.
+  const pricing = resolveRentalPricing(option);
+  if (!availablePeriodUnits(pricing.minPeriodUnit).includes(periodUnit)) return;
+  const rate = pricing[periodUnit];
+
   const now = game.time.worldTime;
   const { hoursPerDay } = getWorldTimeConfig();
-  const periodSeconds = periodSecondsFor(option.periodUnit, hoursPerDay * 3600);
+  const periodSeconds = periodSecondsFor(periodUnit, hoursPerDay * 3600);
 
   const group = {
     id: foundry.utils.randomID(),
@@ -393,9 +399,11 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
     actorId, actorName,
     groupId: group.id,
     storageTypeId: instanceStorageType.id,
-    feeAmount: option.feeAmount,
-    feeCurrencyId: option.feeCurrencyId,
-    periodUnit: option.periodUnit,
+    // The rental snapshots the single rate it was signed at, so later price edits never change
+    // what an in-flight renter owes — and accrual/extend/pay-off need no per-tier awareness.
+    feeAmount: rate.amount,
+    feeCurrencyId: rate.currencyId,
+    periodUnit,
     periodSeconds,
     paidThroughAt: now + periods * periodSeconds,
     status: "active",

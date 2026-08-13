@@ -7,9 +7,11 @@
     currencies  array of { id, abbreviation }
     amountClass css class for the number input
     selectClass css class for the currency select
+    locked      optional — when truthy, the amount is readonly and the currency select disabled
+                (used for prices auto-derived from another field, e.g. a linked weekly rate)
 --}}
-<input type="number" {{attr}}="{{field}}Amount" value="{{price.amount}}" min="0" step="0.01" class="{{amountClass}}">
-<select {{attr}}="{{field}}CurrencyId" class="{{selectClass}}">
+<input type="number" {{attr}}="{{field}}Amount" value="{{price.amount}}" min="0" step="0.01" class="{{amountClass}}"{{#if locked}} readonly{{/if}}>
+<select {{attr}}="{{field}}CurrencyId" class="{{selectClass}}"{{#if locked}} disabled{{/if}}>
   {{#each currencies}}
   <option value="{{this.id}}"{{#if (eq this.id ../price.currencyId)}} selected{{/if}}>{{this.abbreviation}}</option>
   {{/each}}

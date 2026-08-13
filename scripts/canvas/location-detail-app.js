@@ -9,7 +9,7 @@ import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithd
 import { DepositEditApp } from "./deposit-edit-app.js";
 import { LoanOfferApp } from "./loan-offer-app.js";
 import { periodSecondsFor, accrueLoan, insufficientCurrencies, selectPayoffCoins } from "../utils/loan-utils.js";
-import { accrueStorageRent, reclaimExpiredStorageRentals } from "../utils/rental-utils.js";
+import { accrueStorageRent, reclaimExpiredStorageRentals, resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
@@ -971,26 +971,35 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const storageTypes = storageData?.storageTypes ?? [];
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies     = currencyConfig.currencies ?? [];
-    const labeledOptions = options.map(o => ({
-      id: o.id,
-      label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
-        name:   resolveInstanceStorageType(storageTypes, o.storageTypeId)?.name ?? "—",
-        fee:    formatAmounts({ [o.feeCurrencyId]: o.feeAmount }, currencies),
-        period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${o.periodUnit}`)
-      })
-    }));
+    // One row per option per offered rate — rates below the option's minimum period are simply
+    // not listed, which is how the minimum is enforced.
+    const labeledOptions = options.flatMap(o => {
+      const pricing = resolveRentalPricing(o);
+      const name    = resolveInstanceStorageType(storageTypes, o.storageTypeId)?.name ?? "—";
+      return availablePeriodUnits(pricing.minPeriodUnit).map(unit => ({
+        id: `${o.id}::${unit}`,
+        label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
+          name,
+          fee:    formatAmounts({ [pricing[unit].currencyId]: pricing[unit].amount }, currencies),
+          period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${unit}`)
+        })
+      }));
+    });
     const picked = await promptStorageRental(labeledOptions);
     if (!picked) return;
-    const option = options.find(o => o.id === picked.storageOptionId);
+    const [optionId, periodUnit] = (picked.storageOptionKey ?? "").split("::");
+    const option = options.find(o => o.id === optionId);
     if (!option) return;
     if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return;
+    const rate = resolveRentalPricing(option)[periodUnit];
+    if (!rate) return;
 
     const defaultAreaName = nextFreeAreaName(option.namingTemplate, storageData?.groups);
     const areaName = await promptStorageAreaName(defaultAreaName);
     if (areaName === null) return;
 
     const mode    = currencyConfig.mode ?? 'loose';
-    const expense = { currencyId: option.feeCurrencyId, amount: option.feeAmount * picked.periods };
+    const expense = { currencyId: rate.currencyId, amount: rate.amount * picked.periods };
     const result  = await CurrencyPaymentDialog.open({
       actor, expense, currencies, mode,
       title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentConfirmTitle")
@@ -1000,7 +1009,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     await settlePayment(actor, result, currencies, mode);
 
     const payload = {
-      optionId: option.id, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
+      optionId: option.id, periodUnit, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
       locationId: this._location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id
     };
     if (game.user.isGM) await _handleRentStorage(payload);

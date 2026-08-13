@@ -24,7 +24,7 @@ import {
 import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
-import { accrueStorageRent } from "../utils/rental-utils.js";
+import { accrueStorageRent, resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
 import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests, resolveInstanceStorageType } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
@@ -695,17 +695,18 @@ export function buildBankData(app, entry, location, currencies) {
 
   const allProcessedRentals = buildRentalDisplayList(location, bankRaw, now, currencies);
   const processedRentals = app._bankActorId ? allProcessedRentals.filter(r => r.actorId === app._bankActorId) : [];
-  const storageRentalOptionRows = (bankRaw.storageRentalOptions ?? []).map(o => {
-    const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${{ day: "day", week: "week", month: "month" }[o.periodUnit] ?? "week"}`);
+  // One row per option per offered rate, matching what the rent picker lists.
+  const storageRentalOptionRows = (bankRaw.storageRentalOptions ?? []).flatMap(o => {
+    const pricing     = resolveRentalPricing(o);
     const storageType = resolveInstanceStorageType(location.typeData?.[bankRaw.linkedStorageEntryId]?.storageTypes, o.storageTypeId);
-    return {
-      id: o.id,
+    return availablePeriodUnits(pricing.minPeriodUnit).map(unit => ({
+      id: `${o.id}::${unit}`,
       label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
         name: storageType?.name ?? "—",
-        fee: formatAmounts({ [o.feeCurrencyId]: o.feeAmount }, currencies),
-        period: periodLabel
+        fee: formatAmounts({ [pricing[unit].currencyId]: pricing[unit].amount }, currencies),
+        period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${unit}`)
       })
-    };
+    }));
   });
 
   return {

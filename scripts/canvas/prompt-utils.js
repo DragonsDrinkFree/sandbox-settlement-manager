@@ -58,15 +58,16 @@ export async function promptStorageRental(labeledOptions) {
   const result = await foundry.applications.api.DialogV2.prompt({
     window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptTitle") },
     content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptStorageType")}</label>
-      <select name="storageOptionId">${options}</select></div>
+      <select name="storageOptionKey">${options}</select></div>
       <div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptPeriods")}</label>
       <input type="number" name="periods" value="1" min="1" step="1"></div>`,
     ok: {
       label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
       callback: (event, btn) => {
-        const storageOptionId = btn.form.querySelector('[name="storageOptionId"]')?.value;
+        // Each row is one option at one rate, keyed "<optionId>::<periodUnit>".
+        const storageOptionKey = btn.form.querySelector('[name="storageOptionKey"]')?.value;
         const periods = Math.max(1, parseInt(btn.form.querySelector('[name="periods"]')?.value) || 1);
-        return storageOptionId ? { storageOptionId, periods } : null;
+        return storageOptionKey ? { storageOptionKey, periods } : null;
       }
     }
   });

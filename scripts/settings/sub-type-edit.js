@@ -7,6 +7,8 @@ import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 import { rollMerchantRestock } from "../canvas/location-data.js";
 import { LodgingStorageConfigApp } from "./lodging-storage-config-app.js";
+import { LOAN_PERIOD_DAYS } from "../utils/loan-utils.js";
+import { resolveRentalPricing } from "../utils/rental-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -260,17 +262,28 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }));
       }
       if (showBankSection) {
-        storageRentalOptions = this._storageRentalOptions.map(o => ({
-          id: o.id,
-          price: { currencyId: o.feeCurrencyId || defaultCurrencyId, amount: o.feeAmount ?? 0 },
-          namingTemplate: o.namingTemplate ?? "",
-          storageTypeOptions: bankLinkedStorageTypes.map(st => ({ id: st.id, name: st.name, selected: st.id === o.storageTypeId })),
-          periodOptions: ["day", "week", "month"].map(u => ({
-            id: u,
-            label: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${u}`),
-            selected: (o.periodUnit ?? "week") === u
-          }))
-        }));
+        storageRentalOptions = this._storageRentalOptions.map(o => {
+          // Resolved so options saved before day/week/month pricing still render a sensible row.
+          const pricing = resolveRentalPricing(o);
+          const withDefaultCurrency = (p) => ({ currencyId: p.currencyId || defaultCurrencyId, amount: p.amount ?? 0 });
+          return {
+            id: o.id,
+            // A null week/month price means "auto-derive from the day price" (same convention as
+            // the Inn's pricePerWeek); the resolved value is still shown, just locked.
+            autoWeek:  !o.pricePerWeek,
+            autoMonth: !o.pricePerMonth,
+            pricePerDay:   withDefaultCurrency(pricing.day),
+            pricePerWeek:  withDefaultCurrency(pricing.week),
+            pricePerMonth: withDefaultCurrency(pricing.month),
+            namingTemplate: o.namingTemplate ?? "",
+            storageTypeOptions: bankLinkedStorageTypes.map(st => ({ id: st.id, name: st.name, selected: st.id === o.storageTypeId })),
+            minPeriodOptions: ["day", "week", "month"].map(u => ({
+              id: u,
+              label: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${u}`),
+              selected: pricing.minPeriodUnit === u
+            }))
+          };
+        });
       }
     }
     let storageTypes = [];
@@ -360,6 +373,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelector('[name="name"]')?.focus();
     if (!this._typeId) this.#wireTypeSelect();
     this.#wireWeeklyLinks();
+    this.#wireStorageRentalLinks();
     this.#wireMerchantDragDrop();
     this.#wireStorageUnlimitedToggles();
 
@@ -534,20 +548,80 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /**
+   * Chain-link toggles on the Storage Rental Options rows, mirroring #wireWeeklyLinks for lodgings.
+   * Linked week/month prices are read-only and recompute live from the day price. The multipliers
+   * are the fixed LOAN_PERIOD_DAYS ladder (7 / 30) that periodSecondsFor uses for the rental's
+   * duration — deriving from the world's daysPerWeek instead would let price and duration disagree.
+   */
+  #wireStorageRentalLinks() {
+    this.element.querySelectorAll('.storage-rental-option-row').forEach(row => {
+      const dayAmt  = row.querySelector('[data-field="pricePerDayAmount"]');
+      const dayCurr = row.querySelector('[data-field="pricePerDayCurrencyId"]');
+
+      for (const [field, days] of [["pricePerWeek", LOAN_PERIOD_DAYS.week], ["pricePerMonth", LOAN_PERIOD_DAYS.month]]) {
+        const key      = field === "pricePerWeek" ? "autoWeek" : "autoMonth";
+        const stateBox = row.querySelector(`[data-field="${key}"]`);
+        const linkBtn  = row.querySelector(field === "pricePerWeek" ? '.storage-rental-link-week' : '.storage-rental-link-month');
+        const amt      = row.querySelector(`[data-field="${field}Amount"]`);
+        const curr     = row.querySelector(`[data-field="${field}CurrencyId"]`);
+
+        const applyState = () => {
+          const linked = !!stateBox?.checked;
+          linkBtn?.classList.toggle('is-linked', linked);
+          if (amt)  amt.readOnly  = linked;
+          if (curr) curr.disabled = linked;
+          if (linked) {
+            const base = parseFloat(dayAmt?.value) || 0;
+            if (amt)             amt.value  = (base * days).toFixed(2);
+            if (curr && dayCurr) curr.value = dayCurr.value;
+          }
+        };
+
+        applyState();
+
+        linkBtn?.addEventListener('click', () => {
+          if (stateBox) stateBox.checked = !stateBox.checked;
+          applyState();
+        });
+        dayAmt?.addEventListener('input', () => {
+          if (!stateBox?.checked) return;
+          const base = parseFloat(dayAmt.value) || 0;
+          if (amt) amt.value = (base * days).toFixed(2);
+        });
+        dayCurr?.addEventListener('change', () => {
+          if (!stateBox?.checked) return;
+          if (curr) curr.value = dayCurr.value;
+        });
+      }
+    });
+  }
+
   #syncStorageRentalOptionsFromDOM() {
     const rows = this.element?.querySelectorAll('.storage-rental-option-row') ?? [];
     if (!rows.length && this._storageRentalOptions.length) return;
     const byId = new Map(this._storageRentalOptions.map(o => [o.id, o]));
     this._storageRentalOptions = [...rows].map(row => {
       const id = row.dataset.optionId || foundry.utils.randomID();
+      const val = (f) => row.querySelector(`[data-field="${f}"]`)?.value;
+      const autoWeek  = !!row.querySelector('[data-field="autoWeek"]')?.checked;
+      const autoMonth = !!row.querySelector('[data-field="autoMonth"]')?.checked;
+      const dayCurrencyId = val("pricePerDayCurrencyId") ?? "";
+      const priceOf = (field) => ({
+        currencyId: val(`${field}CurrencyId`) ?? dayCurrencyId,
+        amount:     parseFloat(val(`${field}Amount`)) || 0
+      });
       return {
         ...(byId.get(id) ?? {}),
         id,
-        storageTypeId:  row.querySelector('[data-field="storageTypeId"]')?.value || null,
-        feeAmount:      parseFloat(row.querySelector('[data-field="feeAmount"]')?.value) || 0,
-        feeCurrencyId:  row.querySelector('[data-field="feeCurrencyId"]')?.value ?? "",
-        periodUnit:     row.querySelector('[data-field="periodUnit"]')?.value ?? "week",
-        namingTemplate: (row.querySelector('[data-field="namingTemplate"]')?.value ?? "").trim()
+        storageTypeId:  val("storageTypeId") || null,
+        pricePerDay:    { currencyId: dayCurrencyId, amount: parseFloat(val("pricePerDayAmount")) || 0 },
+        // null means auto-derive — never persist the derived value, or unlinking the day price
+        // later would leave a stale hardcoded rate behind.
+        pricePerWeek:   autoWeek  ? null : priceOf("pricePerWeek"),
+        pricePerMonth:  autoMonth ? null : priceOf("pricePerMonth"),
+        minPeriodUnit:  val("minPeriodUnit") ?? "day",
+        namingTemplate: (val("namingTemplate") ?? "").trim()
       };
     });
   }
@@ -864,11 +938,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const defaultCurrencyId = getStandardCurrency(currencyConfig.currencies ?? [])?.id ?? "";
     this._storageRentalOptions.push({
-      id:            foundry.utils.randomID(),
-      storageTypeId: null,
-      feeAmount:     0,
-      feeCurrencyId: defaultCurrencyId,
-      periodUnit:    "week",
+      id:             foundry.utils.randomID(),
+      storageTypeId:  null,
+      pricePerDay:    { currencyId: defaultCurrencyId, amount: 0 },
+      pricePerWeek:   null,   // auto-derive from the day price until unlinked
+      pricePerMonth:  null,
+      minPeriodUnit:  "day",
       namingTemplate: ""
     });
     this.render({ parts: ["form"] });
