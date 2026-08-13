@@ -44,7 +44,7 @@ export function buildEntryTypeData(typeId, subType) {
   if (typeId === LOCATION_TYPE_IDS.INN) {
     const innTpl = subType?.typeData ?? {};
     return {
-      lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging, { storageNextAreaNumber: 1 })),
+      lodgings: (subType?.typeData?.lodgings ?? []).map(l => instanceFromTemplate(l, TEMPLATE_FIELDS.lodging)),
       ledger: [],
       menu: { courses: (subType?.typeData?.menu?.courses ?? []).map(c => instanceFromTemplate(c, TEMPLATE_FIELDS.course)) },
       // Lodging-level price-variation config (single set for all lodgings) + its refresh cadence.
@@ -96,7 +96,7 @@ export function buildEntryTypeData(typeId, subType) {
       // (same non-diffed treatment as the Inn's linkedStorageTemplateId).
       linkedStorageTemplateId: tpl.linkedStorageTemplateId ?? null,
       linkedStorageEntryId:    null,
-      storageRentalOptions: (tpl.storageRentalOptions ?? []).map(o => instanceFromTemplate(o, TEMPLATE_FIELDS.storageRentalOption, { nextAreaNumber: 1 })),
+      storageRentalOptions: (tpl.storageRentalOptions ?? []).map(o => instanceFromTemplate(o, TEMPLATE_FIELDS.storageRentalOption)),
       rentals: []
     };
   }
@@ -898,13 +898,22 @@ export function buildInnData(entry, location, currencies, isGM = true) {
         return actor?.testUserPermission(game.user, "OWNER");
       });
 
+  // Areas auto-created for a booking are linked by entry.storageGroupId. It's null for bookings
+  // made before storage was configured, for lodgings with no storageConfig, and for GM-added
+  // bookings with no actor — and the Area itself can be deleted from the Storage tab afterwards,
+  // so both the missing-id and missing-group cases fall back to an em dash.
+  const storageGroups = location.typeData?.[innRaw.linkedStorageEntryId]?.groups ?? [];
+
   const ledger = visibleLedger.map(e => {
     const remaining = e.expiresAt - worldTime;
     const isExpired = remaining <= 0;
     const timeRemainingLabel = isExpired
       ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.expired")
       : (() => { const { totalDays, hour, minute } = secondsToComponents(remaining); return `${totalDays}d ${hour}h ${String(minute).padStart(2, "0")}m`; })();
-    return { ...e, isExpired, timeRemainingLabel };
+    const storageAreaName = e.storageGroupId
+      ? (storageGroups.find(g => g.id === e.storageGroupId)?.name ?? "—")
+      : "—";
+    return { ...e, isExpired, timeRemainingLabel, storageAreaName };
   });
 
   const menuData = buildMenuData(innRaw, currencies, isGM, daysPerWeek, hoursPerDay, worldTime);

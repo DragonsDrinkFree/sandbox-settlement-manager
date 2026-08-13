@@ -296,6 +296,7 @@
         "colAvail": "Avail",
         "colCharacter": "Character",
         "colLodging": "Lodging",
+        "colStorageArea": "Storage Area",
         "colTimeRemaining": "Expires"
       },
       "menu": {

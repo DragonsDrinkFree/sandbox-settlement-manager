@@ -8,6 +8,8 @@
 Inn storage/expired rooms clear when cleared.
 Expired rooms -> restablish if same room rented.
 
-- Add a badge that shows which room name the storage is.
-- Add space between name template and #
+
 - Reset numbering down to the lowest available.
+- Bank: storage rentals, Add Day/week pricing like inn rooms.
+- Settings for stored items viewable by other players, if they have permission to retrieve the item.
+- Move settlement checkbox to match other sandbox Module.

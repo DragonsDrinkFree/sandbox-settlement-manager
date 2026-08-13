@@ -2,7 +2,7 @@ import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
 import { grantCoinsToActor, grantStandardToActor, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
 import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
 import { accrueStorageRent } from "./utils/rental-utils.js";
-import { resolveInstanceStorageType } from "./utils/storage-utils.js";
+import { resolveInstanceStorageType, nextFreeAreaName } from "./utils/storage-utils.js";
 import { getWorldTimeConfig } from "./time/world-time.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
@@ -377,16 +377,16 @@ export async function _handleRentStorage({ optionId, periods, actorId, actorName
   const { hoursPerDay } = getWorldTimeConfig();
   const periodSeconds = periodSecondsFor(option.periodUnit, hoursPerDay * 3600);
 
-  const n = option.nextAreaNumber ?? 1;
   const group = {
     id: foundry.utils.randomID(),
-    name: (areaName ?? "").trim() || `${option.namingTemplate ?? ""}${n}`,
+    // Recomputed server-side rather than trusting the client's default, so a name is never
+    // duplicated by two players renting at once.
+    name: (areaName ?? "").trim() || nextFreeAreaName(option.namingTemplate, storageData.groups),
     storageTypeId: instanceStorageType.id,
     access: [{ actorId, level: "primary" }],
     retrievalPolicyOverride: null
   };
   storageData.groups = [...(storageData.groups ?? []), group];
-  option.nextAreaNumber = n + 1;
 
   bank.rentals = [...(bank.rentals ?? []), {
     id: foundry.utils.randomID(),

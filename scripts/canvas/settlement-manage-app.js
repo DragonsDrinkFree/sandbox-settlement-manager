@@ -23,7 +23,7 @@ import { BookingEditApp } from "./inn/booking-edit-app.js";
 import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from "./lodging-fulfillment.js";
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
-import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem, resolveInstanceStorageType } from "../utils/storage-utils.js";
+import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem, resolveInstanceStorageType, nextFreeAreaName } from "../utils/storage-utils.js";
 import { promptQuantity, promptStorageGroupNote, promptActorChoice, promptStorageRental, promptStorageAreaName } from "./prompt-utils.js";
 import { wireExchangePreview, wireStorageDropZones, wireStorageItemSort, wireStorageItemFilter, wireStorageAccessibleCheckboxes, wireStorageAccessBadges, wireActorDropdown, wireActorFilterMenu } from "./storage-wiring.js";
 
@@ -1315,7 +1315,8 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const bank = location.typeData?.[this._activeTab] ?? {};
     const options = bank.storageRentalOptions ?? [];
     if (!options.length || !bank.linkedStorageEntryId) return;
-    const storageTypes = location.typeData?.[bank.linkedStorageEntryId]?.storageTypes ?? [];
+    const storageData  = location.typeData?.[bank.linkedStorageEntryId];
+    const storageTypes = storageData?.storageTypes ?? [];
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies     = currencyConfig.currencies ?? [];
     const labeledOptions = options.map(o => ({
@@ -1332,7 +1333,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!option) return;
     if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return;
 
-    const defaultAreaName = `${option.namingTemplate ?? ""}${option.nextAreaNumber ?? 1}`;
+    const defaultAreaName = nextFreeAreaName(option.namingTemplate, storageData?.groups);
     const areaName = await promptStorageAreaName(defaultAreaName);
     if (areaName === null) return;
 

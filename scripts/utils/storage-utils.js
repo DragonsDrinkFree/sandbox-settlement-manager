@@ -111,3 +111,29 @@ export function findMatchingStoredItem(items, groupId, depositedByActorId, itemD
     itemsMatchForStacking(i.itemData, itemData)
   ) ?? null;
 }
+
+/**
+ * Next auto-generated Storage Area name for a naming template, using the lowest number not
+ * currently taken by an Area matching that template. Numbers freed by deleted Areas get reused,
+ * so the sequence can't balloon over a campaign the way a monotonic counter does.
+ *
+ * The template is trimmed and rejoined with exactly one space, so "Room:" and "Room: " both yield
+ * "Room: 1". Matching tolerates a missing space (\s* rather than \s+) so Areas named by the older
+ * unspaced scheme ("Room:1") still count as taking their number — otherwise this would hand out a
+ * visually colliding "Room: 1".
+ *
+ * Scoped per template: "Room: 1" does not make "Vault: 1" unavailable.
+ */
+export function nextFreeAreaName(namingTemplate, groups) {
+  const prefix  = (namingTemplate ?? "").trim();
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = prefix ? new RegExp(`^${escaped}\\s*(\\d+)$`) : /^(\d+)$/;
+  const used = new Set();
+  for (const g of groups ?? []) {
+    const m = re.exec((g?.name ?? "").trim());
+    if (m) used.add(Number(m[1]));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return prefix ? `${prefix} ${n}` : String(n);
+}
