@@ -1,6 +1,10 @@
 // DOM wiring shared by LocationDetailApp and SettlementManageApp. These were byte-identical in
 // both apps; they only touch the DOM, so they live here as free functions. Each app keeps ownership
-// of its own AbortController and passes the signal in, exactly as before.
+// of its own AbortController and its own body-mounted dropdown list, passing the signal and that
+// list in, exactly as before.
+
+import { MODULE_ID, SETTINGS } from "../constants.js";
+import { parseExchangeRate, calculateChange, formatAmounts } from "../utils/currency-utils.js";
 
 export function wireExchangePreview(section) {
   const feeRate      = parseFloat(section.dataset.feeRate) || 0;
@@ -105,7 +109,7 @@ export function wireStorageAccessibleCheckboxes(element, onToggle) {
   });
 }
 
-export function wireStorageAccessBadges(element, signal) {
+export function wireStorageAccessBadges(element, signal, dropdownEls) {
   element.querySelectorAll('.storage-access-badge-widget').forEach(widget => {
     const trigger = widget.querySelector('.storage-access-badge');
     const dropdown = widget.querySelector('.ssm-storage-access-badge-dropdown');

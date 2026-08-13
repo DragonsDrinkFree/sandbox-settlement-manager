@@ -1865,7 +1865,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
    * actor dropdowns above, reusing the same signal/cleanup array — this is the established mechanism
    * for any body-mounted, click-to-toggle element tied to this app's render cycle.
    */
-  #wireStorageAccessBadges(signal) { wireStorageAccessBadges(this.element, signal); }
+  #wireStorageAccessBadges(signal) { wireStorageAccessBadges(this.element, signal, this.#actorDropdownEls); }
 
   #wireActorDropdown(widget, signal, onSelect) { wireActorDropdown(widget, signal, onSelect, this.#actorDropdownEls); }
 

@@ -5,3 +5,9 @@
 # Storage
 - Display: needs refinement, proper list., button alignments. Checkboxes
 
+Inn storage/expired rooms clear when cleared.
+Expired rooms -> restablish if same room rented.
+
+- Add a badge that shows which room name the storage is.
+- Add space between name template and #
+- Reset numbering down to the lowest available.
