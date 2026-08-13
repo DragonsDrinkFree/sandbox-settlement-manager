@@ -2,7 +2,6 @@
 // See reference: ApplicationV2-overlay-pattern.md
 
 export const MODULE_ID = "sandbox-settlement-manager";
-export const MODULE_TITLE = "Sandbox Settlement Manager";
 
 /** Flag keys stored on Documents. Usage: document.setFlag(MODULE_ID, FLAGS.KEY, value) */
 export const FLAGS = {

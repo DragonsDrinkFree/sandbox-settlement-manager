@@ -1,5 +1,5 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
-import { grantCoinsToActor, grantStandardToActor, calculateChange, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
+import { grantCoinsToActor, grantStandardToActor, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
 import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
 import { accrueStorageRent } from "./utils/rental-utils.js";
 import { resolveInstanceStorageType } from "./utils/storage-utils.js";
@@ -141,8 +141,13 @@ export async function _handleProcessWithdrawal({
   // moving to the next), not from every matched record independently — otherwise a partial
   // withdrawal from a merged/matured group would wipe out every record's balance, destroying
   // whatever wasn't withdrawn.
+  // `deductedCoins` records what the records could *actually* cover. The client's requested
+  // amounts are never paid out directly — a request exceeding the stored balance would otherwise
+  // drain the deposits and still grant the full request, minting currency from nothing.
   const matchedDeposits = allDeposits.filter(d => targetIds.has(d.id));
-  for (const [cId, amt] of Object.entries(withdrawCoins)) {
+  const deductedCoins = {};
+  for (const [cId, rawAmt] of Object.entries(withdrawCoins)) {
+    const amt = Math.max(0, Math.floor(Number(rawAmt) || 0));
     let remaining = amt;
     for (const dep of matchedDeposits) {
       if (remaining <= 0) break;
@@ -152,6 +157,7 @@ export async function _handleProcessWithdrawal({
       dep.coins[cId] = available - take;
       if (dep.coins[cId] <= 0) delete dep.coins[cId];
       remaining -= take;
+      deductedCoins[cId] = (deductedCoins[cId] ?? 0) + take;
     }
   }
   // Remove fully emptied deposits
@@ -168,26 +174,26 @@ export async function _handleProcessWithdrawal({
     await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   }
 
-  // Compute payout: withdrawCoins minus proportional early fee (only when genuinely early — see
-  // effectiveFeeRate above). When no fee applies, the payout is exactly the coins withdrawn.
-  let payoutCoins;
-  if (effectiveFeeRate > 0) {
-    const totalStd  = totalOfferedInStandard(withdrawCoins, currencies);
-    const feeStd    = totalStd * effectiveFeeRate / 100;
-    const payoutStd = Math.max(0, totalStd - feeStd);
-    // Cap re-denomination to the highest-value coin actually withdrawn, so a fee can never turn
-    // the payout into a larger/unrelated denomination (e.g. GP becoming PP) the player never handled.
-    const withdrawnRates = Object.keys(withdrawCoins)
-      .map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
-    const maxDenom = withdrawnRates.length ? Math.max(...withdrawnRates) : getMaxDenomValue(currencies);
-    payoutCoins = calculateChange(payoutStd, currencies, maxDenom) ?? {};
-  } else {
-    payoutCoins = { ...withdrawCoins };
-  }
-
-  // Grant payout to actor
+  // Compute payout from what was actually deducted, minus the proportional early fee (only when
+  // genuinely early — see effectiveFeeRate above). When no fee applies, the payout is exactly the
+  // coins that came out of the records.
   if (mode !== 'loose') {
-    await grantCoinsToActor(actor, payoutCoins, currencies, mode);
+    if (effectiveFeeRate > 0) {
+      const totalStd  = totalOfferedInStandard(deductedCoins, currencies);
+      const feeStd    = totalStd * effectiveFeeRate / 100;
+      const payoutStd = Math.max(0, totalStd - feeStd);
+      // Cap re-denomination to the highest-value coin actually withdrawn, so a fee can never turn
+      // the payout into a larger/unrelated denomination (e.g. GP becoming PP) the player never handled.
+      const withdrawnRates = Object.keys(deductedCoins)
+        .map(cId => parseExchangeRate(currencies.find(c => c.id === cId)?.exchangeRate));
+      const maxDenom = withdrawnRates.length ? Math.max(...withdrawnRates) : getMaxDenomValue(currencies);
+      // grantStandardToActor falls back to the smallest eligible denomination when exact change
+      // can't be made — paying out nothing here would destroy the deposit, which was already
+      // reduced and saved above.
+      await grantStandardToActor(actor, payoutStd, currencies, mode, maxDenom);
+    } else {
+      await grantCoinsToActor(actor, deductedCoins, currencies, mode);
+    }
   }
 
   _refreshBankApps();

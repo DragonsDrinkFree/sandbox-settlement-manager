@@ -1,4 +1,5 @@
 import { MODULE_ID, SETTINGS } from "../../constants.js";
+import { getCurrencyContext } from "../../utils/currency-utils.js";
 import { MenuItemEditApp } from "./menu-item-edit-app.js";
 import { snapshot, TEMPLATE_FIELDS } from "../template-link.js";
 
@@ -51,8 +52,7 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
     const isRandom = this._course.mode === "random";
     const hasCoursePrice = !!this._course.price;

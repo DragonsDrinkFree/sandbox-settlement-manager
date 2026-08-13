@@ -69,12 +69,6 @@ export function restoreFields(instance, templateItem, fields) {
   return instance;
 }
 
-/** Refresh the snapshot to the current template without touching instance field values. */
-export function refreshSnapshot(instance, templateItem, fields) {
-  instance._templateValues = snapshot(templateItem, fields);
-  return instance;
-}
-
 /**
  * Reconcile a collection of linked instances against a template list.
  *  - mode "add": purely additive — append a new linked instance for any template item that has no

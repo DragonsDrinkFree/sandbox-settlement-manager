@@ -76,21 +76,3 @@ export function computeSalePrice(actorItem, effectiveRule, currencies) {
   return { amount, currencyId: listPrice.currencyId };
 }
 
-/**
- * Compute the buyback price for a previously sold item.
- *   salePrice  — what the player received when selling
- *   effectiveRule — the purchasing rule that governed the sale
- *   listPrice  — the item's original listed sell price (may be null)
- */
-export function computeBuybackPrice(salePrice, effectiveRule, listPrice) {
-  const type = effectiveRule?.buybackType ?? "player";
-  if (type === "full" && listPrice) {
-    return { amount: listPrice.amount, currencyId: listPrice.currencyId };
-  }
-  if (type === "markup") {
-    const pct = effectiveRule?.buybackMarkup ?? 100;
-    return { amount: Math.max(1, Math.round(salePrice.amount * pct / 100)), currencyId: salePrice.currencyId };
-  }
-  // "player" — same as what they sold it for
-  return { amount: salePrice.amount, currencyId: salePrice.currencyId };
-}

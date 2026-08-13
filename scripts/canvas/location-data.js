@@ -325,7 +325,17 @@ function pickPct(min = 0, max = 0) {
  */
 function computeAdjustedPrice(basePrice, pct, rounding, currencies) {
   const base     = currencies.find(c => c.id === basePrice.currencyId);
-  const baseRate = parseExchangeRate(base?.exchangeRate) || 1;
+  // The item's currency was deleted from the config. There's no denomination to round against, so
+  // leave the authored price untouched rather than dereferencing `base` below — this runs inside
+  // buildMerchantData on every render, and throwing here blanks the whole tab.
+  if (!base) {
+    return {
+      currencyId: basePrice.currencyId,
+      amount:     basePrice.amount,
+      coins:      { [basePrice.currencyId]: basePrice.amount }
+    };
+  }
+  const baseRate = parseExchangeRate(base.exchangeRate) || 1;
   const rawStd   = basePrice.amount * (1 + pct / 100) * baseRate;
 
   const lowerDenoms = currencies.filter(c => parseExchangeRate(c.exchangeRate) < baseRate);

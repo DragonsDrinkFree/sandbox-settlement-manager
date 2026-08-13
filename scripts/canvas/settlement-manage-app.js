@@ -3,9 +3,8 @@ import { LocationEditApp } from "./location-edit-app.js";
 import { cartManager } from "./cart-manager.js";
 import { CartApp } from "./cart-app.js";
 import { TemplateRestoreDialog } from "./inn/template-restore-dialog.js";
-import { PurchaseDialog } from "./purchase-dialog.js";
-import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
-import { calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard, settlePayment } from "../utils/currency-utils.js";
+import { getWorldTimeConfig } from "../time/world-time.js";
+import { getCurrencyContext, calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard, settlePayment } from "../utils/currency-utils.js";
 import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan, _handleRentStorage, _handleExtendStorageRental, _handlePayStorageRent } from "../socket.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
@@ -17,7 +16,7 @@ import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -25,94 +24,10 @@ import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBook
 import { StorageGroupEditApp } from "./storage-group-edit-app.js";
 import { StorageAccessManageApp } from "./storage-access-manage-app.js";
 import { computeItemWeight, computeGroupUsedWeight, canRetrieve, wouldExceedCapacity, getGroupAccessList, canManageGuests, findMatchingActorItem, findMatchingStoredItem, resolveInstanceStorageType } from "../utils/storage-utils.js";
+import { promptQuantity, promptStorageGroupNote, promptActorChoice, promptStorageRental, promptStorageAreaName } from "./prompt-utils.js";
+import { wireExchangePreview, wireStorageDropZones, wireStorageItemSort, wireStorageItemFilter, wireStorageAccessibleCheckboxes, wireStorageAccessBadges, wireActorDropdown, wireActorFilterMenu } from "./storage-wiring.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
-
-/** Prompt for how many of a stack to move (deposit or take). Returns a clamped integer, or null if cancelled. */
-async function promptQuantity(max, { title } = {}) {
-  const result = await foundry.applications.api.DialogV2.prompt({
-    window: { title: title ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptTitle") },
-    content: `<div class="form-group"><label>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptLabel", { max })}</label>
-      <input type="number" name="qty" value="${max}" min="1" max="${max}" step="1"></div>`,
-    ok: {
-      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.quantityPromptConfirm"),
-      callback: (event, btn) => {
-        const v = parseInt(btn.form.querySelector('[name="qty"]')?.value);
-        return Number.isFinite(v) ? Math.max(1, Math.min(max, v)) : null;
-      }
-    }
-  });
-  return result ?? null;
-}
-
-/** Prompt for a Storage Area's private GM note. Returns the trimmed string, or null if cancelled. */
-async function promptStorageGroupNote(currentNote) {
-  const result = await foundry.applications.api.DialogV2.prompt({
-    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.noteTitle") },
-    content: `<div class="form-group" style="flex-direction: column; align-items: stretch;">
-      <label style="margin-bottom: 0.3rem;">${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.noteLabel")}</label>
-      <textarea name="note" rows="5" style="width: 100%;" placeholder="${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.group.notePlaceholder")}">${currentNote ?? ""}</textarea></div>`,
-    ok: {
-      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
-      callback: (event, btn) => btn.form.querySelector('[name="note"]')?.value ?? ""
-    }
-  });
-  return result === null ? null : result.trim();
-}
-
-/** Prompt to pick one of several actors (e.g. which of the player's actors receives a taken item). */
-async function promptActorChoice(actors, { title, label, alwaysShow = false } = {}) {
-  if (!actors.length) return null;
-  if (!alwaysShow && actors.length === 1) return actors[0];
-  const options = actors.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
-  const result = await foundry.applications.api.DialogV2.prompt({
-    window: { title: title ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.actorPromptTitle") },
-    content: `<div class="form-group"><label>${label ?? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.storage.actorPromptLabel")}</label><select name="actorId">${options}</select></div>`,
-    ok: {
-      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
-      callback: (event, btn) => btn.form.querySelector('[name="actorId"]')?.value
-    }
-  });
-  if (!result) return null;
-  return actors.find(a => a.id === result) ?? null;
-}
-
-/** Prompt to pick a Storage Rental Option and how many periods to prepay. Returns { storageOptionId, periods }, or null. */
-async function promptStorageRental(labeledOptions) {
-  if (!labeledOptions.length) return null;
-  const options = labeledOptions.map(o => `<option value="${o.id}">${o.label}</option>`).join("");
-  const result = await foundry.applications.api.DialogV2.prompt({
-    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptTitle") },
-    content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptStorageType")}</label>
-      <select name="storageOptionId">${options}</select></div>
-      <div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptPeriods")}</label>
-      <input type="number" name="periods" value="1" min="1" step="1"></div>`,
-    ok: {
-      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
-      callback: (event, btn) => {
-        const storageOptionId = btn.form.querySelector('[name="storageOptionId"]')?.value;
-        const periods = Math.max(1, parseInt(btn.form.querySelector('[name="periods"]')?.value) || 1);
-        return storageOptionId ? { storageOptionId, periods } : null;
-      }
-    }
-  });
-  return result ?? null;
-}
-
-/** Prompt for the name of a newly-rented Storage Area, pre-filled with the auto-generated default. Returns the (possibly-edited) name, or null if cancelled. */
-async function promptStorageAreaName(defaultName) {
-  const result = await foundry.applications.api.DialogV2.prompt({
-    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.areaNamePromptTitle") },
-    content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.areaNamePromptLabel")}</label>
-      <input type="text" name="areaName" value="${defaultName}"></div>`,
-    ok: {
-      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
-      callback: (event, btn) => (btn.form.querySelector('[name="areaName"]')?.value ?? "").trim()
-    }
-  });
-  if (result === null) return null;
-  return result || defaultName;
-}
 
 export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectedLocationId = null;
@@ -201,8 +116,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const context = await super._prepareContext(options);
     const scene = canvas.scene;
     const isGM = game.user.isGM;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
 
     context.isGM         = isGM;
     context.settlementName     = scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_NAME) ?? "";
@@ -276,7 +190,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!location) return null;
 
     const rawEntries  = getTypeEntries(location);
-    const subTypeMap  = this.#getSubTypeMap();
+    const subTypeMap  = getSubTypeMap();
     const selectedSet = new Set(rawEntries.map(e => `${e.typeId}::${e.subTypeId ?? ""}`));
 
     const typeEntries = rawEntries.map((entry, index) => {
@@ -370,7 +284,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
   #getTemplateForEntry(entry) {
     if (!entry?.subTypeId) return null;
-    const subTypes = this.#getSubTypeMap();
+    const subTypes = getSubTypeMap();
     return (subTypes[entry.typeId] ?? []).find(t => t.id === entry.subTypeId) ?? null;
   }
 
@@ -380,51 +294,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     return getTypeEntries(location).find(e => e.id === this._activeTab) ?? null;
   }
 
-  #wireExchangePreview(section) {
-    const feeRate      = parseFloat(section.dataset.feeRate) || 0;
-    const fromAmtInput = section.querySelector('[data-field="fromAmount"]');
-    const fromSel      = section.querySelector('[data-field="fromCurrency"]');
-    const toSel        = section.querySelector('[data-field="toCurrency"]');
-    const toPreview    = section.querySelector('[data-field="toAmountPreview"]');
-    const feeEl        = section.querySelector('.ssm-exchange-fee-preview');
-    const addBtn       = section.querySelector('[data-action="addExchangeToCart"]');
-
-    const update = () => {
-      const fromAmount = parseInt(fromAmtInput?.value) || 0;
-      const fromOpt    = fromSel?.selectedOptions[0];
-      const toOpt      = toSel?.selectedOptions[0];
-      const balance    = parseFloat(fromOpt?.dataset.balance ?? '0');
-      const sameCurr   = fromOpt?.value && fromOpt.value === toOpt?.value;
-      const invalid    = !fromAmount || !fromOpt || !toOpt || sameCurr || fromAmount > balance;
-      if (addBtn) addBtn.disabled = invalid;
-      if (!fromAmount || !fromOpt || !toOpt || sameCurr) {
-        if (toPreview) toPreview.value = '';
-        if (feeEl) feeEl.textContent = '';
-        return;
-      }
-      const fromRate = parseExchangeRate(fromOpt.dataset.rate);
-      const toRate   = parseExchangeRate(toOpt.dataset.rate);
-      const fromStd  = fromAmount * fromRate;
-      if (toPreview) toPreview.value = toRate > 0 ? Math.floor(fromStd / toRate) : 0;
-      if (feeEl) {
-        if (feeRate > 0) {
-          const feeStd     = fromStd * feeRate / 100;
-          const currencies = (game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG)).currencies ?? [];
-          const maxDenom   = currencies.reduce((m, c) => Math.max(m, parseExchangeRate(c.exchangeRate)), 0);
-          const feeChange  = calculateChange(feeStd, currencies, maxDenom);
-          feeEl.textContent = feeChange ? `Fee: ${formatAmounts(feeChange, currencies)}` : '';
-        } else {
-          feeEl.textContent = '';
-        }
-      }
-    };
-
-    // Set initial state (button disabled until user enters a valid amount)
-    if (addBtn) addBtn.disabled = true;
-    fromAmtInput?.addEventListener('input', update);
-    fromSel?.addEventListener('change', update);
-    toSel?.addEventListener('change', update);
-  }
+  #wireExchangePreview(section) { wireExchangePreview(section); }
 
   // ------------------------------------------------------------------ render
 
@@ -551,21 +421,21 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       dropdown.style.top  = `${rect.bottom + 2}px`;
       dropdown.style.left = `${rect.left}px`;
       dropdown.classList.toggle("is-open");
-      dropdown.querySelector(".type-picker-filter")?.focus();
+      dropdown.querySelector(".ssm-type-picker-filter")?.focus();
     }, { signal });
 
     document.addEventListener("click", () => dropdown.classList.remove("is-open"), { signal });
     dropdown.addEventListener("click", e => e.stopPropagation(), { signal });
 
-    const filterInput = dropdown.querySelector(".type-picker-filter");
+    const filterInput = dropdown.querySelector(".ssm-type-picker-filter");
     filterInput?.addEventListener("input", () => {
       const q = filterInput.value.trim().toLowerCase();
-      dropdown.querySelectorAll(".picker-group").forEach(group => {
+      dropdown.querySelectorAll(".ssm-picker-group").forEach(group => {
         const typeItem  = group.querySelector(".picker-type-item");
         const typeText  = (typeItem?.textContent ?? "").toLowerCase();
         const typeMatch = !q || typeText.includes(q);
         let anySubMatch = false;
-        group.querySelectorAll(".picker-subtype-item").forEach(item => {
+        group.querySelectorAll(".ssm-picker-subtype-item").forEach(item => {
           const subMatch = typeMatch || item.textContent.toLowerCase().includes(q);
           item.hidden = !subMatch;
           if (subMatch) anySubMatch = true;
@@ -575,7 +445,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       });
     }, { signal });
 
-    dropdown.querySelectorAll(".picker-item").forEach(item => {
+    dropdown.querySelectorAll(".ssm-picker-item").forEach(item => {
       item.addEventListener("click", async () => {
         const location  = this.#syncSelectedLocation();
         if (!location) return;
@@ -587,7 +457,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         location.typeEntries = entries;
         location.typeData ??= {};
 
-        const subTypeMap = this.#getSubTypeMap();
+        const subTypeMap = getSubTypeMap();
         const subType = (subTypeMap[typeId] ?? []).find(s => s.id === subTypeId);
         location.typeData[newEntry.id] = buildEntryTypeData(typeId, subType);
 
@@ -612,11 +482,6 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   // ------------------------------------------------------------------ helpers
-
-  #getSubTypeMap() {
-    const raw = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES);
-    return Array.isArray(raw) ? {} : (raw ?? {});
-  }
 
   #syncSelectedLocation() {
     if (!this._selectedLocationId) return null;
@@ -664,7 +529,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!result) return;
 
     if (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK) {
-      const newStorage = reconcileLinkedStorageForEntry(location, result, this.#getSubTypeMap());
+      const newStorage = reconcileLinkedStorageForEntry(location, result, getSubTypeMap());
       if (newStorage) {
         // Persist the new Storage entry (typeEntries + its typeData) in one shot, on this exact
         // object — #saveEntryData re-fetches the location fresh internally, which wouldn't see the
@@ -753,7 +618,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!entry) return;
     const coreType = CORE_LOCATION_TYPES.find(t => t.id === entry.typeId);
     const subType = entry.subTypeId
-      ? (this.#getSubTypeMap()[entry.typeId] ?? []).find(s => s.id === entry.subTypeId)
+      ? (getSubTypeMap()[entry.typeId] ?? []).find(s => s.id === entry.subTypeId)
       : null;
     const typeName = subType?.name ?? coreType?.name ?? entry.typeId;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -1236,7 +1101,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const bankData    = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
     const activeEntry = this.#getActiveEntry();
     const subType     = activeEntry?.subTypeId
-      ? (this.#getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === activeEntry.subTypeId)
+      ? (getSubTypeMap()[LOCATION_TYPE_IDS.BANK] ?? []).find(s => s.id === activeEntry.subTypeId)
       : null;
     restoreFields(bankData, subType?.typeData?.bank ?? {}, TEMPLATE_FIELDS.bank);
     await this.#saveEntryData(this._activeTab, bankData);
@@ -1248,8 +1113,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!game.user.isGM) return;
     const location = this.#syncSelectedLocation();
     if (!location || !this._activeTab) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const result = await LoanOfferApp.open({ currencies, defaultActorId: this._bankActorId });
     if (!result) return;
 
@@ -1325,9 +1189,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location = this.#syncSelectedLocation();
     const loan = (location?.typeData?.[this._activeTab]?.loans ?? []).find(l => l.id === loanId);
     if (!loan) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const mode           = currencyConfig.mode ?? 'loose';
+    const { currencies, mode } = getCurrencyContext();
     const container = target.closest('.ssm-loan-entry');
     const payCoins = {};
     container?.querySelectorAll('.ssm-loan-pay-input').forEach(input => {
@@ -1342,9 +1204,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location = this.#syncSelectedLocation();
     const loan = (location?.typeData?.[this._activeTab]?.loans ?? []).find(l => l.id === loanId);
     if (!loan) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const mode           = currencyConfig.mode ?? 'loose';
+    const { currencies, mode } = getCurrencyContext();
     const actor   = game.actors.get(loan.actorId);
     const accrued = accrueLoan(loan, game.time.worldTime);
     const { coins, shortfall } = selectPayoffCoins(actor, accrued.balanceStandard, currencies, mode);
@@ -1424,8 +1284,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const loans = bank.loans ?? [];
     const loan = loans.find(l => l.id === loanId);
     if (!loan) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const result = await LoanOfferApp.open({ currencies, loan });
     if (!result) return;
 
@@ -1508,9 +1367,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const periods = await promptQuantity(999, { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.extendPromptTitle") });
     if (!periods) return;
 
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
-    const mode    = currencyConfig.mode ?? 'loose';
+    const { currencies, mode } = getCurrencyContext();
     const expense = { currencyId: rental.feeCurrencyId, amount: rental.feeAmount * periods };
     const result  = await CurrencyPaymentDialog.open({
       actor, expense, currencies, mode,
@@ -1531,9 +1388,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const location = this.#syncSelectedLocation();
     const rental = (location?.typeData?.[this._activeTab]?.rentals ?? []).find(r => r.id === rentalId);
     if (!rental) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const mode           = currencyConfig.mode ?? 'loose';
+    const { currencies, mode } = getCurrencyContext();
     const actor          = game.actors.get(rental.actorId);
     if (!actor) return;
 
@@ -1567,8 +1422,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const bank = location.typeData?.[this._activeTab];
     const rental = bank?.rentals?.find(r => r.id === rentalId);
     if (!rental) return;
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
 
     if (rental.status === "delinquent") {
       const storageData = location.typeData?.[bank.linkedStorageEntryId];
@@ -1873,64 +1727,15 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await this.#saveEntryData(this._activeTab, storage);
   }
 
-  #wireStorageDropZones() {
-    this.element.querySelectorAll('.storage-group-drop-zone').forEach(zone => {
-      zone.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-      zone.addEventListener('dragenter', () => zone.classList.add('drag-over'));
-      zone.addEventListener('drop', e => this.#onStorageDrop(e, zone));
-    });
-  }
+  #wireStorageDropZones() { wireStorageDropZones(this.element, (e, zone) => this.#onStorageDrop(e, zone)); }
 
   /** Clicking a Storage item table column header re-sorts its rows client-side. No save, no re-render. */
-  #wireStorageItemSort() {
-    this.element.querySelectorAll('.storage-item-table').forEach(table => {
-      const headers = [...table.querySelectorAll('th[data-sort-key]')];
-      headers.forEach(th => {
-        th.addEventListener('click', () => {
-          const key = th.dataset.sortKey;
-          const dir = th.classList.contains('sorted-asc') ? 'desc' : 'asc';
-          headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
-          th.classList.add(`sorted-${dir}`);
-
-          const numeric = key === 'quantity' || key === 'weight' || key === 'groupAccessible';
-          const tbody = table.querySelector('tbody');
-          const rows = [...tbody.querySelectorAll('tr.storage-item-row')].sort((a, b) => {
-            const av = a.dataset[key] ?? '';
-            const bv = b.dataset[key] ?? '';
-            const cmp = numeric ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : av.localeCompare(bv);
-            return dir === 'asc' ? cmp : -cmp;
-          });
-          rows.forEach(r => tbody.appendChild(r));
-        });
-      });
-    });
-  }
+  #wireStorageItemSort() { wireStorageItemSort(this.element); }
 
   /** Filter a Storage item table's rows by name as the GM/player types. */
-  #wireStorageItemFilter() {
-    this.element.querySelectorAll('.storage-item-filter').forEach(input => {
-      input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        const wrap = input.closest('.storage-item-table-wrap');
-        wrap?.querySelectorAll('.storage-item-depositor-group').forEach(depositorGroup => {
-          let anyVisible = false;
-          depositorGroup.querySelectorAll('tbody tr.storage-item-row').forEach(row => {
-            const match = !q || (row.dataset.name ?? '').toLowerCase().includes(q);
-            row.hidden = !match;
-            if (match) anyVisible = true;
-          });
-          depositorGroup.hidden = !anyVisible;
-        });
-      });
-    });
-  }
+  #wireStorageItemFilter() { wireStorageItemFilter(this.element); }
 
-  #wireStorageAccessibleCheckboxes() {
-    this.element.querySelectorAll('.storage-group-accessible-checkbox').forEach(cb => {
-      cb.addEventListener('change', () => this.#onToggleGroupAccessible(cb.dataset.itemId, cb.checked));
-    });
-  }
+  #wireStorageAccessibleCheckboxes() { wireStorageAccessibleCheckboxes(this.element, (itemId, checked) => this.#onToggleGroupAccessible(itemId, checked)); }
 
   async #onToggleGroupAccessible(itemId, checked) {
     const location = this.#syncSelectedLocation();
@@ -2060,113 +1865,11 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
    * actor dropdowns above, reusing the same signal/cleanup array — this is the established mechanism
    * for any body-mounted, click-to-toggle element tied to this app's render cycle.
    */
-  #wireStorageAccessBadges(signal) {
-    this.element.querySelectorAll('.storage-access-badge-widget').forEach(widget => {
-      const trigger = widget.querySelector('.storage-access-badge');
-      const dropdown = widget.querySelector('.storage-access-badge-dropdown');
-      if (!trigger || !dropdown) return;
+  #wireStorageAccessBadges(signal) { wireStorageAccessBadges(this.element, signal); }
 
-      document.body.appendChild(dropdown);
-      this.#actorDropdownEls.push(dropdown);
+  #wireActorDropdown(widget, signal, onSelect) { wireActorDropdown(widget, signal, onSelect, this.#actorDropdownEls); }
 
-      const position = () => {
-        const r = trigger.getBoundingClientRect();
-        dropdown.style.top  = `${r.bottom + 2}px`;
-        dropdown.style.left = `${r.left}px`;
-      };
-      const open  = () => { position(); dropdown.classList.add('is-open'); };
-      const close = () => dropdown.classList.remove('is-open');
-
-      trigger.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.contains('is-open') ? close() : open(); }, { signal });
-      document.addEventListener('click', close, { signal });
-      dropdown.addEventListener('click', e => e.stopPropagation(), { signal });
-    });
-  }
-
-  #wireActorDropdown(widget, signal, onSelect) {
-    const trigger = widget.querySelector('.ssm-actor-dropdown-trigger');
-    const list    = widget.querySelector('.ssm-actor-dropdown-list');
-    if (!trigger || !list) return;
-
-    document.body.appendChild(list);
-    this.#actorDropdownEls.push(list);
-
-    const position = () => {
-      const r = trigger.getBoundingClientRect();
-      list.style.top      = `${r.bottom + 2}px`;
-      list.style.left     = `${r.left}px`;
-      list.style.minWidth = `${r.width}px`;
-    };
-    const open  = () => { position(); list.classList.add('is-open'); list.querySelector('.ssm-actor-dropdown-search')?.focus(); };
-    const close = () => list.classList.remove('is-open');
-
-    trigger.addEventListener('click', e => { e.stopPropagation(); list.classList.contains('is-open') ? close() : open(); }, { signal });
-    document.addEventListener('click', close, { signal });
-    list.addEventListener('click', e => e.stopPropagation(), { signal });
-
-    list.querySelector('.ssm-actor-dropdown-search')?.addEventListener('input', e => {
-      const q = e.target.value.toLowerCase();
-      list.querySelectorAll('.ssm-actor-option').forEach(opt => {
-        if (opt.classList.contains('ssm-actor-option-empty')) { opt.style.display = ''; return; }
-        opt.style.display = (!q || opt.textContent.trim().toLowerCase().includes(q)) ? '' : 'none';
-      });
-    }, { signal });
-
-    list.querySelectorAll('.ssm-actor-option').forEach(opt => {
-      opt.addEventListener('click', () => { onSelect(opt.dataset.actorId || null); close(); }, { signal });
-    });
-  }
-
-  #wireActorFilterMenu(btn, actorFilter, signal, onApply) {
-    const applyFromMenu = (menu) => {
-      const playerOwned  = menu.querySelector('.ssm-af-player-owned')?.checked ?? true;
-      const typeCbs      = [...menu.querySelectorAll('.ssm-af-type')];
-      const allChecked   = typeCbs.every(cb => cb.checked);
-      const checkedTypes = typeCbs.filter(cb => cb.checked).map(cb => cb.dataset.type);
-      onApply({ playerOwned, types: allChecked ? null : (checkedTypes.length ? new Set(checkedTypes) : null) });
-    };
-
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const existing = document.querySelector('.ssm-actor-filter-menu');
-      if (existing) {
-        // Toggle-close: clicking the filter button again while the menu is open commits and closes it,
-        // rather than tearing it down and immediately reopening a fresh copy.
-        existing.remove();
-        applyFromMenu(existing);
-        return;
-      }
-
-      const types = Object.entries(CONFIG.Actor.typeLabels ?? {}).map(([id, label]) => ({
-        id,
-        label: typeof label === 'string' ? game.i18n.localize(label) : id,
-        checked: !actorFilter.types || actorFilter.types.has(id)
-      }));
-
-      const menu = document.createElement('div');
-      menu.className = 'ssm-actor-filter-menu';
-      menu.innerHTML = `
-        <label class="ssm-af-row"><input type="checkbox" class="ssm-af-player-owned"${actorFilter.playerOwned ? ' checked' : ''}> ${game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.actor.playerOwned')}</label>
-        <hr class="ssm-af-divider">
-        ${types.map(t => `<label class="ssm-af-row"><input type="checkbox" class="ssm-af-type" data-type="${t.id}"${t.checked ? ' checked' : ''}> ${t.label}</label>`).join('')}
-      `;
-
-      const rect = btn.getBoundingClientRect();
-      menu.style.position = 'fixed';
-      menu.style.top  = `${rect.bottom + 2}px`;
-      menu.style.left = `${rect.left}px`;
-      document.body.appendChild(menu);
-
-      menu.addEventListener('click', e => e.stopPropagation());
-      // Checkbox changes accumulate locally while the menu is open — no apply/render happens until
-      // the menu closes (below), so the user can freely toggle multiple boxes without it disappearing.
-      document.addEventListener('click', () => {
-        if (!menu.isConnected) return; // already closed via the toggle-button path above
-        menu.remove();
-        applyFromMenu(menu);
-      }, { once: true, signal });
-    }, { signal });
-  }
+  #wireActorFilterMenu(btn, actorFilter, signal, onApply) { wireActorFilterMenu(btn, actorFilter, signal, onApply); }
 
   static async #onWithdrawDeposit(event, target) {
     if (!this._bankActorId) return;
@@ -2177,8 +1880,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     try { depositIds = JSON.parse(target.dataset.depositIds); } catch { return; }
     if (!depositIds?.length) return;
 
-    const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies      = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const location        = this.#syncSelectedLocation();
     if (!location) return;
     const bankRaw         = location.typeData?.[this._activeTab] ?? {};
@@ -2237,8 +1939,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     try { depositIds = JSON.parse(target.dataset.depositIds); } catch { return; }
     if (!depositIds?.length) return;
 
-    const currencyConfig  = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies      = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const location        = this.#syncSelectedLocation();
     if (!location) return;
     const bankRaw         = location.typeData?.[this._activeTab] ?? {};

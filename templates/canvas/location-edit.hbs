@@ -24,24 +24,24 @@
         <button type="button" class="add-type-btn">
           <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.addType"}}
         </button>
-        <div class="type-picker-dropdown">
-          <input type="text" class="type-picker-filter"
+        <div class="ssm-type-picker-dropdown">
+          <input type="text" class="ssm-type-picker-filter"
                  placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.filterTypes'}}">
-          <ul class="type-picker-list">
+          <ul class="ssm-type-picker-list">
             {{#each pickerGroups}}
-            <li class="picker-group">
+            <li class="ssm-picker-group">
               {{#if this.typeItselfAvailable}}
-              <button type="button" class="picker-item picker-type-item"
+              <button type="button" class="ssm-picker-item picker-type-item"
                       data-type-id="{{this.typeId}}" data-sub-type-id="">
                 <i class="{{this.icon}}" inert></i> {{this.name}}
               </button>
               {{else}}
-              <span class="picker-group-label">
+              <span class="ssm-picker-group-label">
                 <i class="{{this.icon}}" inert></i> {{this.name}}
               </span>
               {{/if}}
               {{#each this.subTypes}}
-              <button type="button" class="picker-item picker-subtype-item"
+              <button type="button" class="ssm-picker-item ssm-picker-subtype-item"
                       data-type-id="{{../typeId}}" data-sub-type-id="{{this.id}}">
                 <i class="fa-solid fa-turn-down-right" inert></i> {{this.name}}
               </button>

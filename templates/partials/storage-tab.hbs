@@ -40,16 +40,16 @@
             <i class="fa-solid fa-users"></i> {{this.access.length}}
           </button>
           <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.storageAccessLevels'}}"></i>
-          <div class="storage-access-badge-dropdown">
+          <div class="ssm-storage-access-badge-dropdown">
             {{#each this.access}}
-            <div class="storage-access-badge-row">
-              <span class="storage-access-badge-name">{{this.actorName}}</span>
-              <span class="storage-access-badge-level{{#if this.isPrimary}} is-primary{{/if}}">
+            <div class="ssm-storage-access-badge-row">
+              <span class="ssm-storage-access-badge-name">{{this.actorName}}</span>
+              <span class="ssm-storage-access-badge-level{{#if this.isPrimary}} is-primary{{/if}}">
                 {{#if this.isPrimary}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.primary"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.access.guest"}}{{/if}}
               </span>
             </div>
             {{else}}
-            <p class="storage-access-badge-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em></p>
+            <p class="ssm-storage-access-badge-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.storage.group.noAccess"}}</em></p>
             {{/each}}
           </div>
         </div>

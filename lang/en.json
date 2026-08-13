@@ -1,8 +1,5 @@
 ﻿{
   "SANDBOX_SETTLEMENT_MANAGER": {
-    "module": {
-      "name": "Sandbox Settlement Manager"
-    },
     "scene": {
       "isSettlement": "Mark as Settlement"
     },
@@ -16,17 +13,8 @@
       "settlementName": "Settlement Name",
       "settlementNamePlaceholder": "Enter settlement name...",
       "settlementType": "Settlement Type",
-      "settlementDescription": "Description",
       "selectLocation": "Select a location to view its details.",
-      "selectLocationPlayer": "Select a discovered location to view details.",
-      "sections": {
-        "settlementDetails": "Settlement Details",
-        "settlementLocations": "Settlement Locations"
-      }
-    },
-    "locations": {
-      "title": "Settlement Locations",
-      "noneDiscovered": "No locations discovered yet."
+      "selectLocationPlayer": "Select a discovered location to view details."
     },
     "setting": {
       "settlementTypeConfig": {
@@ -35,7 +23,6 @@
         "hint": "Define the list of settlement types ordered from smallest to largest."
       },
       "settlementTypes": {
-        "name": "Settlement Types",
         "hint": "Settlement types ordered from smallest to largest. Drag to reorder.",
         "add": "Add Settlement Type",
         "reset": "Reset to Defaults"
@@ -46,10 +33,7 @@
         "hint": "Define templates for establishments and locations that can appear in settlements."
       },
       "locationTypes": {
-        "name": "Location Templates",
-        "hint": "Location templates define establishment configurations. Drag to reorder.",
-        "add": "Add Location Type",
-        "reset": "Reset to Defaults"
+        "hint": "Location templates define establishment configurations. Drag to reorder."
       },
       "itemConfig": {
         "name": "Item Settings",
@@ -120,11 +104,11 @@
       "priceVarRounding": "How a price adjustment is expressed in coins:<ul><li><strong>Same Denomination:</strong> keep the item's own coin and round to a whole coin (increases up, decreases down).</li><li><strong>One Lower:</strong> keep the whole part and put the remainder in the next-smaller coin.</li><li><strong>All Change:</strong> break the price down through every denomination to the smallest coin.</li></ul>",
       "importExport": "Export selected configuration sections to a JSON file to back them up or share between worlds, or import a previously exported file. Importing overwrites the selected sections in this world.",
       "storageTypes": "Define reusable storage capacity presets (e.g. Private Room, Shared Quarters) — a weight limit or unlimited, and a default retrieval policy. The GM spins off any number of Areas from a Storage Type at each location, assigning actors to each Area's access list.",
-  "linkedStorageTemplate": "Attach a Storage template to this Inn. When this Inn is placed on a Location, the linked Storage template is automatically attached too, as its own tab — letting a lodging row (configured via its Storage button) auto-create a personal Area for the renter when their room is booked.",
-  "retrievalPolicy": "<ul><li><strong>Group Storage:</strong> All deposited items can be retrieved by anyone with access to the storage area.</li><li><strong>Owner Managed:</strong> The owner of each item determines whether or not it is group accessible by checking the Group Accessible box.</li></ul>",
-  "bankStorageRentals": "Attach a Storage template to this Bank and price each of its Storage Types for rent (a fee per Daily/Weekly/Monthly period). Players rent a Storage Area directly from the Bank tab, prepaying for a chosen number of periods. If rent lapses, the renter loses access; an empty Area is destroyed automatically, while an occupied one accrues an owed balance until paid.",
-  "storageAccessLevels": "<ul><li><strong>Primary:</strong> One or more characters can be assigned Primary access, giving them the ability to use the storage and invite guests to use the storage space. Players may only invite guests from a list of Actors they have at least \"Observer\" permission for.</li><li><strong>Guest:</strong> Guests have the ability to use the storage but cannot invite additional guests.</li></ul>",
-  "manageGuests": "Adding a guest allows them to access the storage area, but guests do not have the ability to invite additional guests. This is an excellent way of giving mounts/retainers access to add things to/from their character sheets."
+      "linkedStorageTemplate": "Attach a Storage template to this Inn. When this Inn is placed on a Location, the linked Storage template is automatically attached too, as its own tab — letting a lodging row (configured via its Storage button) auto-create a personal Area for the renter when their room is booked.",
+      "retrievalPolicy": "<ul><li><strong>Group Storage:</strong> All deposited items can be retrieved by anyone with access to the storage area.</li><li><strong>Owner Managed:</strong> The owner of each item determines whether or not it is group accessible by checking the Group Accessible box.</li></ul>",
+      "bankStorageRentals": "Attach a Storage template to this Bank and price each of its Storage Types for rent (a fee per Daily/Weekly/Monthly period). Players rent a Storage Area directly from the Bank tab, prepaying for a chosen number of periods. If rent lapses, the renter loses access; an empty Area is destroyed automatically, while an occupied one accrues an owed balance until paid.",
+      "storageAccessLevels": "<ul><li><strong>Primary:</strong> One or more characters can be assigned Primary access, giving them the ability to use the storage and invite guests to use the storage space. Players may only invite guests from a list of Actors they have at least \"Observer\" permission for.</li><li><strong>Guest:</strong> Guests have the ability to use the storage but cannot invite additional guests.</li></ul>",
+      "manageGuests": "Adding a guest allows them to access the storage area, but guests do not have the ability to invite additional guests. This is an excellent way of giving mounts/retainers access to add things to/from their character sheets."
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -196,20 +180,7 @@
       "empty": "No settlement types defined."
     },
     "locationType": {
-      "addTitle": "Add Location Type",
-      "editTitle": "Edit Location Type",
       "typeLabel": "Type",
-      "nameLabel": "Name",
-      "namePlaceholder": "e.g. Inn",
-      "iconLabel": "Icon",
-      "iconPlaceholder": "e.g. fa-solid fa-bed",
-      "subTypesLabel": "Templates",
-      "addSubType": "Add Template",
-      "removeSubType": "Remove",
-      "subTypeNameLabel": "Sub-type name",
-      "edit": "Edit",
-      "delete": "Delete",
-      "empty": "No location types defined.",
       "noSubTypes": "No templates defined.",
       "subType": {
         "addTitle": "Add Template",
@@ -249,11 +220,9 @@
       "editTitle": "Edit Location",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. The Green Dragon Inn",
-      "typeLabel": "Type",
       "typesLabel": "Types",
       "addType": "Add Type",
       "filterTypes": "Filter types...",
-      "subTypeLabel": "Sub-type",
       "discoveredLabel": "Discovered",
       "add": "Add Location",
       "edit": "Edit",
@@ -304,11 +273,8 @@
         "add": "Add Lodging",
         "name": "Name",
         "beds": "Beds",
-        "infinite": "Unlimited Availability",
         "availability": "Avail",
         "availabilityHint": "Number of rooms available. Leave blank for unlimited.",
-        "pricePerDay": "Price per Day",
-        "pricePerWeek": "Price per Week",
         "autoWeekly": "Auto (days/wk × daily price)",
         "storage": "Storage",
         "storageHint": "Configure how this room auto-creates a Storage Area for the renter.",
@@ -322,14 +288,6 @@
         "namingTemplatePlaceholder": "e.g. Room: ",
         "loseAccessOnExpiryLabel": "Player loses access when Lodging expires"
       },
-      "rental": {
-        "title": "Rent Lodging",
-        "duration": "Duration",
-        "days": "Days",
-        "weeks": "Weeks",
-        "totalCost": "Total Cost",
-        "actor": "Character"
-      },
       "table": {
         "colName": "Name",
         "colBeds": "Beds",
@@ -342,9 +300,6 @@
       },
       "menu": {
         "sectionTitle": "Menu",
-        "deleteCourseTitle": "Delete Course",
-        "deleteCourseConfirm": "Delete course <strong>{name}</strong>? All items will be removed.",
-        "configureTitle": "Configure Menu",
         "notConfiguredGM": "No menu configured. Click the gear icon to set up the menu.",
         "notConfigured": "No menu available.",
         "defaultMenuLegend": "Default Menu",
@@ -356,13 +311,11 @@
       "course": {
         "addTitle": "Add Course",
         "editTitle": "Edit Course",
-        "coursesLabel": "courses configured",
         "name": "Course Name",
         "mode": "Availability",
         "modeStatic": "Static",
         "modeRandom": "Random",
         "price": "Standard Price",
-        "priceNone": "No default price",
         "drawCount": "Items Drawn",
         "drawCountRange": "Draw Count (min – max)",
         "refreshCadence": "Refreshes",
@@ -401,11 +354,7 @@
         "name": "Name",
         "description": "Description",
         "priceOverride": "Override Standard Price",
-        "price": "Price",
-        "linkedItem": "Linked Foundry Item",
-        "linkedItemHint": "Drag an item from the Items sidebar to link it. The buyer receives a copy on purchase.",
-        "dropZoneLabel": "Drop item here to link it",
-        "clearLinkedItem": "Clear"
+        "price": "Price"
       }
     },
     "cart": {
@@ -442,13 +391,7 @@
       "exchangeButton": "Add to Cart",
       "depositsTitle": "Deposits",
       "loansTitle": "Loans",
-      "comingSoon": "Coming soon.",
-      "overrideTitle": "Override Bank Settings",
-      "overrideSave": "Save Override",
       "settingsOverridden": "Custom Settings (overrides template)",
-      "settingsFromTemplate": "Template Settings",
-      "override": "Override Settings",
-      "editOverride": "Edit Override",
       "resetToTemplate": "Reset to Template",
       "deposits": {
         "settingsTitle": "Deposit Settings",
@@ -567,7 +510,6 @@
       "colPrice": "Price",
       "colSellPrice": "Sell Price",
       "empty": "No items in stock.",
-      "noInventory": "Inventory not configured.",
       "defaultInventory": "Default Inventory",
       "noDefaultInventory": "No default inventory items.",
       "addTemplateItem": "Add Item",
@@ -630,15 +572,11 @@
       "forceRestockLabel": "Refresh Stock",
       "restocked": "Stock refreshed.",
       "colStock": "Stock",
-      "unlimited": "∞",
       "purchasingProfile": "Purchasing Profile",
       "defaultInventoryTab": "Default Inventory",
-      "buyRate": "Buy %",
       "buybackType": "Buyback",
       "buybackPlayer": "Player price",
       "buybackFull": "Full price",
-      "buybackMarkup": "Markup",
-      "buybackMarkupPct": "Markup %",
       "merchantPrice": "Merchant Price",
       "merchantPriceHint": "The merchant will pay this percentage of the item's listed cost when players sell items.",
       "ruleItemTypeHeader": "Item Type",
@@ -651,11 +589,8 @@
       "noSellableItems": "No items to sell here.",
       "sellButton": "Sell",
       "buyBackButton": "Buy Back",
-      "editProfile": "Edit Profile",
       "conflictWarning": "Conflicting purchasing rules — resolve via Edit Profile.",
       "buybackSection": "Buyback Available",
-      "profileEditHint": "Edit the purchasing profile for this location. Overrides take precedence over template rules.",
-      "colSource": "Source",
       "restore": {
         "title": "Restore from Template",
         "buttonLabel": "Restore from Template",
@@ -670,9 +605,7 @@
         "priceLabel": "Price"
       },
       "removeItemTitle": "Remove Item",
-      "removeItemConfirm": "Remove <strong>{name}</strong> from the inventory?",
-      "disableRuleTitle": "Disable Rule",
-      "disableRuleConfirm": "Disable the buy rule for <strong>{type}</strong>?"
+      "removeItemConfirm": "Remove <strong>{name}</strong> from the inventory?"
     },
     "itemType": {
       "addTitle": "Add Item Type",
@@ -718,7 +651,7 @@
         "policyOverrideLabel": "Retrieval Policy",
         "policyInherit": "Inherit from Storage Type",
         "accessListLabel": "Access List",
-    "capacityLabel": "Capacity",
+        "capacityLabel": "Capacity",
         "accessFilterPlaceholder": "Filter characters...",
         "noActors": "No characters found.",
         "deleteBlocked": "This area still holds {count} item(s). Move or take them out before deleting.",
@@ -741,16 +674,13 @@
       },
       "item": {
         "take": "Take",
-        "markGroupProperty": "Mark as Group Property",
         "giveToActor": "Give to Character",
         "resetOwnership": "Reset to Private",
         "takeActorPromptTitle": "Take Item — Choose Character",
         "takeQuantityTitle": "Take Quantity",
         "noEligibleRecipients": "No other characters have access to this area.",
         "giveToActorPromptTitle": "Give Item to Character",
-        "groupPropertyBadge": "Group Property",
         "assignedBadge": "Given to {name}",
-        "colDepositor": "Deposited By",
         "colQuantity": "# Stored",
         "colWeight": "Weight",
         "colGroupAccessible": "Group Accessible",
@@ -766,12 +696,9 @@
       "addSelected": "Add Selected",
       "selectedCount": "{count} selected"
     },
-    "keybinding": {},
     "dialog": {
       "cancel": "Cancel",
-      "confirm": "Confirm",
-      "deleteTitle": "Delete",
-      "deleteConfirm": "Delete <strong>{name}</strong>? This cannot be undone."
+      "confirm": "Confirm"
     },
     "presets": {
       "title": "Load a Preset",
@@ -808,7 +735,6 @@
       "btnApplyPreset": "Apply Preset",
       "btnContinueCustomizing": "Continue Customizing",
       "btnJumpToFinish": "Go to Finish",
-      "btnConfigure": "Configure {label}",
       "btnOpenSettings": "Open Game Settings",
       "btnBack": "Back",
       "btnNext": "Next",
@@ -825,7 +751,6 @@
       "clear": "Clear Ledger",
       "total": "Total Transacted",
       "empty": "No transactions recorded yet."
-    },
-    "error": {}
+    }
   }
 }

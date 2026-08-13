@@ -2,10 +2,17 @@ import { MODULE_ID, SETTINGS, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from ".
 import { reclaimExpiredBookings } from "../canvas/lodging-utils.js";
 import { reclaimExpiredStorageRentals } from "../utils/rental-utils.js";
 
+/**
+ * Both values are clamped to at least 1. A zero (possible on worlds configured before these
+ * settings gained a range) would make secondsPerDay 0 and divide through to Infinity in every
+ * calendar, lodging, and rental-period calculation downstream.
+ */
 export function getWorldTimeConfig() {
+  const hoursPerDay = Number(game.settings.get(MODULE_ID, SETTINGS.HOURS_PER_DAY));
+  const daysPerWeek = Number(game.settings.get(MODULE_ID, SETTINGS.DAYS_PER_WEEK));
   return {
-    hoursPerDay: game.settings.get(MODULE_ID, SETTINGS.HOURS_PER_DAY),
-    daysPerWeek: game.settings.get(MODULE_ID, SETTINGS.DAYS_PER_WEEK)
+    hoursPerDay: Number.isFinite(hoursPerDay) && hoursPerDay >= 1 ? hoursPerDay : 24,
+    daysPerWeek: Number.isFinite(daysPerWeek) && daysPerWeek >= 1 ? daysPerWeek : 7
   };
 }
 
@@ -26,10 +33,6 @@ export function secondsToComponents(totalSeconds) {
     minute: Math.floor((totalSeconds % secondsPerHour) / 60),
     second: Math.floor(totalSeconds % 60)
   };
-}
-
-export function getCurrentWorldTime() {
-  return secondsToComponents(game.time.worldTime);
 }
 
 export function registerWorldTimeHooks() {

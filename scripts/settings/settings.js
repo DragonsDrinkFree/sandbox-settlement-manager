@@ -60,6 +60,9 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: Number,
+    // A zero here makes secondsPerDay 0, which divides through to Infinity in every world-time
+    // and rental-period calculation — the range keeps it out of that state.
+    range: { min: 1, max: 48, step: 1 },
     default: 24,
     restricted: true
   });
@@ -70,6 +73,7 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: Number,
+    range: { min: 1, max: 31, step: 1 },
     default: 7,
     restricted: true
   });

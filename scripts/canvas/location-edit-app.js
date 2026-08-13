@@ -1,5 +1,5 @@
-import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
-import { buildEntryTypeData, ensureLinkedStorageEntry } from "./location-data.js";
+import { MODULE_ID, FLAGS, SETTINGS, CORE_LOCATION_TYPES, getTypeEntries } from "../constants.js";
+import { getSubTypeMap, buildEntryTypeData, ensureLinkedStorageEntry } from "./location-data.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -47,7 +47,7 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
-    const subTypeMap = this.#getSubTypeMap();
+    const subTypeMap = getSubTypeMap();
     const selectedSet = new Set(this._typeEntries.map(e => `${e.typeId}::${e.subTypeId ?? ""}`));
 
     const typeEntries = this._typeEntries.map((entry, index) => {
@@ -107,7 +107,7 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#pickerDropdown = null;
 
     const trigger = this.element.querySelector(".add-type-trigger");
-    const dropdown = trigger?.querySelector(".type-picker-dropdown");
+    const dropdown = trigger?.querySelector(".ssm-type-picker-dropdown");
     if (!trigger || !dropdown) return;
 
     document.body.appendChild(dropdown);
@@ -120,7 +120,7 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dropdown.style.top = `${rect.bottom + 2}px`;
       dropdown.style.left = `${rect.left}px`;
       dropdown.classList.toggle("is-open");
-      dropdown.querySelector(".type-picker-filter")?.focus();
+      dropdown.querySelector(".ssm-type-picker-filter")?.focus();
     }, { signal });
 
     // Close on outside click
@@ -128,15 +128,15 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     dropdown.addEventListener("click", e => e.stopPropagation(), { signal });
 
     // Filter
-    const filterInput = dropdown.querySelector(".type-picker-filter");
+    const filterInput = dropdown.querySelector(".ssm-type-picker-filter");
     filterInput?.addEventListener("input", () => {
       const q = filterInput.value.trim().toLowerCase();
-      dropdown.querySelectorAll(".picker-group").forEach(group => {
+      dropdown.querySelectorAll(".ssm-picker-group").forEach(group => {
         const typeItem = group.querySelector(".picker-type-item");
         const typeText = (typeItem?.textContent ?? "").toLowerCase();
         const typeMatches = !q || typeText.includes(q);
         let anySubMatch = false;
-        group.querySelectorAll(".picker-subtype-item").forEach(item => {
+        group.querySelectorAll(".ssm-picker-subtype-item").forEach(item => {
           const subMatch = typeMatches || item.textContent.toLowerCase().includes(q);
           item.hidden = !subMatch;
           if (subMatch) anySubMatch = true;
@@ -147,7 +147,7 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }, { signal });
 
     // Item selection
-    dropdown.querySelectorAll(".picker-item").forEach(item => {
+    dropdown.querySelectorAll(".ssm-picker-item").forEach(item => {
       item.addEventListener("click", () => {
         this.#syncName();
         const typeId = item.dataset.typeId;
@@ -186,7 +186,7 @@ export class LocationEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim() || this.#generateDefaultName();
 
-    const subTypeMap = this.#getSubTypeMap();
+    const subTypeMap = getSubTypeMap();
 
     // Forward-only Inn->Storage auto-attach: for each newly-picked Inn entry whose template declares
     // a linked Storage template, ensure a matching Storage entry exists in _typeEntries too (reusing

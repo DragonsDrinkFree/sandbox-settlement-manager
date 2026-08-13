@@ -47,11 +47,19 @@ Hooks.once("ready", async () => {
 
   if (game.user.isGM) {
     // Migrate location data: add entryId to typeEntries, move flat typeData keys to entryId-keyed form.
-    for (const scene of game.scenes) {
-      const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
-      if (!locations?.length) continue;
-      const migrated = locations.map(migrateLocation);
-      await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, migrated);
+    // Only the active GM runs this (mirrors reclaimExpiredLodgingBookings in time/world-time.js) —
+    // otherwise every connected GM writes the same scenes. migrateLocation is idempotent, so the
+    // write is skipped entirely when it produced no change; without that check every world load
+    // re-wrote every settlement scene and broadcast an updateScene to all clients.
+    if (game.users.activeGM?.id === game.user.id) {
+      for (const scene of game.scenes) {
+        const locations = scene.getFlag(MODULE_ID, FLAGS.LOCATIONS);
+        if (!locations?.length) continue;
+        const before   = JSON.stringify(locations);
+        const migrated = foundry.utils.deepClone(locations).map(migrateLocation);
+        if (JSON.stringify(migrated) === before) continue;
+        await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, migrated);
+      }
     }
 
     // Auto-open setup wizard on first run.

@@ -1,4 +1,5 @@
 import { MODULE_ID, SETTINGS } from "../../constants.js";
+import { getCurrencyContext } from "../../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -42,8 +43,7 @@ export class MenuItemEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext(options) {
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const defaultCurrencyId = (currencies.find(c => c.isStandard) ?? currencies[0])?.id ?? "";
     const hasPriceOverride = !!this._item.price;
     return {

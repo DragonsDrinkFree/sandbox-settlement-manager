@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.js";
-import { parseExchangeRate, getStandardCurrency } from "../utils/currency-utils.js";
+import { getStandardCurrency } from "../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 

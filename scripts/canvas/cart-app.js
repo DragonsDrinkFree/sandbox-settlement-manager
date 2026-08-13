@@ -1,4 +1,5 @@
 import { MODULE_ID, SETTINGS, FLAGS, LOCATION_TYPE_IDS, getTypeEntries } from '../constants.js';
+import { getCurrencyContext } from "../utils/currency-utils.js";
 import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
 import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue, grantStandardToActor, removeCoinsFromActor, readActorBalance } from '../utils/currency-utils.js';
@@ -220,9 +221,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onCheckout() {
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies     = currencyConfig.currencies ?? [];
-    const mode           = currencyConfig.mode ?? 'loose';
+    const { currencies, mode } = getCurrencyContext();
     const items          = cartManager.items;
 
     // Authoritative stock guard: never charge for more merchant stock than is currently available.

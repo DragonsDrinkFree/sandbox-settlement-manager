@@ -69,27 +69,6 @@
 /*  Location Type Configuration Dialog          */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-location-type-config .location-type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.25rem 0 0.5rem;
-  min-height: 2rem;
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  margin-bottom: 0.25rem;
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-item.dragging {
-  opacity: 0.35;
-}
 
 #sandbox-settlement-manager-location-type-config .drag-handle {
   cursor: grab;
@@ -97,111 +76,11 @@
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-location-type-config .location-type-icon {
-  width: 1em;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-name {
-  flex: 1;
-  font-size: var(--font-size-14, 14px);
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-sub-count {
-  color: var(--color-text-dark-inactive, #999);
-  font-size: var(--font-size-12, 12px);
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-item .controls {
-  display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-empty {
-  padding: 0.5rem;
-  color: var(--color-text-dark-inactive, #999);
-  text-align: center;
-  font-style: italic;
-}
-
-#sandbox-settlement-manager-location-type-config .location-type-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
-}
 
 /* -------------------------------------------- */
 /*  Location Type Edit Dialog                   */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-location-type-edit .location-type-subtypes {
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 0.5rem;
-}
-
-#sandbox-settlement-manager-location-type-edit .core-type-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  padding: 0.3rem 0.4rem;
-  margin-bottom: 0.4rem;
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
-  border-radius: 3px;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-item {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-  padding: 0.15rem 0.25rem;
-  border-radius: 3px;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-item:hover {
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.04));
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-item .sub-type-name {
-  flex: 1;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-item .controls {
-  display: flex;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-item:hover .controls {
-  opacity: 1;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-empty {
-  color: var(--color-text-dark-inactive, #999);
-  font-size: var(--font-size-12, 12px);
-  padding: 0.25rem 0.4rem;
-}
-
-#sandbox-settlement-manager-location-type-edit .sub-type-add-row {
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
-}
 
 /* -------------------------------------------- */
 /*  Shared data-table utility — .ssm-table      */
@@ -475,52 +354,6 @@
   min-width: 0;
 }
 
-#sandbox-settlement-manager-settlement-manage .location-types-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.4rem;
-}
-
-#sandbox-settlement-manager-settlement-manage .location-type-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-#sandbox-settlement-manager-settlement-manage .location-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1rem 0.3rem 0.1rem 0.4rem;
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.1));
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 999px;
-  font-size: var(--font-size-11, 11px);
-  line-height: 1.4;
-}
-
-#sandbox-settlement-manager-settlement-manage .badge-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: 0 0.1rem;
-  cursor: pointer;
-  font-size: var(--font-size-10, 10px);
-  line-height: 1;
-  color: var(--color-text-dark-inactive, #999);
-  border-radius: 50%;
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-settlement-manage .badge-remove:hover {
-  color: var(--color-text-dark-primary, #111);
-  background: rgba(0, 0, 0, 0.12);
-}
 
 #sandbox-settlement-manager-settlement-manage .add-type-btn {
   font-size: var(--font-size-13, 13px);
@@ -528,18 +361,6 @@
   line-height: 1;
 }
 
-#sandbox-settlement-manager-settlement-manage .location-type-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  align-items: center;
-}
-
-#sandbox-settlement-manager-settlement-manage .location-detail-divider {
-  border: none;
-  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
-  margin: 0.4rem 0 0.5rem;
-}
 
 /* -------------------------------------------- */
 /*  Data table column rules                     */
@@ -689,11 +510,7 @@
 }
 
 /* Expense table — column widths */
-#sandbox-settlement-manager-settlement-manage .expense-table .col-cost,
-#sandbox-settlement-manager-location-detail .expense-table .col-cost { width: 5rem; }
 
-#sandbox-settlement-manager-settlement-manage .expense-table .ssm-col-action,
-#sandbox-settlement-manager-location-detail .expense-table .ssm-col-action { width: 4.5rem; }
 
 #sandbox-settlement-manager-settlement-manage .buy-button,
 #sandbox-settlement-manager-location-detail .buy-button {
@@ -748,7 +565,7 @@
 /* Body-mounted picker dropdown — not scoped to app ID since it lives on document.body.
    Uses explicit colors because Dolmenwood's dark theme keeps --color-bg-primary as parchment
    while flipping text vars to gold/light — so we can't rely on CSS variables here. */
-.type-picker-dropdown {
+.ssm-type-picker-dropdown {
   position: fixed;
   z-index: 9999;
   min-width: 200px;
@@ -763,11 +580,11 @@
   overflow: hidden;
 }
 
-.type-picker-dropdown.is-open {
+.ssm-type-picker-dropdown.is-open {
   display: flex;
 }
 
-.type-picker-filter {
+.ssm-type-picker-filter {
   border: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   padding: 0.3rem 0.5rem;
@@ -778,7 +595,7 @@
   width: 100%;
 }
 
-.type-picker-list {
+.ssm-type-picker-list {
   list-style: none;
   padding: 0.2rem 0;
   margin: 0;
@@ -786,11 +603,11 @@
   flex: 1;
 }
 
-.picker-group {
+.ssm-picker-group {
   display: contents;
 }
 
-.picker-group-label {
+.ssm-picker-group-label {
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -801,7 +618,7 @@
   font-style: italic;
 }
 
-.picker-item {
+.ssm-picker-item {
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -815,27 +632,27 @@
   color: inherit;
 }
 
-.picker-item:hover {
+.ssm-picker-item:hover {
   background: rgba(0, 0, 0, 0.07);
 }
 
-.picker-subtype-item {
+.ssm-picker-subtype-item {
   padding-left: 1.4rem;
   opacity: 0.75;
 }
 
 /* Dark mode: give the dropdown a proper dark background with light text */
 @media (prefers-color-scheme: dark) {
-  .type-picker-dropdown {
+  .ssm-type-picker-dropdown {
     background: #2a2a2a;
     color: #d4d4d4;
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
   }
-  .type-picker-filter {
+  .ssm-type-picker-filter {
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
-  .picker-item:hover {
+  .ssm-picker-item:hover {
     background: rgba(255, 255, 255, 0.07);
   }
 }
@@ -844,66 +661,6 @@
 /*  Settlement Locations Panel (Player View)    */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-settlement-locations .location-flat-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-type-badges {
-  display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-type-badge {
-  color: var(--color-text-dark-inactive, #999);
-  font-size: var(--font-size-12, 12px);
-}
-
-#sandbox-settlement-manager-settlement-locations .location-group {
-  margin-bottom: 0.75rem;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-group-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--font-size-14, 14px);
-  font-weight: bold;
-  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
-  padding-bottom: 0.25rem;
-  margin-bottom: 0.25rem;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-group-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-entry {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.15rem 0.25rem;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-#sandbox-settlement-manager-settlement-locations .location-entry:hover {
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
-}
-
-#sandbox-settlement-manager-settlement-locations .location-name {
-  flex: 1;
-  font-size: var(--font-size-13, 13px);
-}
-
-#sandbox-settlement-manager-settlement-locations .location-subtype {
-  font-size: var(--font-size-11, 11px);
-  color: var(--color-text-dark-inactive, #999);
-}
 
 /* -------------------------------------------- */
 /*  Currency Configuration Dialog               */
@@ -1188,57 +945,6 @@
 /*  Currency Test Config (GM Expense Manager)   */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-currency-test-config .expense-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 0.5rem;
-}
-
-#sandbox-settlement-manager-currency-test-config .expense-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  margin-bottom: 0.25rem;
-  background: var(--color-bg-option, rgba(0,0,0,0.05));
-}
-
-#sandbox-settlement-manager-currency-test-config .expense-info {
-  flex: 1;
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-
-#sandbox-settlement-manager-currency-test-config .expense-name { font-size: var(--font-size-13, 13px); }
-
-#sandbox-settlement-manager-currency-test-config .expense-cost {
-  font-size: var(--font-size-12, 12px);
-  color: var(--color-text-dark-inactive, #999);
-}
-
-#sandbox-settlement-manager-currency-test-config .expense-empty {
-  color: var(--color-text-dark-inactive, #999);
-  font-style: italic;
-  padding: 0.5rem;
-  text-align: center;
-}
-
-#sandbox-settlement-manager-currency-test-config .add-expense-form {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border-light-tertiary, #ccc);
-}
-
-#sandbox-settlement-manager-currency-test-config .add-expense-form input[name="newExpenseName"] {
-  flex: 2;
-}
 
 /* -------------------------------------------- */
 /*  Multi-type tabs (Settlement Manager)        */
@@ -1405,7 +1111,6 @@
 }
 
 
-
 #sandbox-settlement-manager-location-detail .inn-coming-soon {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
@@ -1443,7 +1148,6 @@
 
 #sandbox-settlement-manager-settlement-manage .inn-course-mode-badge,
 #sandbox-settlement-manager-location-detail .inn-course-mode-badge,
-#sandbox-settlement-manager-menu-config .inn-course-mode-badge,
 #sandbox-settlement-manager-course-edit .inn-course-mode-badge {
   font-size: var(--font-size-10, 10px);
   color: var(--color-text-dark-5, #777);
@@ -1765,35 +1469,7 @@
 }
 
 /* Lodging rental dialog */
-#sandbox-settlement-manager-lodging-rental .rental-lodging-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.3rem 0.4rem;
-  margin-bottom: 0.4rem;
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
-  border-radius: 3px;
-}
 
-#sandbox-settlement-manager-lodging-rental .rental-beds {
-  font-size: var(--font-size-12, 12px);
-  color: var(--color-text-dark-secondary, #555);
-}
-
-#sandbox-settlement-manager-lodging-rental .rental-duration-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-#sandbox-settlement-manager-lodging-rental .rental-duration-input {
-  width: 4rem;
-}
-
-#sandbox-settlement-manager-lodging-rental .rental-cost-preview {
-  font-weight: bold;
-  font-size: var(--font-size-14, 14px);
-}
 
 /* -------------------------------------------- */
 /*  Purchase Dialog                             */
@@ -1862,7 +1538,7 @@
 #sandbox-settlement-manager-purchase-dialog .payment-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-bottom: 0.25rem;
 }
 
@@ -2041,40 +1717,6 @@
 /*  Location Type Config (Sub-type manager)     */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-location-type-config .core-type-section {
-  margin-bottom: 0.75rem;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 4px;
-  padding: 0.5rem;
-}
-
-#sandbox-settlement-manager-location-type-config .core-type-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--font-size-14, 14px);
-  font-weight: bold;
-  margin: 0 0 0.4rem;
-}
-
-#sandbox-settlement-manager-location-type-config .sub-type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 0.4rem;
-}
-
-#sandbox-settlement-manager-location-type-config .sub-type-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.15rem 0.4rem;
-  font-size: var(--font-size-13, 13px);
-  border-radius: 3px;
-}
-
-#sandbox-settlement-manager-location-type-config .sub-type-item:hover {
-  background: var(--color-bg-option, rgba(0,0,0,0.04));
-}
 
 #sandbox-settlement-manager-location-type-config .sub-type-empty {
   color: var(--color-text-dark-inactive, #999);
@@ -2083,19 +1725,6 @@
   padding: 0.15rem 0.4rem;
 }
 
-#sandbox-settlement-manager-location-type-config .add-subtype-row {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-#sandbox-settlement-manager-location-type-config .new-subtype-name {
-  flex: 1;
-}
-
-#sandbox-settlement-manager-purchase-dialog .payment-row {
-  gap: 0.4rem;
-}
 
 #sandbox-settlement-manager-purchase-dialog .fill-button {
   flex-shrink: 0;
@@ -2117,29 +1746,6 @@
 /*  Location Type Config — Editable Lines       */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-location-type-config .core-type-block {
-  margin-bottom: 0.15rem;
-}
-
-#sandbox-settlement-manager-location-type-config .core-type-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--color-bg-option, rgba(0,0,0,0.05));
-  border-radius: 3px;
-  font-weight: bold;
-  font-size: var(--font-size-14, 14px);
-}
-
-#sandbox-settlement-manager-location-type-config .core-type-name {
-  flex: 1;
-}
-
-#sandbox-settlement-manager-location-type-config .edit-core-type-btn {
-  margin-left: auto;
-  flex-shrink: 0;
-}
 
 #sandbox-settlement-manager-location-type-config .sub-type-row {
   display: flex;
@@ -2154,11 +1760,6 @@
   border-radius: 3px;
 }
 
-#sandbox-settlement-manager-location-type-config .sub-type-indent {
-  color: var(--color-text-dark-inactive, #999);
-  font-size: var(--font-size-11, 11px);
-  flex-shrink: 0;
-}
 
 #sandbox-settlement-manager-location-type-config .sub-type-name {
   flex: 1;
@@ -2211,29 +1812,6 @@
 /*  Menu Config App                             */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-menu-config .menu-config-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
-}
-
-#sandbox-settlement-manager-menu-config .menu-courses-table .col-mode { width: 5rem; }
-#sandbox-settlement-manager-menu-config .menu-courses-table .col-price { width: 5.5rem; }
-#sandbox-settlement-manager-menu-config .menu-courses-table .col-count { width: 3rem; }
-
-#sandbox-settlement-manager-menu-config .menu-config-footer {
-  padding: 0.4rem 0 0.1rem;
-}
-
-#sandbox-settlement-manager-menu-config .menu-add-course-btn {
-  font-size: var(--font-size-12, 12px);
-  padding: 0.2rem 0.5rem;
-}
-
-#sandbox-settlement-manager-menu-config .menu-config-empty {
-  padding: 0.5rem 0;
-}
 
 /* -------------------------------------------- */
 /*  Course Edit App                             */
@@ -2545,9 +2123,6 @@
 /*  Item Type Edit Dialog                       */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-item-type-edit .attr-links-section {
-  margin-top: 0.75rem;
-}
 
 #sandbox-settlement-manager-item-type-edit .attr-links-table {
   width: 100%;
@@ -2942,8 +2517,7 @@
 /*  Purchasing Profile Table                    */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table {
+#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-12, 12px);
@@ -2951,45 +2525,18 @@
 }
 
 #sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table th,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table th,
-#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table td,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-purchasing-profile-table td {
+#sandbox-settlement-manager-sub-type-edit .ssm-purchasing-profile-table td {
   padding: 0.2rem 0.35rem;
   border-bottom: 1px solid var(--color-border-light-tertiary, #e4e4e4);
   vertical-align: middle;
 }
 
-.ssm-conflict-row td {
-  color: var(--color-text-warning, #c80);
-}
-
-.ssm-conflict-badge,
-.ssm-override-badge {
-  font-size: var(--font-size-10, 10px);
-  padding: 0.05rem 0.3rem;
-  border-radius: 3px;
-}
-
-.ssm-conflict-badge {
-  color: var(--color-text-warning, #c80);
-}
-
-.ssm-override-badge {
-  background: var(--color-bg-option, #e8e8e8);
-  color: var(--color-text-dark-secondary, #555);
-}
-
-.ssm-col-source {
-  width: 4rem;
-  text-align: center;
-}
 
 /* -------------------------------------------- */
 /*  Purchasing Add-Override Row                 */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-sub-type-edit .purchasing-add-row,
-#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row {
+#sandbox-settlement-manager-sub-type-edit .purchasing-add-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -2998,57 +2545,45 @@
 }
 
 #sandbox-settlement-manager-sub-type-edit .purchasing-add-row input,
-#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row input,
-#sandbox-settlement-manager-sub-type-edit .purchasing-add-row select,
-#sandbox-settlement-manager-purchasing-profile-edit .purchasing-add-row select {
+#sandbox-settlement-manager-sub-type-edit .purchasing-add-row select {
   font-size: var(--font-size-12, 12px);
 }
 
 /* Labeled column for each control in the add-rule row */
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-field,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-field {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-field {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-field + .ssm-rule-field,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-field + .ssm-rule-field {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-field + .ssm-rule-field {
   padding-left: 0.85rem;
   border-left: 1px solid var(--color-border-light-tertiary, #e4e4e4);
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-header,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-header {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-header {
   font-size: var(--font-size-11, 11px);
   font-weight: bold;
   white-space: nowrap;
   color: var(--color-text-dark-secondary, #555);
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-rate-wrap,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-rate-wrap {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-rate-wrap {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-type-select,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-type-select {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-type-select {
   width: 7rem;
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-rule-buyback-select,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-rule-buyback-select {
+#sandbox-settlement-manager-sub-type-edit .ssm-rule-buyback-select {
   width: 7rem;
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .ssm-markup-input,
-#sandbox-settlement-manager-purchasing-profile-edit .ssm-markup-input {
-  width: 3.5rem;
-}
 
 /* -------------------------------------------- */
 /*  Conflict Warning Banner                     */
@@ -3088,11 +2623,6 @@
   flex-wrap: wrap;
 }
 
-#sandbox-settlement-manager-settlement-manage .ssm-edit-profile-btn,
-#sandbox-settlement-manager-location-detail .ssm-edit-profile-btn {
-  font-size: var(--font-size-12, 12px);
-  padding: 0.2rem 0.5rem;
-}
 
 #sandbox-settlement-manager-settlement-manage .ssm-sell-actor-row,
 #sandbox-settlement-manager-location-detail .ssm-sell-actor-row {
@@ -3224,7 +2754,7 @@
   text-overflow: ellipsis;
 }
 
-/* Body-mounted — not scoped to app ID; uses explicit colors like .type-picker-dropdown */
+/* Body-mounted — not scoped to app ID; uses explicit colors like .ssm-type-picker-dropdown */
 .ssm-actor-dropdown-list {
   position: fixed;
   z-index: 9999;
@@ -3294,7 +2824,7 @@
 }
 
 /* Body-mounted — not scoped to app ID; uses explicit colors like .ssm-actor-dropdown-list above */
-.storage-access-badge-dropdown {
+.ssm-storage-access-badge-dropdown {
   position: fixed;
   z-index: 9999;
   display: none;
@@ -3311,11 +2841,11 @@
   gap: 0.15rem;
 }
 
-.storage-access-badge-dropdown.is-open {
+.ssm-storage-access-badge-dropdown.is-open {
   display: flex;
 }
 
-.storage-access-badge-row {
+.ssm-storage-access-badge-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3324,7 +2854,7 @@
   font-size: var(--font-size-12, 12px);
 }
 
-.storage-access-badge-name {
+.ssm-storage-access-badge-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -3332,7 +2862,7 @@
   white-space: nowrap;
 }
 
-.storage-access-badge-level {
+.ssm-storage-access-badge-level {
   flex: 0 0 auto;
   font-size: var(--font-size-11, 11px);
   padding: 0.05rem 0.4rem;
@@ -3341,12 +2871,12 @@
   opacity: 0.75;
 }
 
-.storage-access-badge-level.is-primary {
+.ssm-storage-access-badge-level.is-primary {
   opacity: 1;
   font-weight: 600;
 }
 
-.storage-access-badge-empty {
+.ssm-storage-access-badge-empty {
   margin: 0;
   padding: 0.15rem 0.3rem;
   font-style: italic;
@@ -3387,7 +2917,7 @@
   border-color: rgba(0, 0, 0, 0.4);
 }
 
-/* Body-mounted filter menu — explicit colors, same as .type-picker-dropdown */
+/* Body-mounted filter menu — explicit colors, same as .ssm-type-picker-dropdown */
 .ssm-actor-filter-menu {
   position: fixed;
   z-index: 9999;
@@ -3423,7 +2953,7 @@
 @media (prefers-color-scheme: dark) {
   .ssm-actor-dropdown-list,
   .ssm-actor-filter-menu,
-  .storage-access-badge-dropdown {
+  .ssm-storage-access-badge-dropdown {
     background: #2a2a2a;
     color: #d4d4d4;
     border-color: rgba(255, 255, 255, 0.12);
@@ -3444,14 +2974,9 @@
   .ssm-af-divider {
     border-top-color: rgba(255, 255, 255, 0.1);
   }
-  .ssm-af-apply {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-  .ssm-af-apply:hover {
-    background: rgba(255, 255, 255, 0.14);
-  }
-  .storage-access-badge-level {
+  
+  
+  .ssm-storage-access-badge-level {
     background: rgba(255, 255, 255, 0.08);
   }
 }
@@ -3791,6 +3316,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  margin-left: auto;
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-loan-actions button,
@@ -3831,10 +3357,6 @@
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-loan-pay-actions,
-#sandbox-settlement-manager-location-detail .ssm-loan-pay-actions {
-  margin-left: auto;
-}
-
 /* Loan offer dialog */
 #sandbox-settlement-manager-loan-offer .ssm-loan-interest-row,
 #sandbox-settlement-manager-loan-offer .ssm-loan-amount-row {
@@ -4588,43 +4110,6 @@ hr.ssm-settings-divider {
   opacity: 0.5;
 }
 
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-list,
-#sandbox-settlement-manager-location-detail .storage-type-summary-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-row,
-#sandbox-settlement-manager-location-detail .storage-type-summary-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.25rem 0.4rem;
-  border-radius: 3px;
-  font-size: var(--font-size-12, 12px);
-}
-
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-row.is-overridden .storage-type-summary-name,
-#sandbox-settlement-manager-location-detail .storage-type-summary-row.is-overridden .storage-type-summary-name {
-  font-style: italic;
-}
-
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-name,
-#sandbox-settlement-manager-location-detail .storage-type-summary-name {
-  font-weight: 500;
-  flex: 1;
-}
-
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-limit,
-#sandbox-settlement-manager-location-detail .storage-type-summary-limit,
-#sandbox-settlement-manager-settlement-manage .storage-type-summary-policy,
-#sandbox-settlement-manager-location-detail .storage-type-summary-policy {
-  color: var(--color-text-dark-secondary, #999);
-}
 
 #sandbox-settlement-manager-settlement-manage .storage-add-group-btn,
 #sandbox-settlement-manager-location-detail .storage-add-group-btn {

@@ -2,7 +2,7 @@ import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES } from "../
 import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
 import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
-import { costInStandard, getStandardCurrency } from "../utils/currency-utils.js";
+import { getCurrencyContext, costInStandard, getStandardCurrency } from "../utils/currency-utils.js";
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 import { rollMerchantRestock } from "../canvas/location-data.js";
@@ -585,8 +585,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
       if (data?.type !== 'Item' && data?.type !== 'Folder') return;
 
-      const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-      const currencies = currencyConfig.currencies ?? [];
+      const { currencies } = getCurrencyContext();
 
       // Capture current DOM state before re-rendering.
       this.#syncSubTypeName();
@@ -662,8 +661,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #onAddLodging() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
     this._lodgings.push({
       id:           foundry.utils.randomID(),
@@ -816,8 +814,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
     this.#syncTemplateInventoryFromDOM();
-    const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
-    const currencies = currencyConfig.currencies ?? [];
+    const { currencies } = getCurrencyContext();
     const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
     this._templateInventory.push({
       id:                foundry.utils.randomID(),

@@ -3,6 +3,10 @@ import { MODULE_ID, SETTINGS, FLAGS } from "../constants.js";
 /**
  * Exchange rate "A:B" means A standard currency = B of this currency.
  * Returns A/B — the value of one coin of this currency in standard units.
+ *
+ * A rate of zero or below is not a valid denomination — it would make a coin worth nothing, and
+ * dividing an amount by it yields Infinity. Such rates fall back to 1 (same as an unparseable
+ * rate) so a misconfigured currency can never mint an infinite coin count downstream.
  */
 export function parseExchangeRate(rateStr) {
   if (!rateStr || typeof rateStr !== "string") return 1;
@@ -11,7 +15,18 @@ export function parseExchangeRate(rateStr) {
   const a = parseFloat(parts[0]);
   const b = parseFloat(parts[1]);
   if (isNaN(a) || isNaN(b) || b === 0) return 1;
-  return a / b;
+  const rate = a / b;
+  if (!Number.isFinite(rate) || rate <= 0) return 1;
+  return rate;
+}
+
+/**
+ * The configured currency list and tracking mode, with the defaults every call site was applying
+ * by hand. Use this instead of reading SETTINGS.CURRENCY_CONFIG directly.
+ */
+export function getCurrencyContext() {
+  const cfg = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? {};
+  return { currencies: cfg.currencies ?? [], mode: cfg.mode ?? "loose" };
 }
 
 /**
@@ -24,8 +39,11 @@ export function getStandardCurrency(currencies) {
 
 /**
  * Highest denomination value (in standard units) across all currencies.
+ * Falls back to 1 (the standard denomination) for an empty list, so callers that pass the result
+ * as a cap to calculateChange don't end up filtering out every denomination.
  */
 export function getMaxDenomValue(currencies) {
+  if (!currencies?.length) return 1;
   return currencies.reduce((max, c) => Math.max(max, parseExchangeRate(c.exchangeRate)), 0);
 }
 
@@ -58,8 +76,14 @@ export function calculateChange(excessStandard, currencies, maxDenomValue) {
   const EPSILON = 1e-9;
   if (excessStandard < EPSILON) return {};
 
+  // A non-positive or non-finite rate would make `remaining / rate` Infinity below; parseExchangeRate
+  // already normalises those away, but the divide is guarded here too since its result is granted
+  // to an actor directly.
   const eligible = currencies
-    .filter(c => parseExchangeRate(c.exchangeRate) <= maxDenomValue + EPSILON)
+    .filter(c => {
+      const rate = parseExchangeRate(c.exchangeRate);
+      return Number.isFinite(rate) && rate > 0 && rate <= maxDenomValue + EPSILON;
+    })
     .sort((a, b) => parseExchangeRate(b.exchangeRate) - parseExchangeRate(a.exchangeRate));
 
   const change = {};

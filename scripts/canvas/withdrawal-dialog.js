@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../constants.js";
+import { MODULE_ID } from "../constants.js";
 import { parseExchangeRate, totalOfferedInStandard, calculateChange, formatAmounts, getMaxDenomValue } from "../utils/currency-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -73,6 +73,25 @@ export class WithdrawalDialog extends HandlebarsApplicationMixin(ApplicationV2) 
     this.#wirePreview();
   }
 
+  /**
+   * Read the amount inputs, clamping each to what the deposit actually holds. The `max` attribute
+   * alone doesn't bind — a typed-in overage would otherwise be submitted verbatim and, before the
+   * server-side clamp, paid out in full. Clamped values are written back so the displayed number,
+   * the preview, and the submitted amount always agree.
+   */
+  #readWithdrawCoins(form) {
+    const withdrawCoins = {};
+    for (const input of form.querySelectorAll('.ssm-withdraw-amount-input')) {
+      const cId       = input.dataset.currencyId;
+      const available = this._deposit.coins?.[cId] ?? 0;
+      const raw       = Math.max(0, Math.floor(parseInt(input.value) || 0));
+      const amt       = Math.min(raw, available);
+      if (amt !== raw) input.value = amt;
+      if (amt > 0) withdrawCoins[cId] = amt;
+    }
+    return withdrawCoins;
+  }
+
   #wirePreview() {
     const form       = this.element;
     const feeEl      = form.querySelector('.ssm-withdraw-fee-preview');
@@ -83,11 +102,7 @@ export class WithdrawalDialog extends HandlebarsApplicationMixin(ApplicationV2) 
     const currencies = this._currencies;
 
     const update = () => {
-      const withdrawCoins = {};
-      for (const input of form.querySelectorAll('.ssm-withdraw-amount-input')) {
-        const amt = parseInt(input.value) || 0;
-        if (amt > 0) withdrawCoins[input.dataset.currencyId] = amt;
-      }
+      const withdrawCoins = this.#readWithdrawCoins(form);
       const hasAny = Object.keys(withdrawCoins).length > 0;
       if (submitBtn) submitBtn.disabled = !hasAny;
 
@@ -132,11 +147,7 @@ export class WithdrawalDialog extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #onSubmit(event, form, formData) {
-    const withdrawCoins = {};
-    for (const input of form.querySelectorAll('.ssm-withdraw-amount-input')) {
-      const amt = parseInt(input.value) || 0;
-      if (amt > 0) withdrawCoins[input.dataset.currencyId] = amt;
-    }
+    const withdrawCoins = this.#readWithdrawCoins(form);
     const resolve = this._resolve;
     this._resolve = null;
     resolve?.(Object.keys(withdrawCoins).length > 0 ? { withdrawCoins } : null);
