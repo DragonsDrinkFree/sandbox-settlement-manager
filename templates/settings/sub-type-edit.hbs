@@ -211,14 +211,7 @@
         <thead>
           <tr>
             <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colStorageType"}}</th>
-            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerDay"}}</th>
-            <th class="col-auto"></th>
-            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerWeek"}}</th>
-            <th class="col-auto"></th>
-            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerMonth"}}</th>
-            <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colMinPeriod"}}
-              <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.storageMinPeriod'}}"></i>
-            </th>
+            <th class="col-pricing">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricing"}}</th>
             <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colNaming"}}</th>
             <th class="col-del"></th>
           </tr>
@@ -234,37 +227,54 @@
                 {{/each}}
               </select>
             </td>
-            <td class="col-price">
-              {{> ssm-price-input attr="data-field" field="pricePerDay" price=this.pricePerDay currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
-            </td>
-            <td class="col-auto">
-              <input type="checkbox" data-field="autoWeek" {{#if this.autoWeek}}checked{{/if}} hidden>
-              <button type="button" class="link-toggle-btn storage-rental-link-week{{#if this.autoWeek}} is-linked{{/if}}"
-                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDerivePrice'}}"
-                      data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDerivePrice'}}">
-                <i class="fa-solid fa-link"></i>
+            <td class="col-pricing">
+              <button type="button" class="storage-rental-pricing-summary" aria-expanded="false"
+                      data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.pricingHint'}}">
+                <span class="pricing-summary-text">{{{this.pricingSummary}}}</span>
+                <i class="fa-solid fa-chevron-down pricing-summary-chevron"></i>
               </button>
-            </td>
-            <td class="col-price">
-              {{> ssm-price-input attr="data-field" field="pricePerWeek" price=this.pricePerWeek currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select" locked=this.autoWeek}}
-            </td>
-            <td class="col-auto">
-              <input type="checkbox" data-field="autoMonth" {{#if this.autoMonth}}checked{{/if}} hidden>
-              <button type="button" class="link-toggle-btn storage-rental-link-month{{#if this.autoMonth}} is-linked{{/if}}"
-                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDerivePrice'}}"
-                      data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDerivePrice'}}">
-                <i class="fa-solid fa-link"></i>
-              </button>
-            </td>
-            <td class="col-price">
-              {{> ssm-price-input attr="data-field" field="pricePerMonth" price=this.pricePerMonth currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select" locked=this.autoMonth}}
-            </td>
-            <td>
-              <select data-field="minPeriodUnit">
-                {{#each this.minPeriodOptions}}
-                <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </select>
+              <div class="storage-rental-pricing-panel" hidden>
+                <div class="pricing-panel-row">
+                  <span class="pricing-panel-linkslot"></span>
+                  <span class="pricing-panel-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colMinPeriod"}}
+                    <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.storageMinPeriod'}}"></i>
+                  </span>
+                  <select data-field="minPeriodUnit" class="pricing-panel-period-select">
+                    {{#each this.minPeriodOptions}}
+                    <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                    {{/each}}
+                  </select>
+                </div>
+                <div class="pricing-panel-row">
+                  <span class="pricing-panel-linkslot"></span>
+                  <span class="pricing-panel-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerDay"}}</span>
+                  {{> ssm-price-input attr="data-field" field="pricePerDay" price=this.pricePerDay currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
+                </div>
+                <div class="pricing-panel-row">
+                  <span class="pricing-panel-linkslot">
+                    <input type="checkbox" data-field="autoWeek" {{#if this.autoWeek}}checked{{/if}} hidden>
+                    <button type="button" class="link-toggle-btn storage-rental-link-week{{#if this.autoWeek}} is-linked{{/if}}"
+                            aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDeriveWeek'}}"
+                            data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDeriveWeek'}}">
+                      <i class="fa-solid fa-link"></i>
+                    </button>
+                  </span>
+                  <span class="pricing-panel-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerWeek"}}</span>
+                  {{> ssm-price-input attr="data-field" field="pricePerWeek" price=this.pricePerWeek currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select" locked=this.autoWeek}}
+                </div>
+                <div class="pricing-panel-row">
+                  <span class="pricing-panel-linkslot">
+                    <input type="checkbox" data-field="autoMonth" {{#if this.autoMonth}}checked{{/if}} hidden>
+                    <button type="button" class="link-toggle-btn storage-rental-link-month{{#if this.autoMonth}} is-linked{{/if}}"
+                            aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDeriveMonth'}}"
+                            data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.autoDeriveMonth'}}">
+                      <i class="fa-solid fa-link"></i>
+                    </button>
+                  </span>
+                  <span class="pricing-panel-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.colPricePerMonth"}}</span>
+                  {{> ssm-price-input attr="data-field" field="pricePerMonth" price=this.pricePerMonth currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select" locked=this.autoMonth}}
+                </div>
+              </div>
             </td>
             <td>
               <input type="text" data-field="namingTemplate" value="{{this.namingTemplate}}"
@@ -278,7 +288,7 @@
           </tr>
           {{else}}
           <tr>
-            <td colspan="9" class="lodging-table-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.noOptions"}}</em></td>
+            <td colspan="4" class="lodging-table-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.noOptions"}}</em></td>
           </tr>
           {{/each}}
         </tbody>

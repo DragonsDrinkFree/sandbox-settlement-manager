@@ -10,18 +10,29 @@ const roundPrice = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 /**
  * Resolve a Bank storage rental option to its three concrete rates plus its minimum period.
  *
- * A null pricePerWeek/pricePerMonth means "auto-derive from the day price" — the same
- * null-means-auto convention the Inn's lodgings use for pricePerWeek. Derivation multiplies by
- * LOAN_PERIOD_DAYS (7 and 30) rather than the world's daysPerWeek, because a rental's *duration*
- * comes from periodSecondsFor, which uses that same fixed ladder; deriving the price from a
- * different day count than the duration would silently under- or over-charge.
+ * A null pricePerWeek/pricePerMonth means "auto-derive" — the same null-means-auto convention the
+ * Inn's lodgings use for pricePerWeek. Derivation cascades down the ladder: the week follows the
+ * day, and the month follows the *week*, so a manually-set weekly discount carries into a derived
+ * month instead of being silently ignored. When the week is itself derived the chain collapses to
+ * day x 30, i.e. deriving straight from the day price.
+ *
+ * The multipliers are LOAN_PERIOD_DAYS (7 and 30) rather than the world's daysPerWeek, because a
+ * rental's *duration* comes from periodSecondsFor, which uses that same fixed ladder; deriving the
+ * price from a different day count than the duration would silently under- or over-charge.
  */
 export function resolveRentalPricing(option) {
   const day = option?.pricePerDay ?? { currencyId: "", amount: 0 };
+  // Kept unrounded so a fully-linked chain lands on day x 30 exactly — only the exposed value is
+  // rounded, never the base the next tier derives from.
+  const weekRaw  = option?.pricePerWeek?.amount     ?? (day.amount ?? 0) * LOAN_PERIOD_DAYS.week;
+  const weekCurr = option?.pricePerWeek?.currencyId ?? day.currencyId;
   return {
     day,
-    week:  option?.pricePerWeek  ?? { currencyId: day.currencyId, amount: roundPrice((day.amount ?? 0) * LOAN_PERIOD_DAYS.week) },
-    month: option?.pricePerMonth ?? { currencyId: day.currencyId, amount: roundPrice((day.amount ?? 0) * LOAN_PERIOD_DAYS.month) },
+    week:  option?.pricePerWeek ?? { currencyId: weekCurr, amount: roundPrice(weekRaw) },
+    month: option?.pricePerMonth ?? {
+      currencyId: weekCurr,
+      amount: roundPrice(weekRaw * (LOAN_PERIOD_DAYS.month / LOAN_PERIOD_DAYS.week))
+    },
     minPeriodUnit: PERIOD_ORDER.includes(option?.minPeriodUnit) ? option.minPeriodUnit : "day"
   };
 }

@@ -8,5 +8,4 @@
 Inn storage/expired rooms clear when cleared.
 Expired rooms -> restablish if same room rented.
 
-- Bank: storage rentals, Add Day/week pricing like inn rooms.
 - Move settlement checkbox to match other sandbox Module.

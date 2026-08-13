@@ -8,9 +8,31 @@ import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 import { rollMerchantRestock } from "../canvas/location-data.js";
 import { LodgingStorageConfigApp } from "./lodging-storage-config-app.js";
 import { LOAN_PERIOD_DAYS } from "../utils/loan-utils.js";
-import { resolveRentalPricing } from "../utils/rental-utils.js";
+import { resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+
+/** Multiplier a linked month price applies to the effective weekly rate (a month is 30/7 weeks). */
+const MONTH_PER_WEEK = LOAN_PERIOD_DAYS.month / LOAN_PERIOD_DAYS.week;
+
+/**
+ * Condensed "1gp / 7gp / 30gp" label for a Storage Rental Option's collapsed Pricing cell, as HTML
+ * so each tier can be styled on its own — tiers below the minimum rental period are struck through,
+ * since Min Period lives inside the (collapsed) panel and would otherwise be invisible on the row.
+ *
+ * Shared by _prepareContext and the live rewrite in #wireStorageRentalLinks so the two can't drift.
+ * `segments` is [{ unit, amount, abbr }, …] in day → week → month order.
+ */
+function pricingSummaryHTML(segments, minPeriodUnit) {
+  const available = availablePeriodUnits(minPeriodUnit);
+  const esc = foundry.utils.escapeHTML;
+  // Trim trailing zeros so a whole-number rate reads "1gp", not "1.00gp".
+  const fmt = (n) => String(Math.round(((n ?? 0) + Number.EPSILON) * 100) / 100);
+  return segments.map(s => {
+    const cls = available.includes(s.unit) ? "pricing-summary-seg" : "pricing-summary-seg is-unavailable";
+    return `<span class="${cls}">${esc(fmt(s.amount))}${esc(s.abbr ?? "")}</span>`;
+  }).join('<span class="pricing-summary-sep">/</span>');
+}
 
 /** Reorder a merchant inventory by an ordered sort spec `[{ key, dir }, …]`. Returns a new array. */
 function sortMerchantInventory(inventory, spec, currencies) {
@@ -55,7 +77,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _linkedStorageTemplateId = null; // tracks the linkedStorageTemplateId <select> across re-renders
   _bankLinkedStorageTemplateId = null; // tracks the Bank's own linkedStorageTemplateId <select> across re-renders
   _storageRentalOptions = [];
-  _inventorySort = [{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
+  _openPricingPanels = new Set(); // option ids whose Pricing panel is expanded (survives re-renders)
+  _inventorySort =[{ key: "itemType", dir: "asc" }, { key: "itemName", dir: "asc" }]; // last-used merchant inventory sort spec
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
   _entryBase    = null;    // deep clone of the original location entry — runtime fields preserved on save
@@ -266,15 +289,25 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           // Resolved so options saved before day/week/month pricing still render a sensible row.
           const pricing = resolveRentalPricing(o);
           const withDefaultCurrency = (p) => ({ currencyId: p.currencyId || defaultCurrencyId, amount: p.amount ?? 0 });
+          const abbrOf = (cid) => currencies.find(c => c.id === (cid || defaultCurrencyId))?.abbreviation ?? "";
+          const prices = {
+            day:   withDefaultCurrency(pricing.day),
+            week:  withDefaultCurrency(pricing.week),
+            month: withDefaultCurrency(pricing.month)
+          };
           return {
             id: o.id,
-            // A null week/month price means "auto-derive from the day price" (same convention as
-            // the Inn's pricePerWeek); the resolved value is still shown, just locked.
+            // A null week/month price means "auto-derive" (same convention as the Inn's
+            // pricePerWeek); the resolved value is still shown, just locked.
             autoWeek:  !o.pricePerWeek,
             autoMonth: !o.pricePerMonth,
-            pricePerDay:   withDefaultCurrency(pricing.day),
-            pricePerWeek:  withDefaultCurrency(pricing.week),
-            pricePerMonth: withDefaultCurrency(pricing.month),
+            pricePerDay:   prices.day,
+            pricePerWeek:  prices.week,
+            pricePerMonth: prices.month,
+            pricingSummary: pricingSummaryHTML(
+              ["day", "week", "month"].map(u => ({ unit: u, amount: prices[u].amount, abbr: abbrOf(prices[u].currencyId) })),
+              pricing.minPeriodUnit
+            ),
             namingTemplate: o.namingTemplate ?? "",
             storageTypeOptions: bankLinkedStorageTypes.map(st => ({ id: st.id, name: st.name, selected: st.id === o.storageTypeId })),
             minPeriodOptions: ["day", "week", "month"].map(u => ({
@@ -549,51 +582,96 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Chain-link toggles on the Storage Rental Options rows, mirroring #wireWeeklyLinks for lodgings.
-   * Linked week/month prices are read-only and recompute live from the day price. The multipliers
-   * are the fixed LOAN_PERIOD_DAYS ladder (7 / 30) that periodSecondsFor uses for the rental's
-   * duration — deriving from the world's daysPerWeek instead would let price and duration disagree.
+   * The Storage Rental Options rows' collapsible Pricing cell: the expand/collapse toggle, the
+   * chain-link toggles, and the condensed summary label.
+   *
+   * Derivation cascades — a linked week follows the day price, and a linked month follows the
+   * *effective* week (its manual value if unlinked, otherwise the day-derived one), so a weekly
+   * discount carries into the month instead of being ignored. Multipliers come from the fixed
+   * LOAN_PERIOD_DAYS ladder that periodSecondsFor uses for the rental's duration; deriving from the
+   * world's daysPerWeek instead would let price and duration disagree.
    */
   #wireStorageRentalLinks() {
     this.element.querySelectorAll('.storage-rental-option-row').forEach(row => {
-      const dayAmt  = row.querySelector('[data-field="pricePerDayAmount"]');
-      const dayCurr = row.querySelector('[data-field="pricePerDayCurrencyId"]');
+      const dayAmt   = row.querySelector('[data-field="pricePerDayAmount"]');
+      const dayCurr  = row.querySelector('[data-field="pricePerDayCurrencyId"]');
+      const wkBox    = row.querySelector('[data-field="autoWeek"]');
+      const wkBtn    = row.querySelector('.storage-rental-link-week');
+      const wkAmt    = row.querySelector('[data-field="pricePerWeekAmount"]');
+      const wkCurr   = row.querySelector('[data-field="pricePerWeekCurrencyId"]');
+      const mnBox    = row.querySelector('[data-field="autoMonth"]');
+      const mnBtn    = row.querySelector('.storage-rental-link-month');
+      const mnAmt    = row.querySelector('[data-field="pricePerMonthAmount"]');
+      const mnCurr   = row.querySelector('[data-field="pricePerMonthCurrencyId"]');
+      const minSel   = row.querySelector('[data-field="minPeriodUnit"]');
+      const summary  = row.querySelector('.storage-rental-pricing-summary');
+      const panel    = row.querySelector('.storage-rental-pricing-panel');
+      const summaryText = row.querySelector('.pricing-summary-text');
 
-      for (const [field, days] of [["pricePerWeek", LOAN_PERIOD_DAYS.week], ["pricePerMonth", LOAN_PERIOD_DAYS.month]]) {
-        const key      = field === "pricePerWeek" ? "autoWeek" : "autoMonth";
-        const stateBox = row.querySelector(`[data-field="${key}"]`);
-        const linkBtn  = row.querySelector(field === "pricePerWeek" ? '.storage-rental-link-week' : '.storage-rental-link-month');
-        const amt      = row.querySelector(`[data-field="${field}Amount"]`);
-        const curr     = row.querySelector(`[data-field="${field}CurrencyId"]`);
+      const num  = (el) => parseFloat(el?.value) || 0;
+      // The denomination abbreviation is exactly what ssm-price-input renders as the option label.
+      const abbr = (sel) => sel?.selectedOptions?.[0]?.textContent ?? "";
 
-        const applyState = () => {
-          const linked = !!stateBox?.checked;
-          linkBtn?.classList.toggle('is-linked', linked);
-          if (amt)  amt.readOnly  = linked;
-          if (curr) curr.disabled = linked;
-          if (linked) {
-            const base = parseFloat(dayAmt?.value) || 0;
-            if (amt)             amt.value  = (base * days).toFixed(2);
-            if (curr && dayCurr) curr.value = dayCurr.value;
-          }
-        };
+      const recompute = () => {
+        const wkLinked = !!wkBox?.checked;
+        const mnLinked = !!mnBox?.checked;
 
-        applyState();
+        wkBtn?.classList.toggle('is-linked', wkLinked);
+        mnBtn?.classList.toggle('is-linked', mnLinked);
+        if (wkAmt)  wkAmt.readOnly  = wkLinked;
+        if (wkCurr) wkCurr.disabled = wkLinked;
+        if (mnAmt)  mnAmt.readOnly  = mnLinked;
+        if (mnCurr) mnCurr.disabled = mnLinked;
 
-        linkBtn?.addEventListener('click', () => {
-          if (stateBox) stateBox.checked = !stateBox.checked;
-          applyState();
-        });
-        dayAmt?.addEventListener('input', () => {
-          if (!stateBox?.checked) return;
-          const base = parseFloat(dayAmt.value) || 0;
-          if (amt) amt.value = (base * days).toFixed(2);
-        });
-        dayCurr?.addEventListener('change', () => {
-          if (!stateBox?.checked) return;
-          if (curr) curr.value = dayCurr.value;
+        // Week first — the month derives from its result, not from the day price directly.
+        const weekBase = wkLinked ? num(dayAmt) * LOAN_PERIOD_DAYS.week : num(wkAmt);
+        if (wkLinked) {
+          if (wkAmt)             wkAmt.value  = weekBase.toFixed(2);
+          if (wkCurr && dayCurr) wkCurr.value = dayCurr.value;
+        }
+        if (mnLinked) {
+          if (mnAmt)            mnAmt.value  = (weekBase * MONTH_PER_WEEK).toFixed(2);
+          if (mnCurr && wkCurr) mnCurr.value = wkCurr.value;
+        }
+
+        if (summaryText) {
+          summaryText.innerHTML = pricingSummaryHTML([
+            { unit: "day",   amount: num(dayAmt), abbr: abbr(dayCurr) },
+            { unit: "week",  amount: num(wkAmt),  abbr: abbr(wkCurr)  },
+            { unit: "month", amount: num(mnAmt),  abbr: abbr(mnCurr)  }
+          ], minSel?.value ?? "day");
+        }
+      };
+
+      recompute();
+
+      for (const [box, btn] of [[wkBox, wkBtn], [mnBox, mnBtn]]) {
+        btn?.addEventListener('click', () => {
+          if (box) box.checked = !box.checked;
+          recompute();
         });
       }
+      // The week amount/currency feed the month, so they need listeners too — not just the day's.
+      dayAmt?.addEventListener('input',   recompute);
+      wkAmt?.addEventListener('input',    recompute);
+      mnAmt?.addEventListener('input',    recompute);
+      dayCurr?.addEventListener('change', recompute);
+      wkCurr?.addEventListener('change',  recompute);
+      mnCurr?.addEventListener('change',  recompute);
+      minSel?.addEventListener('change',  recompute);
+
+      const optionId = row.dataset.optionId;
+      const applyOpen = () => {
+        const open = this._openPricingPanels.has(optionId);
+        if (panel)   panel.hidden = !open;
+        summary?.setAttribute('aria-expanded', String(open));
+      };
+      applyOpen();
+      summary?.addEventListener('click', () => {
+        if (this._openPricingPanels.has(optionId)) this._openPricingPanels.delete(optionId);
+        else this._openPricingPanels.add(optionId);
+        applyOpen();
+      });
     });
   }
 
@@ -937,8 +1015,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncStorageRentalOptionsFromDOM();
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const defaultCurrencyId = getStandardCurrency(currencyConfig.currencies ?? [])?.id ?? "";
+    const id = foundry.utils.randomID();
     this._storageRentalOptions.push({
-      id:             foundry.utils.randomID(),
+      id,
       storageTypeId:  null,
       pricePerDay:    { currencyId: defaultCurrencyId, amount: 0 },
       pricePerWeek:   null,   // auto-derive from the day price until unlinked
@@ -946,6 +1025,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       minPeriodUnit:  "day",
       namingTemplate: ""
     });
+    this._openPricingPanels.add(id); // a brand-new option has nothing set yet — open it to be filled in
     this.render({ parts: ["form"] });
   }
 
@@ -953,7 +1033,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#syncSubTypeName();
     this.#syncStorageRentalOptionsFromDOM();
     const index = parseInt(target.dataset.index);
-    this._storageRentalOptions.splice(index, 1);
+    const [removed] = this._storageRentalOptions.splice(index, 1);
+    if (removed) this._openPricingPanels.delete(removed.id);
     this.render({ parts: ["form"] });
   }
 
