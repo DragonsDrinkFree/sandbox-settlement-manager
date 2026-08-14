@@ -5,7 +5,8 @@
 - Storage template Type added.
 - "Cart" for purchases now allows for choosing who receives a purchased item.
 - Storage Template rentals added to banks
-- Storage template ties to rented room
+- Storage template ties to rented room.
+- Moved "Mark As Settlement" to Dedicated "Sandbox" tab, this will become standard for all DDF Sandbox Modules.
 
 # v0.9.1
 ## Minor

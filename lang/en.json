@@ -1,4 +1,7 @@
 ﻿{
+  "SANDBOX": {
+    "sceneTab": "Sandbox"
+  },
   "SANDBOX_SETTLEMENT_MANAGER": {
     "scene": {
       "isSettlement": "Mark as Settlement"

@@ -12,7 +12,7 @@ import { MODULE_ID, FLAGS, SETTINGS, migrateLocation } from "./constants.js";
 import { registerSettings } from "./settings/settings.js";
 import { registerSettingsUI } from "./settings/settings-ui.js";
 import { SetupWizardApp } from "./settings/setup-wizard-app.js";
-import { SandboxSceneConfig } from "./scene/scene-config.js";
+import { registerSceneConfigTab } from "./scene/scene-config.js";
 import { registerSettlementControls } from "./canvas/settlement-controls.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
 import { registerSocketHandlers } from "./socket.js";
@@ -32,9 +32,7 @@ Hooks.once("init", () => {
   registerSettingsUI();
   registerSettlementControls();
   registerWorldTimeHooks();
-  foundry.applications.apps.DocumentSheetConfig.registerSheet(Scene, MODULE_ID, SandboxSceneConfig, {
-    makeDefault: true
-  });
+  registerSceneConfigTab();
 });
 
 Hooks.on("canvasReady", () => {
