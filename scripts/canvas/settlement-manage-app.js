@@ -254,6 +254,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const activeTemplate = isGM && activeEntry ? this.#getTemplateForEntry(activeEntry) : null;
     const innTemplate      = activeEntry?.typeId === LOCATION_TYPE_IDS.INN      ? activeTemplate : null;
     const merchantTemplate = activeEntry?.typeId === LOCATION_TYPE_IDS.MERCHANT ? activeTemplate : null;
+    const bankTemplate     = activeEntry?.typeId === LOCATION_TYPE_IDS.BANK     ? activeTemplate : null;
 
     const effectiveProfile = mergePurchasingProfiles(location);
     const hasSellTab = effectiveProfile.length > 0;
@@ -274,6 +275,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       hasAvailableTypes: isGM && pickerGroups.length > 0,
       hasInnTemplate:      !!innTemplate,
       hasMerchantTemplate: !!merchantTemplate,
+      hasBankTemplate:     !!bankTemplate,
       hasSellTab, sellTabActive, sellData,
       tabs,
       hasTabs:         tabs.length > 0 || hasSellTab,
@@ -510,11 +512,14 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     }
   }
 
-  async #saveEntryData(entryId, data) {
+  async #saveEntryData(entryId, data, { extraTypeData } = {}) {
     const location = this.#syncSelectedLocation();
     if (!location) return;
     location.typeData ??= {};
     location.typeData[entryId] = data;
+    // A second typeData slot to write in this same save — e.g. a linked Storage entry mutated
+    // alongside the Inn entry, so both land in one setFlag call instead of two.
+    if (extraTypeData) Object.assign(location.typeData, extraTypeData);
     await this.#saveLocationData(location);
   }
 
@@ -679,9 +684,23 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const innData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     const ledgerEntry = innData.ledger.find(e => e.id === ledgerId);
     if (!ledgerEntry) return;
+
+    // A dismissed booking's Storage Area (if the room had one attached) is cleared out too, unless
+    // the renter left items in it — reuses the same occupied-check #onDeleteStorageGroup uses.
+    // Checked up front so the confirm dialog can tell the GM which outcome to expect.
+    let storageData = null, group = null, itemCount = 0;
+    if (ledgerEntry.storageGroupId && innData.linkedStorageEntryId) {
+      storageData = foundry.utils.deepClone(location.typeData?.[innData.linkedStorageEntryId] ?? {});
+      group = (storageData.groups ?? []).find(g => g.id === ledgerEntry.storageGroupId) ?? null;
+      if (group) itemCount = (storageData.items ?? []).filter(i => i.groupId === group.id).length;
+    }
+    const storageNote = !group ? "" :
+      itemCount === 0 ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageWillDelete")
+                       : game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageWillKeep");
+
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: ledgerEntry.actorName ?? "?", lodging: ledgerEntry.lodgingName ?? "?" })}</p>`,
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: ledgerEntry.actorName ?? "?", lodging: ledgerEntry.lodgingName ?? "?" })}${storageNote ? ` ${storageNote}` : ""}</p>`,
       yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle"), icon: "fa-solid fa-times" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
@@ -690,7 +709,20 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     // frees its room back up; expired/reclaimed bookings were already restored at expiry.
     if (!ledgerEntry.reclaimed) restoreLodgingAvailability(innData, ledgerEntry);
     innData.ledger = innData.ledger.filter(e => e.id !== ledgerId);
-    await this.#saveEntryData(this._activeTab, innData);
+
+    let extraTypeData;
+    if (group) {
+      if (itemCount === 0) {
+        storageData.groups = storageData.groups.filter(g => g.id !== group.id);
+        extraTypeData = { [innData.linkedStorageEntryId]: storageData };
+      } else {
+        ui.notifications.warn(game.i18n.format(
+          "SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageKept", { name: group.name, count: itemCount }
+        ));
+      }
+    }
+
+    await this.#saveEntryData(this._activeTab, innData, { extraTypeData });
   }
 
   static async #onEditBooking(event, target) {

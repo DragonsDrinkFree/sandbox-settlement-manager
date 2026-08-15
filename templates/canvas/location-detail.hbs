@@ -331,14 +331,18 @@
             <i class="fa-solid fa-pen-to-square"></i>
           </span>
           {{/if}}
-          <button type="button" data-action="editLocationEntry" class="ssm-settings-btn">
-            <i class="fa-solid fa-gear"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.location.editEntry"}}
-          </button>
           {{#if this.bankData.hasTemplate}}
-          <button type="button" data-action="resetBankSettings" class="ssm-settings-btn ssm-settings-reset-btn">
-            <i class="fa-solid fa-rotate-left"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.resetToTemplate"}}
+          <button type="button" class="icon" data-action="resetBankSettings"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.resetToTemplate'}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.bank.resetToTemplate'}}">
+            <i class="fa-solid fa-rotate-left"></i>
           </button>
           {{/if}}
+          <button type="button" class="icon" data-action="editLocationEntry"
+                  aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+            <i class="fa-solid fa-gear"></i>
+          </button>
         </div>
         {{/if}}
       </div>

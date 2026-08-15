@@ -3217,18 +3217,6 @@
   color: var(--color-text-dark-warning, #a87000);
 }
 
-#sandbox-settlement-manager-settlement-manage .ssm-settings-btn,
-#sandbox-settlement-manager-location-detail .ssm-settings-btn {
-  font-size: 0.78em;
-  padding: 0.15rem 0.5rem;
-  flex-shrink: 0;
-}
-
-#sandbox-settlement-manager-settlement-manage .ssm-settings-reset-btn,
-#sandbox-settlement-manager-location-detail .ssm-settings-reset-btn {
-  color: var(--color-text-dark-secondary, #888);
-}
-
 /* Deposit UI */
 #sandbox-settlement-manager-settlement-manage .ssm-deposit-info-bar,
 #sandbox-settlement-manager-location-detail .ssm-deposit-info-bar {

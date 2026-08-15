@@ -241,13 +241,16 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     };
   }
 
-  async #saveEntryData(entryId, data, { typeEntries } = {}) {
+  async #saveEntryData(entryId, data, { typeEntries, extraTypeData } = {}) {
     const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
     const r = locations.find(r => r.id === this._location.id);
     if (!r) return;
     r.typeData ??= {};
     r.typeData[entryId] = data;
     if (typeEntries) r.typeEntries = typeEntries;
+    // A second typeData slot to write in this same save — e.g. a linked Storage entry mutated
+    // alongside the Inn entry, so both land in one setFlag/socket emit instead of two.
+    if (extraTypeData) Object.assign(r.typeData, extraTypeData);
     this._location = r;
     // Storage's player-initiated mutations (deposit/take/ownership) are the first callers of this
     // helper that aren't GM-only — players lack scene write permission, so route through the GM.
@@ -298,9 +301,23 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const innData = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { lodgings: [], ledger: [] });
     const entry = innData.ledger.find(e => e.id === entryId);
     if (!entry) return;
+
+    // A dismissed booking's Storage Area (if the room had one attached) is cleared out too, unless
+    // the renter left items in it — reuses the same occupied-check #onDeleteStorageGroup uses.
+    // Checked up front so the confirm dialog can tell the GM which outcome to expect.
+    let storageData = null, group = null, itemCount = 0;
+    if (entry.storageGroupId && innData.linkedStorageEntryId) {
+      storageData = foundry.utils.deepClone(this._location.typeData?.[innData.linkedStorageEntryId] ?? {});
+      group = (storageData.groups ?? []).find(g => g.id === entry.storageGroupId) ?? null;
+      if (group) itemCount = (storageData.items ?? []).filter(i => i.groupId === group.id).length;
+    }
+    const storageNote = !group ? "" :
+      itemCount === 0 ? game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageWillDelete")
+                       : game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageWillKeep");
+
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle") },
-      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: entry.actorName ?? "?", lodging: entry.lodgingName ?? "?" })}</p>`,
+      content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryConfirm", { actor: entry.actorName ?? "?", lodging: entry.lodgingName ?? "?" })}${storageNote ? ` ${storageNote}` : ""}</p>`,
       yes: { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryTitle"), icon: "fa-solid fa-times" },
       no:  { label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.cancel") }
     });
@@ -309,7 +326,20 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     // frees its room back up; expired/reclaimed bookings were already restored at expiry.
     if (!entry.reclaimed) restoreLodgingAvailability(innData, entry);
     innData.ledger = innData.ledger.filter(e => e.id !== entryId);
-    await this.#saveEntryData(this._activeTab, innData);
+
+    let extraTypeData;
+    if (group) {
+      if (itemCount === 0) {
+        storageData.groups = storageData.groups.filter(g => g.id !== group.id);
+        extraTypeData = { [innData.linkedStorageEntryId]: storageData };
+      } else {
+        ui.notifications.warn(game.i18n.format(
+          "SANDBOX_SETTLEMENT_MANAGER.inn.dismissEntryStorageKept", { name: group.name, count: itemCount }
+        ));
+      }
+    }
+
+    await this.#saveEntryData(this._activeTab, innData, { extraTypeData });
   }
 
   static async #onEditBooking(event, target) {
