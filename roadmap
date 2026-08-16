@@ -4,10 +4,3 @@
 
 # Storage
 - Display: needs refinement, proper list., button alignments. Checkboxes
-
-Inn storage/expired rooms clear when cleared.
-Expired rooms -> restablish if same room rented.
-
-- Move settlement checkbox to match other sandbox Module.
-
-Empty storage template does not allow allocation in inn/banks.

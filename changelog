@@ -7,6 +7,7 @@
 - Storage Template rentals added to banks
 - Storage template ties to rented room.
 - Moved "Mark As Settlement" to Dedicated "Sandbox" tab, this will become standard for all DDF Sandbox Modules.
+-
 
 # v0.9.1
 ## Minor
