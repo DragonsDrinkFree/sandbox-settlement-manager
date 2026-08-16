@@ -33,6 +33,14 @@ export const LOCATION_TYPE_IDS = {
 };
 
 /**
+ * linkedStorageTemplateId value meaning "this Location's own un-templated Storage entry" (one added
+ * directly from the type picker with no sub-type chosen), not a global template id. Read by
+ * ensureStorageEntryForTemplate (location-data.js) and by the Inn/Bank config UI's storage-template
+ * dropdowns (sub-type-edit.js).
+ */
+export const LOCAL_STORAGE_LINK_ID = "__local__";
+
+/**
  * Migration helper — reads typeEntries from any location regardless of storage generation.
  * Returns [{ typeId, subTypeId }]. The returned entries may lack an `id` field on old data;
  * call migrateLocation() to normalise before use.

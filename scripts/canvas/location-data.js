@@ -14,7 +14,7 @@
  * (single-location vs scene-array); these builders only return `_needsSave` / `_updated*`.
  */
 
-import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, getTypeEntries } from "../constants.js";
+import { MODULE_ID, FLAGS, SETTINGS, LOCATION_TYPE_IDS, LOCAL_STORAGE_LINK_ID, getTypeEntries } from "../constants.js";
 import { secondsToComponents, getWorldTimeConfig } from "../time/world-time.js";
 import { readItemAttributes } from "../utils/item-utils.js";
 import {
@@ -120,12 +120,32 @@ export function buildEntryTypeData(typeId, subType) {
 export function ensureStorageEntryForTemplate(entries, linkedTemplateId) {
   if (!linkedTemplateId) return null;
 
+  // The sentinel means "this Location's own bare Storage entry" (added with no sub-type template),
+  // not a global template id — resolve it directly rather than matching/creating by subTypeId.
+  if (linkedTemplateId === LOCAL_STORAGE_LINK_ID) {
+    return entries.find(e => e.typeId === LOCATION_TYPE_IDS.STORAGE && !e.subTypeId)?.id ?? null;
+  }
+
   const existing = entries.find(e => e.typeId === LOCATION_TYPE_IDS.STORAGE && e.subTypeId === linkedTemplateId);
   if (existing) return existing.id;
 
   const newEntry = { id: foundry.utils.randomID(), typeId: LOCATION_TYPE_IDS.STORAGE, subTypeId: linkedTemplateId };
   entries.push(newEntry);
   return newEntry.id;
+}
+
+/**
+ * The Location's own ad-hoc Storage entry — one attached directly via the type picker with no
+ * sub-type template chosen, as opposed to one instantiated from a global Storage template. At most
+ * one can exist per Location (the type-picker dedups by typeId::subTypeId, and a bare entry's key is
+ * typeId::"" either way). Lets an Inn/Bank on this same Location link straight to it, via
+ * LOCAL_STORAGE_LINK_ID, instead of only being able to pick from global templates. Returns null if
+ * this Location has no bare Storage entry.
+ */
+export function findLocalStorageEntry(location) {
+  const entry = getTypeEntries(location).find(e => e.typeId === LOCATION_TYPE_IDS.STORAGE && !e.subTypeId);
+  if (!entry) return null;
+  return { id: entry.id, storageTypes: location.typeData?.[entry.id]?.storageTypes ?? [] };
 }
 
 /**

@@ -16,7 +16,7 @@ import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -530,7 +530,10 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const entry = this.#getActiveEntry();
     if (!entry) return;
     const entryData = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? {});
-    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name });
+    const localStorageEntry = (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK)
+      ? findLocalStorageEntry(location)
+      : null;
+    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name, localStorageEntry });
     if (!result) return;
 
     if (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK) {

@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES } from "../constants.js";
+import { MODULE_ID, SETTINGS, LOCATION_TYPE_IDS, CORE_LOCATION_TYPES, LOCAL_STORAGE_LINK_ID } from "../constants.js";
 import { CourseEditApp } from "../canvas/inn/course-edit-app.js";
 import { getWorldTimeConfig } from "../time/world-time.js";
 import { readItemName, readItemPrice } from "../utils/item-utils.js";
@@ -82,6 +82,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _locationMode = false;   // true when editing a single location entry instead of a shared template
   _locationName = "";      // owning location's name (location mode, for the title)
   _entryBase    = null;    // deep clone of the original location entry — runtime fields preserved on save
+  _localStorageEntry = null; // { id, storageTypes } for this location's own un-templated Storage entry, if any (location mode only)
 
   constructor(subType, options = {}) {
     super(options);
@@ -155,7 +156,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * ledger, deposits, loans, _templateValues). The caller persists the result to the scene flag.
    * Resolves with the updated entry, or null if cancelled.
    */
-  static async openForEntry(typeId, entryData = {}, { locationName = "" } = {}) {
+  static async openForEntry(typeId, entryData = {}, { locationName = "", localStorageEntry = null } = {}) {
     // Build a synthetic subType whose typeData mirrors the template shape _prepareContext expects,
     // so the merchant/bank display logic works unchanged.
     const syntheticTypeData = {};
@@ -180,6 +181,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._locationMode      = true;
       app._locationName      = locationName;
       app._entryBase         = foundry.utils.deepClone(entryData);
+      app._localStorageEntry = localStorageEntry;
       // Working arrays loaded from the ENTRY shape (inventory/lodgings/etc. live at the entry root).
       app._lodgings          = foundry.utils.deepClone(entryData.lodgings ?? []);
       app._menu              = foundry.utils.deepClone(entryData.menu ?? { courses: [] });
@@ -237,7 +239,20 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const bankLinkedStorageTemplateId = this._bankLinkedStorageTemplateId ?? this._subType.typeData?.bank?.linkedStorageTemplateId ?? "";
     const bankStorageTemplateOptions = storageTemplates.map(t => ({ id: t.id, name: t.name, selected: t.id === bankLinkedStorageTemplateId }));
     const bankHasLinkedStorageTemplate = !!bankLinkedStorageTemplateId;
-    const bankLinkedStorageTypes = storageTemplates.find(t => t.id === bankLinkedStorageTemplateId)?.typeData?.storage?.storageTypes ?? [];
+    const bankLinkedStorageTypes = bankLinkedStorageTemplateId === LOCAL_STORAGE_LINK_ID
+      ? (this._localStorageEntry?.storageTypes ?? [])
+      : (storageTemplates.find(t => t.id === bankLinkedStorageTemplateId)?.typeData?.storage?.storageTypes ?? []);
+
+    // "Local Template" — this location's own un-templated Storage entry, offered only in location
+    // mode and only when one actually exists on this location. See findLocalStorageEntry.
+    if (this._localStorageEntry) {
+      const localOption = {
+        id: LOCAL_STORAGE_LINK_ID,
+        name: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.lodging.localStorageTemplate")
+      };
+      storageTemplateOptions.push({ ...localOption, selected: linkedStorageTemplateId === LOCAL_STORAGE_LINK_ID });
+      bankStorageTemplateOptions.push({ ...localOption, selected: bankLinkedStorageTemplateId === LOCAL_STORAGE_LINK_ID });
+    }
 
     let lodgings = [];
     let currencies = [];
@@ -840,9 +855,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const lodgingId = target.dataset.lodgingId;
     const lodging = this._lodgings.find(l => l.id === lodgingId);
     if (!lodging) return;
-    const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
-    const linkedTemplate = storageTemplates.find(t => t.id === this._linkedStorageTemplateId);
-    const storageTypes = linkedTemplate?.typeData?.storage?.storageTypes ?? [];
+    let storageTypes;
+    if (this._linkedStorageTemplateId === LOCAL_STORAGE_LINK_ID) {
+      storageTypes = this._localStorageEntry?.storageTypes ?? [];
+    } else {
+      const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
+      storageTypes = storageTemplates.find(t => t.id === this._linkedStorageTemplateId)?.typeData?.storage?.storageTypes ?? [];
+    }
     const result = await LodgingStorageConfigApp.open(lodging, storageTypes);
     if (!result) return; // cancelled
     lodging.storageConfig = result;
