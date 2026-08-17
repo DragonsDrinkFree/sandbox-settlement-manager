@@ -54,8 +54,14 @@ export function buildEntryTypeData(typeId, subType) {
       lodgingPriceVarRounding:   innTpl.lodgingPriceVarRounding   ?? "same",
       lodgingRefreshCadence:     innTpl.lodgingRefreshCadence     ?? "weekly",
       lodgingLastRefreshed:      null,
-      // Which Storage entry on this same Location this Inn is linked to, if any (stamped by the
-      // attach-site caller right after this is built — see ensureLinkedStorageEntry below).
+      // Which Storage template this Inn offers rooms from, and (once attached) which Storage entry
+      // on this same Location it's linked to — instance-local, not part of TEMPLATE_FIELDS.lodging
+      // (same non-diffed treatment as the Bank's linkedStorageTemplateId). linkedStorageTemplateId
+      // must be copied here, not left for the attach-site caller: it's what the Edit Setup dropdown
+      // reads to show the template as attached, whereas linkedStorageEntryId only matters once a
+      // Storage tab actually needs to be found — omitting it left a freshly-placed Inn showing "None"
+      // until a GM re-picked the same template by hand.
+      linkedStorageTemplateId:   innTpl.linkedStorageTemplateId ?? null,
       linkedStorageEntryId:      null
     };
   }

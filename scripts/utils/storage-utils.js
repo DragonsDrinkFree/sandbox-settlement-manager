@@ -59,17 +59,26 @@ export function canRetrieve(item, group, storageType, actorId) {
 }
 
 /**
- * Resolve a *template* Storage Type id (the only kind available where Inn lodgings/Bank rental
- * options are configured, since a shared template can be attached to many Locations) into the
- * matching *instance* Storage Type on one specific attached Storage entry. Template and instance
- * ids always differ — each attachment gets its own fresh clone via instanceFromTemplate — so this
- * bridges them via the templateItemId that clone stamps. Returns null if no matching instance
- * exists yet (e.g. the Storage Type was added to the template after this Location's Storage entry
- * was last synced).
+ * Resolve a Storage Type id chosen where Inn lodgings/Bank rental options are configured into the
+ * matching *instance* Storage Type on one specific attached Storage entry. Two cases:
+ *
+ * - Attached via a real Storage template: the configured id is the *template's* Storage Type id.
+ *   A shared template can be attached to many Locations, and each attachment gets its own fresh
+ *   clone via instanceFromTemplate with a different id — so this bridges them via the
+ *   templateItemId that clone stamps.
+ * - Attached via "Local Template" (LOCAL_STORAGE_LINK_ID) — a Location's own un-templated Storage
+ *   entry: there is no template to bridge from, so the configured id is already the instance's own
+ *   id (see SubTypeEditApp's storageTypes source for that case). Falls back to a direct id match.
+ *
+ * Returns null if neither matches (e.g. the Storage Type was added to the template after this
+ * Location's Storage entry was last synced, or the Storage Type was since deleted).
  */
 export function resolveInstanceStorageType(instanceStorageTypes, templateStorageTypeId) {
   if (!templateStorageTypeId) return null;
-  return (instanceStorageTypes ?? []).find(st => st.templateItemId === templateStorageTypeId) ?? null;
+  const types = instanceStorageTypes ?? [];
+  return types.find(st => st.templateItemId === templateStorageTypeId)
+      ?? types.find(st => st.id === templateStorageTypeId)
+      ?? null;
 }
 
 /** Whether adding `addedWeight` to a group already holding `currentUsedWeight` would exceed its storage type's limit. */

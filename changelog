@@ -1,3 +1,8 @@
+# v1.0.1
+## Minor
+- Resolved bug that was preventing local storage templates from being configured fully for inns/banks
+- Resolved a bug that was preventing template inn/storage combos from deploying smoothly(required reconfiguration on location creation).
+
 # v1.0.0
 ## Major
 - Price variations for merchants (Buying and selling)
@@ -7,7 +12,7 @@
 - Storage Template rentals added to banks
 - Storage template ties to rented room.
 - Moved "Mark As Settlement" to Dedicated "Sandbox" tab, this will become standard for all DDF Sandbox Modules.
--
+
 
 # v0.9.1
 ## Minor
