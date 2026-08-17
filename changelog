@@ -1,3 +1,7 @@
+# v1.0.2
+## Minor
+- Added WWN v13 preset
+- made an adjustment to bank Storage rentals: Created secondary dropdown to split selecting storage type and storage period(day/week/month). Better accomedates large storage lists.
 # v1.0.1
 ## Minor
 - Resolved bug that was preventing local storage templates from being configured fully for inns/banks
