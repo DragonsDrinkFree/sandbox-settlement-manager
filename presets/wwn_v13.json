@@ -1,7 +1,7 @@
 {
   "module": "sandbox-settlement-manager",
   "version": 1,
-  "exportedAt": "2026-08-17T18:23:59.485Z",
+  "exportedAt": "2026-08-17T19:01:15.091Z",
   "data": {
     "settlementTypes": [
       {
@@ -61,7 +61,62 @@
       "priceAttribute": "system.price",
       "priceDenominationAttribute": "",
       "weightAttribute": "system.weight",
-      "itemTypes": []
+      "itemTypes": [
+        {
+          "id": "8bMI1YWo2LDuADZW",
+          "systemType": "armor",
+          "label": "Armor",
+          "attributes": [
+            {
+              "id": "eR9lFxxK5yGoFBBK",
+              "label": "value",
+              "path": "system.aac.value"
+            },
+            {
+              "id": "EgCTID5WF76nhFRB",
+              "label": "type",
+              "path": "system.type"
+            }
+          ]
+        },
+        {
+          "id": "88jDqrMIeKemaSH2",
+          "systemType": "weapon",
+          "label": "Weapons",
+          "attributes": [
+            {
+              "id": "DhQG85pKwPr0cM7T",
+              "label": "damage",
+              "path": "system.damage"
+            },
+            {
+              "id": "XW3yoezPO4i5R0se",
+              "label": "melee",
+              "path": "system.melee"
+            },
+            {
+              "id": "tcxOUrvKkJCb2vMm",
+              "label": "missile",
+              "path": "system.missile"
+            },
+            {
+              "id": "6LoWLEHafN2WXx0f",
+              "label": "ac",
+              "path": "system.shock.ac"
+            },
+            {
+              "id": "cGN3dZZbmL58u93z",
+              "label": "damage",
+              "path": "system.shock.damage"
+            },
+            {
+              "id": "SVwSXjOWCpnxmPF2",
+              "label": "shockTotal",
+              "path": "system.shockTotal"
+            }
+          ]
+        }
+      ]
     },
     "locationTypes": {
       "inn": [],

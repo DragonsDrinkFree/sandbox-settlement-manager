@@ -44,7 +44,7 @@ export class LocationTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
   }
 
   static async #onAddTemplate() {
-    const result = await SubTypeEditApp.open({}, null);
+    const result = await SubTypeEditApp.open({}, null, { allSubTypes: this._subTypes });
     if (!result) return;
     const typeId = result._templateTypeId;
     if (!typeId) return;
@@ -61,7 +61,7 @@ export class LocationTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
     if (!typeId || isNaN(index)) return;
     const existing = (this._subTypes[typeId] ?? [])[index];
     if (!existing) return;
-    const result = await SubTypeEditApp.open(existing, typeId);
+    const result = await SubTypeEditApp.open(existing, typeId, { allSubTypes: this._subTypes });
     if (!result) return;
     delete result._templateTypeId;
     this._subTypes[typeId][index] = result;

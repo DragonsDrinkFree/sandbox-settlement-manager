@@ -83,6 +83,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _locationName = "";      // owning location's name (location mode, for the title)
   _entryBase    = null;    // deep clone of the original location entry — runtime fields preserved on save
   _localStorageEntry = null; // { id, storageTypes } for this location's own un-templated Storage entry, if any (location mode only)
+  _allSubTypes = null;     // caller's live unsaved working copy of every template, if opened from LocationTypeConfigApp (read-only)
 
   constructor(subType, options = {}) {
     super(options);
@@ -133,10 +134,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(subType = {}, typeId = null) {
+  static async open(subType = {}, typeId = null, { allSubTypes = null } = {}) {
     return new Promise(resolve => {
       const app = new SubTypeEditApp(foundry.utils.deepClone(subType));
       app._typeId             = typeId;
+      app._allSubTypes        = allSubTypes;
       app._lodgings           = foundry.utils.deepClone(subType.typeData?.lodgings ?? []);
       app._menu               = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
@@ -207,6 +209,17 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /**
+   * All templates across every core type — the caller's live unsaved working copy when opened from
+   * LocationTypeConfigApp's still-open Add/Edit batch, else falls back to the persisted setting.
+   * Never mutated here. Without this, a template added earlier in the same unsaved session (e.g. a
+   * new Storage template) would be invisible to a sibling template's dropdowns until the whole batch
+   * was saved and the editor reopened.
+   */
+  #getAllSubTypes() {
+    return this._allSubTypes ?? game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+  }
+
   async _prepareContext(options) {
     const isInn             = this._typeId === LOCATION_TYPE_IDS.INN;
     const isMerchant        = this._typeId === LOCATION_TYPE_IDS.MERCHANT;
@@ -232,7 +245,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const lodgingPriceVarRounding   = this._lodgingPriceVarRounding   ?? innData.lodgingPriceVarRounding   ?? "same";
     const lodgingRefreshCadence     = this._lodgingRefreshCadence     ?? innData.lodgingRefreshCadence     ?? "weekly";
     const linkedStorageTemplateId   = this._linkedStorageTemplateId   ?? innData.linkedStorageTemplateId   ?? "";
-    const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
+    const storageTemplates = this.#getAllSubTypes().storage ?? [];
     const storageTemplateOptions = storageTemplates.map(t => ({ id: t.id, name: t.name, selected: t.id === linkedStorageTemplateId }));
     const hasLinkedStorageTemplate = !!linkedStorageTemplateId;
 
@@ -859,7 +872,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._linkedStorageTemplateId === LOCAL_STORAGE_LINK_ID) {
       storageTypes = this._localStorageEntry?.storageTypes ?? [];
     } else {
-      const storageTemplates = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES)?.storage ?? [];
+      const storageTemplates = this.#getAllSubTypes().storage ?? [];
       storageTypes = storageTemplates.find(t => t.id === this._linkedStorageTemplateId)?.typeData?.storage?.storageTypes ?? [];
     }
     const result = await LodgingStorageConfigApp.open(lodging, storageTypes);
@@ -900,9 +913,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCopyCoursesFromTemplate() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
-    const allTypes = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+    const allTypes = this.#getAllSubTypes();
     const sourceTypes = (allTypes.inn ?? []).filter(t =>
-      t.id !== this._typeId &&
+      t.id !== this._subType.id &&
       (t.typeData?.menu?.courses?.length ?? 0) > 0
     );
     if (!sourceTypes.length) {
