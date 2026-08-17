@@ -51,23 +51,46 @@ export async function promptActorChoice(actors, { title, label, alwaysShow = fal
   return actors.find(a => a.id === result) ?? null;
 }
 
-/** Prompt to pick a Storage Rental Option and how many periods to prepay. Returns { storageOptionId, periods }, or null. */
-export async function promptStorageRental(labeledOptions) {
-  if (!labeledOptions.length) return null;
-  const options = labeledOptions.map(o => `<option value="${o.id}">${o.label}</option>`).join("");
+/**
+ * Prompt to rent Storage: which rental option (Storage Type), which of its offered periods, and
+ * how many periods to prepay. Two dropdowns rather than one flattened list — a Bank with several
+ * Storage Types otherwise fans out into a long "Name — fee / Day", "Name — fee / Week", ... list.
+ * The Period dropdown cascades off the Storage Type selection via DialogV2.prompt's `render` hook,
+ * which forwards through to DialogV2.wait's render callback (dialog.element reaches the live DOM) —
+ * no need for a full ApplicationV2 dialog class just to get live re-population.
+ *
+ * rentalOptions: [{ id, name, periods: [{ unit, label }] }] — one entry per rental option, each
+ * already filtered to the periods it actually offers (at/above its configured minimum).
+ * Resolves { storageOptionId, periodUnit, periods } or null if cancelled.
+ */
+export async function promptStorageRental(rentalOptions) {
+  if (!rentalOptions.length) return null;
+  const typeOptions = rentalOptions.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
   const result = await foundry.applications.api.DialogV2.prompt({
     window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptTitle") },
     content: `<div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptStorageType")}</label>
-      <select name="storageOptionKey">${options}</select></div>
+      <select name="storageOptionId">${typeOptions}</select></div>
+      <div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptPeriodUnit")}</label>
+      <select name="periodUnit"></select></div>
       <div class="form-group"><label>${game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.rentPromptPeriods")}</label>
       <input type="number" name="periods" value="1" min="1" step="1"></div>`,
+    render: (event, dialog) => {
+      const typeSelect   = dialog.element.querySelector('[name="storageOptionId"]');
+      const periodSelect = dialog.element.querySelector('[name="periodUnit"]');
+      const populatePeriods = () => {
+        const opt = rentalOptions.find(o => o.id === typeSelect.value);
+        periodSelect.innerHTML = (opt?.periods ?? []).map(p => `<option value="${p.unit}">${p.label}</option>`).join("");
+      };
+      typeSelect.addEventListener("change", populatePeriods);
+      populatePeriods();
+    },
     ok: {
       label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.dialog.confirm"),
       callback: (event, btn) => {
-        // Each row is one option at one rate, keyed "<optionId>::<periodUnit>".
-        const storageOptionKey = btn.form.querySelector('[name="storageOptionKey"]')?.value;
+        const storageOptionId = btn.form.querySelector('[name="storageOptionId"]')?.value;
+        const periodUnit      = btn.form.querySelector('[name="periodUnit"]')?.value;
         const periods = Math.max(1, parseInt(btn.form.querySelector('[name="periods"]')?.value) || 1);
-        return storageOptionKey ? { storageOptionKey, periods } : null;
+        return (storageOptionId && periodUnit) ? { storageOptionId, periodUnit, periods } : null;
       }
     }
   });

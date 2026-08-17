@@ -18,5 +18,10 @@
     "name": "OSE: Classic fantasy",
     "file": "OSE_classicFantasy.json",
     "description": "Old-School-Essentials system using the Classic Fantasy Compendium as a source of Coinage."
+  },
+  {
+    "name": "WWN: v13",
+    "file": "wwn_v13.json",
+    "description": "Worlds Without Number System for Foundry V13."
   }
 ]

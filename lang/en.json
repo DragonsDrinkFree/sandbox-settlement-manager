@@ -493,6 +493,7 @@
         "feePerPeriod": "{fee} / {period}",
         "rentPromptTitle": "Rent Storage",
         "rentPromptStorageType": "Storage Type",
+        "rentPromptPeriodUnit": "Rental Period",
         "rentPromptPeriods": "Periods to prepay",
         "areaNamePromptTitle": "Name Storage Area",
         "areaNamePromptLabel": "Give this Area a name you'll recognize later",

@@ -1354,27 +1354,28 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const storageTypes = storageData?.storageTypes ?? [];
     const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
     const currencies     = currencyConfig.currencies ?? [];
-    // One row per option per offered rate — rates below the option's minimum period are simply
-    // not listed, which is how the minimum is enforced.
-    const labeledOptions = options.flatMap(o => {
+    // One row per option (Storage Type), each carrying its own list of offered periods — rates
+    // below an option's minimum period are simply not listed, which is how the minimum is enforced.
+    // An option whose Storage Type no longer resolves is dropped entirely rather than shown broken.
+    const rentalOptions = options.map(o => {
+      const storageType = resolveInstanceStorageType(storageTypes, o.storageTypeId);
+      if (!storageType) return null;
       const pricing = resolveRentalPricing(o);
-      const name    = resolveInstanceStorageType(storageTypes, o.storageTypeId)?.name ?? "—";
-      return availablePeriodUnits(pricing.minPeriodUnit).map(unit => ({
-        id: `${o.id}::${unit}`,
-        label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.optionLabel", {
-          name,
+      const periods = availablePeriodUnits(pricing.minPeriodUnit).map(unit => ({
+        unit,
+        label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.bank.storageRentals.feePerPeriod", {
           fee:    formatAmounts({ [pricing[unit].currencyId]: pricing[unit].amount }, currencies),
           period: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${unit}`)
         })
       }));
-    });
-    const picked = await promptStorageRental(labeledOptions);
+      return { id: o.id, name: storageType.name, periods };
+    }).filter(Boolean);
+    const picked = await promptStorageRental(rentalOptions);
     if (!picked) return;
-    const [optionId, periodUnit] = (picked.storageOptionKey ?? "").split("::");
-    const option = options.find(o => o.id === optionId);
+    const option = options.find(o => o.id === picked.storageOptionId);
     if (!option) return;
-    if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return;
-    const rate = resolveRentalPricing(option)[periodUnit];
+    if (!resolveInstanceStorageType(storageTypes, option.storageTypeId)) return; // config may have changed while the dialog was open
+    const rate = resolveRentalPricing(option)[picked.periodUnit];
     if (!rate) return;
 
     const defaultAreaName = nextFreeAreaName(option.namingTemplate, storageData?.groups);
@@ -1392,7 +1393,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     await settlePayment(actor, result, currencies, mode);
 
     const payload = {
-      optionId: option.id, periodUnit, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
+      optionId: option.id, periodUnit: picked.periodUnit, periods: picked.periods, actorId: actor.id, actorName: actor.name, areaName,
       locationId: location.id, entryId: this._activeTab, sceneId: canvas.scene?.id, userId: game.user.id
     };
     if (game.user.isGM) await _handleRentStorage(payload);

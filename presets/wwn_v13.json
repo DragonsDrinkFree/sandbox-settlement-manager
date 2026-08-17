@@ -1,0 +1,73 @@
+{
+  "module": "sandbox-settlement-manager",
+  "version": 1,
+  "exportedAt": "2026-08-17T18:23:59.485Z",
+  "data": {
+    "settlementTypes": [
+      {
+        "name": "Village",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "Town",
+        "maxCurrencyId": ""
+      },
+      {
+        "name": "City",
+        "maxCurrencyId": ""
+      }
+    ],
+    "currencyConfig": {
+      "mode": "attribute",
+      "currencies": [
+        {
+          "id": "gold",
+          "name": "Gold",
+          "abbreviation": "gp",
+          "isStandard": false,
+          "exchangeRate": "10:1",
+          "attributePath": "system.currency.gp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "abbreviation": "sp",
+          "isStandard": true,
+          "exchangeRate": "1:1",
+          "attributePath": "system.currency.sp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        },
+        {
+          "id": "copper",
+          "name": "Copper",
+          "abbreviation": "cp",
+          "isStandard": false,
+          "exchangeRate": "1:100",
+          "attributePath": "system.currency.cp",
+          "itemId": "",
+          "itemName": "",
+          "quantityPath": ""
+        }
+      ]
+    },
+    "itemConfig": {
+      "nameAttribute": "name",
+      "priceFormat": "simple",
+      "priceAttribute": "system.price",
+      "priceDenominationAttribute": "",
+      "weightAttribute": "system.weight",
+      "itemTypes": []
+    },
+    "locationTypes": {
+      "inn": [],
+      "merchant": [],
+      "bank": [],
+      "storage": []
+    }
+  }
+}
