@@ -67,40 +67,42 @@
       </button>
     </div>
     {{#if items.length}}
-    <table class="course-items-table ssm-table">
-      <thead>
-        <tr>
-          <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.name"}}</th>
-          <th class="col-desc">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.description"}}</th>
-          <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.colPrice"}}</th>
-          <th class="ssm-col-controls"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each items}}
-        <tr>
-          <td class="col-name">
-            {{this.name}}
-            {{#if this.itemId}}<i class="fa-solid fa-box fa-xs menu-item-linked-badge" title="{{this.itemName}}"></i>{{/if}}
-          </td>
-          <td class="col-desc">{{this.description}}</td>
-          <td class="col-price ssm-col-right">
-            {{#if this.price}}{{this.price.amount}} (override){{else}}<em>standard</em>{{/if}}
-          </td>
-          <td class="ssm-col-controls">
-            <button type="button" class="icon lodging-ctrl-btn" data-action="editItem" data-item-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button type="button" class="icon lodging-ctrl-btn" data-action="deleteItem" data-item-id="{{this.id}}"
-                    aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+    <div class="course-items-scroll">
+      <table class="course-items-table ssm-table">
+        <thead>
+          <tr>
+            <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.name"}}</th>
+            <th class="col-desc">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menuItem.description"}}</th>
+            <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.menu.colPrice"}}</th>
+            <th class="ssm-col-controls"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td class="col-name">
+              {{this.name}}
+              {{#if this.itemId}}<i class="fa-solid fa-box fa-xs menu-item-linked-badge" title="{{this.itemName}}"></i>{{/if}}
+            </td>
+            <td class="col-desc">{{this.description}}</td>
+            <td class="col-price ssm-col-right">
+              {{#if this.price}}{{this.price.amount}} (override){{else}}<em>standard</em>{{/if}}
+            </td>
+            <td class="ssm-col-controls">
+              <button type="button" class="icon lodging-ctrl-btn" data-action="editItem" data-item-id="{{this.id}}"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.edit'}}">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button type="button" class="icon lodging-ctrl-btn" data-action="deleteItem" data-item-id="{{this.id}}"
+                      aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.delete'}}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
     {{else}}
     <p class="course-items-empty"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.inn.course.noItems"}}</em></p>
     {{/if}}

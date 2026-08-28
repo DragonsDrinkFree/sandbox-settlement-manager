@@ -1933,9 +1933,10 @@
 /*  Course Edit App                             */
 /* -------------------------------------------- */
 
-/* The item list can grow past window height (many items, multi-line descriptions) — scroll the
-   form internally instead of letting the window grow past the viewport with no way to reach the
-   rest. Same recipe as SubTypeEditApp: clip at .window-content, scroll the form PART inside it. */
+/* Fallback: lets the form scroll internally if the window ever does hit core's own viewport cap
+   (.application has max-height: 100vh-ish). On its own this rarely fires, since ApplicationV2
+   auto-sizes the window to the form's natural (unclipped) content height before this can kick in —
+   the item list below is what actually keeps the window from growing unbounded in the first place. */
 #sandbox-settlement-manager-course-edit .window-content {
   display: flex;
   flex-direction: column;
@@ -1946,6 +1947,20 @@
 #sandbox-settlement-manager-course-edit [data-application-part="form"] {
   flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
+}
+
+/* The item list is the actual fix: a hard max-height (independent of window auto-sizing) so the
+   window stops growing once it's reached, and this scrolls internally instead. ~320px is an
+   estimate for ~7 rows of typical (1-3 line) description text — rows vary a lot with description
+   length, so the exact visible count will vary too.
+   Scrolling lives on a wrapping div, not the <table> itself — overflow/max-height applied directly
+   to a table element is unreliable (confirmed: it silently did nothing here). A plain block-level
+   wrapper around an otherwise-untouched table is the standard, reliable pattern, and keeps thead/
+   tbody in one table layout context so columns stay aligned (no display:block/sticky-header tricks
+   needed, which would require splitting them into separate table contexts and desyncing widths). */
+#sandbox-settlement-manager-course-edit .course-items-scroll {
+  max-height: 320px;
   overflow-y: auto;
 }
 
