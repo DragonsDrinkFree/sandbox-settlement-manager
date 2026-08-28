@@ -37,7 +37,7 @@ export class CourseEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    form:   { template: `modules/${MODULE_ID}/templates/canvas/inn/course-edit.hbs` },
+    form:   { template: `modules/${MODULE_ID}/templates/canvas/inn/course-edit.hbs`, scrollable: [""] },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 

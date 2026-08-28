@@ -1933,6 +1933,22 @@
 /*  Course Edit App                             */
 /* -------------------------------------------- */
 
+/* The item list can grow past window height (many items, multi-line descriptions) — scroll the
+   form internally instead of letting the window grow past the viewport with no way to reach the
+   rest. Same recipe as SubTypeEditApp: clip at .window-content, scroll the form PART inside it. */
+#sandbox-settlement-manager-course-edit .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#sandbox-settlement-manager-course-edit [data-application-part="form"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 #sandbox-settlement-manager-course-edit .radio-group {
   display: flex;
   gap: 1rem;
