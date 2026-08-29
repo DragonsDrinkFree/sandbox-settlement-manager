@@ -89,11 +89,23 @@ export class CurrencyConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
     });
   }
 
+  /**
+   * Persist the current currency list immediately, independent of this app's own outer save.
+   * `mode` is a sibling field in the same settings key, changed live via its own <select> — that's a
+   * same-layer, single-Save-button control (out of scope here), so preserve it from the fresh read
+   * rather than whatever this._config.mode currently holds, which may be an unsaved in-progress edit.
+   */
+  async #persistCurrenciesNow() {
+    const stored = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG) ?? {};
+    await game.settings.set(MODULE_ID, SETTINGS.CURRENCY_CONFIG, { ...stored, currencies: this._config.currencies });
+  }
+
   static async #onAddCurrency() {
     const result = await CurrencyEditApp.open({}, this._config.mode);
     if (!result) return;
     if (result.isStandard) this._config.currencies.forEach(c => c.isStandard = false);
     this._config.currencies.push(result);
+    await this.#persistCurrenciesNow();
     this.render({ parts: ["form"] });
   }
 
@@ -105,11 +117,13 @@ export class CurrencyConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
       this._config.currencies.forEach((c, i) => { if (i !== index) c.isStandard = false; });
     }
     this._config.currencies[index] = result;
+    await this.#persistCurrenciesNow();
     this.render({ parts: ["form"] });
   }
 
-  static #onDeleteCurrency(event, target) {
+  static async #onDeleteCurrency(event, target) {
     this._config.currencies.splice(parseInt(target.dataset.index), 1);
+    await this.#persistCurrenciesNow();
     this.render({ parts: ["form"] });
   }
 

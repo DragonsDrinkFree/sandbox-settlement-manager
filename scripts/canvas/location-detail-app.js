@@ -152,7 +152,15 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     const localStorageEntry = (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK)
       ? findLocalStorageEntry(this._location)
       : null;
-    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: this._location.name, localStorageEntry });
+    const onCoursesChanged = entry.typeId === LOCATION_TYPE_IDS.INN
+      ? async (courses) => {
+          const locations = canvas.scene?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? [];
+          const loc = locations.find(r => r.id === this._location.id);
+          const current = loc?.typeData?.[this._activeTab] ?? {};
+          await this.#saveEntryData(this._activeTab, { ...current, menu: { ...current.menu, courses } });
+        }
+      : null;
+    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: this._location.name, localStorageEntry, onCoursesChanged });
     if (!result) return;
 
     if (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK) {

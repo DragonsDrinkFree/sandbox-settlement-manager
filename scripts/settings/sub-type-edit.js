@@ -84,6 +84,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _entryBase    = null;    // deep clone of the original location entry — runtime fields preserved on save
   _localStorageEntry = null; // { id, storageTypes } for this location's own un-templated Storage entry, if any (location mode only)
   _allSubTypes = null;     // caller's live unsaved working copy of every template, if opened from LocationTypeConfigApp (read-only)
+  _onCoursesChanged = null; // optional (courses: Array) => Promise — persist courses immediately, independent of this app's own outer save
 
   constructor(subType, options = {}) {
     super(options);
@@ -134,11 +135,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  static async open(subType = {}, typeId = null, { allSubTypes = null } = {}) {
+  static async open(subType = {}, typeId = null, { allSubTypes = null, onCoursesChanged = null } = {}) {
     return new Promise(resolve => {
       const app = new SubTypeEditApp(foundry.utils.deepClone(subType));
       app._typeId             = typeId;
       app._allSubTypes        = allSubTypes;
+      app._onCoursesChanged   = onCoursesChanged;
       app._lodgings           = foundry.utils.deepClone(subType.typeData?.lodgings ?? []);
       app._menu               = foundry.utils.deepClone(subType.typeData?.menu ?? { courses: [] });
       app._templateInventory  = foundry.utils.deepClone(subType.typeData?.merchant?.inventory ?? []);
@@ -158,7 +160,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * ledger, deposits, loans, _templateValues). The caller persists the result to the scene flag.
    * Resolves with the updated entry, or null if cancelled.
    */
-  static async openForEntry(typeId, entryData = {}, { locationName = "", localStorageEntry = null } = {}) {
+  static async openForEntry(typeId, entryData = {}, { locationName = "", localStorageEntry = null, onCoursesChanged = null } = {}) {
     // Build a synthetic subType whose typeData mirrors the template shape _prepareContext expects,
     // so the merchant/bank display logic works unchanged.
     const syntheticTypeData = {};
@@ -184,6 +186,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._locationName      = locationName;
       app._entryBase         = foundry.utils.deepClone(entryData);
       app._localStorageEntry = localStorageEntry;
+      app._onCoursesChanged  = onCoursesChanged;
       // Working arrays loaded from the ENTRY shape (inventory/lodgings/etc. live at the entry root).
       app._lodgings          = foundry.utils.deepClone(entryData.lodgings ?? []);
       app._menu              = foundry.utils.deepClone(entryData.menu ?? { courses: [] });
@@ -881,12 +884,29 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  /**
+   * Persist the current course list immediately via the caller-supplied onCoursesChanged callback
+   * (if any), independent of this app's own outer save. This is a background persist the GM didn't
+   * explicitly trigger with a click, so a failure has to be surfaced — silence would leave them with
+   * no way to know the course wasn't actually saved.
+   */
+  async #persistCoursesNow() {
+    if (!this._onCoursesChanged) return;
+    try {
+      await this._onCoursesChanged(foundry.utils.deepClone(this._menu.courses));
+    } catch (err) {
+      console.error(`${MODULE_ID} | Failed to save course immediately`, err);
+      ui.notifications.error(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.inn.course.saveFailed"));
+    }
+  }
+
   static async #onAddCourse() {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
     const result = await CourseEditApp.open({});
     if (!result) return;
     this._menu.courses.push(result);
+    await this.#persistCoursesNow();
     this.render({ parts: ["form"] });
   }
 
@@ -899,14 +919,16 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await CourseEditApp.open(existing);
     if (!result) return;
     this._menu.courses[index] = result;
+    await this.#persistCoursesNow();
     this.render({ parts: ["form"] });
   }
 
-  static #onDeleteCourse(event, target) {
+  static async #onDeleteCourse(event, target) {
     this.#syncSubTypeName();
     this.#syncLodgingsFromDOM();
     const index = parseInt(target.dataset.courseIndex);
     this._menu.courses.splice(index, 1);
+    await this.#persistCoursesNow();
     this.render({ parts: ["form"] });
   }
 

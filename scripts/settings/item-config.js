@@ -75,11 +75,22 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /**
+   * Persist the current item-type list immediately, independent of this app's own outer save.
+   * Preserves nameAttribute/priceFormat/etc. exactly as currently persisted — never the DOM's
+   * possibly-unsaved values for those fields, since this only commits the item-types layer.
+   */
+  async #persistItemTypesNow() {
+    const stored = game.settings.get(MODULE_ID, SETTINGS.ITEM_CONFIG) ?? {};
+    await game.settings.set(MODULE_ID, SETTINGS.ITEM_CONFIG, { ...stored, itemTypes: this._itemTypes });
+  }
+
   static async #onAddItemType() {
     this.#syncGlobalFieldsFromDOM();
     const result = await ItemTypeEditApp.open({});
     if (!result) return;
     this._itemTypes.push(result);
+    await this.#persistItemTypesNow();
     this.render({ parts: ["form"] });
   }
 
@@ -91,13 +102,15 @@ export class ItemConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await ItemTypeEditApp.open(existing);
     if (!result) return;
     this._itemTypes[index] = result;
+    await this.#persistItemTypesNow();
     this.render({ parts: ["form"] });
   }
 
-  static #onDeleteItemType(event, target) {
+  static async #onDeleteItemType(event, target) {
     this.#syncGlobalFieldsFromDOM();
     const index = parseInt(target.dataset.index);
     this._itemTypes.splice(index, 1);
+    await this.#persistItemTypesNow();
     this.render({ parts: ["form"] });
   }
 

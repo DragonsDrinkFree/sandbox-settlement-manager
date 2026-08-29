@@ -61,7 +61,25 @@ export class LocationTypeConfigApp extends HandlebarsApplicationMixin(Applicatio
     if (!typeId || isNaN(index)) return;
     const existing = (this._subTypes[typeId] ?? [])[index];
     if (!existing) return;
-    const result = await SubTypeEditApp.open(existing, typeId, { allSubTypes: this._subTypes });
+    const result = await SubTypeEditApp.open(existing, typeId, {
+      allSubTypes: this._subTypes,
+      // Persist a course edit the moment it's made, independent of this template's own outer save —
+      // an already-saved template can attach a course to itself directly. A brand-new, never-yet-saved
+      // template (#onAddTemplate) has no persisted record to attach to, so gets no callback at all;
+      // its courses stay pending until the template itself is saved for the first time.
+      onCoursesChanged: async (courses) => {
+        const stored = game.settings.get(MODULE_ID, SETTINGS.LOCATION_TYPES) ?? {};
+        const list = foundry.utils.deepClone(stored[typeId] ?? []);
+        const idx = list.findIndex(t => t.id === existing.id);
+        if (idx === -1) return; // deleted concurrently — nothing to attach to
+        list[idx] = { ...list[idx], typeData: { ...list[idx].typeData, menu: { ...list[idx].typeData?.menu, courses } } };
+        await game.settings.set(MODULE_ID, SETTINGS.LOCATION_TYPES, { ...stored, [typeId]: list });
+        // Keep our own long-lived working copy in step so a later outer Save can't revert this.
+        const working = this._subTypes[typeId] ?? [];
+        const wIdx = working.findIndex(t => t.id === existing.id);
+        if (wIdx !== -1) working[wIdx] = list[idx];
+      }
+    });
     if (!result) return;
     delete result._templateTypeId;
     this._subTypes[typeId][index] = result;

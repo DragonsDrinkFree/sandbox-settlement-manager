@@ -320,6 +320,7 @@
       "course": {
         "addTitle": "Add Course",
         "editTitle": "Edit Course",
+        "saveFailed": "Failed to save the course. Try again, or verify by reopening this template.",
         "name": "Course Name",
         "mode": "Availability",
         "modeStatic": "Static",

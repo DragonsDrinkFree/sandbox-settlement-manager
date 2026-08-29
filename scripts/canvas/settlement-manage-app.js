@@ -533,7 +533,17 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     const localStorageEntry = (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK)
       ? findLocalStorageEntry(location)
       : null;
-    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name, localStorageEntry });
+    const onCoursesChanged = entry.typeId === LOCATION_TYPE_IDS.INN
+      ? async (courses) => {
+          const loc = this.#syncSelectedLocation();
+          if (!loc) return;
+          loc.typeData ??= {};
+          const current = loc.typeData[this._activeTab] ?? {};
+          loc.typeData[this._activeTab] = { ...current, menu: { ...current.menu, courses } };
+          await this.#saveLocationData(loc);
+        }
+      : null;
+    const result = await SubTypeEditApp.openForEntry(entry.typeId, entryData, { locationName: location.name, localStorageEntry, onCoursesChanged });
     if (!result) return;
 
     if (entry.typeId === LOCATION_TYPE_IDS.INN || entry.typeId === LOCATION_TYPE_IDS.BANK) {

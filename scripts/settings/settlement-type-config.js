@@ -84,10 +84,19 @@ export class SettlementTypeConfigApp extends HandlebarsApplicationMixin(Applicat
     });
   }
 
+  /**
+   * Persist the current type list immediately, independent of this app's own outer save. The
+   * settings key holds only this array — no sibling fields to preserve, so this is a direct write.
+   */
+  async #persistTypesNow() {
+    await game.settings.set(MODULE_ID, SETTINGS.SETTLEMENT_TYPES, this._types);
+  }
+
   static async #onAddSettlementType() {
     const result = await SettlementTypeEditApp.open({});
     if (!result) return;
     this._types.push(result);
+    await this.#persistTypesNow();
     this.render({ parts: ["form"] });
   }
 
@@ -96,11 +105,13 @@ export class SettlementTypeConfigApp extends HandlebarsApplicationMixin(Applicat
     const result = await SettlementTypeEditApp.open(this._types[index]);
     if (!result) return;
     this._types[index] = result;
+    await this.#persistTypesNow();
     this.render({ parts: ["form"] });
   }
 
-  static #onDeleteSettlementType(event, target) {
+  static async #onDeleteSettlementType(event, target) {
     this._types.splice(parseInt(target.dataset.index), 1);
+    await this.#persistTypesNow();
     this.render({ parts: ["form"] });
   }
 

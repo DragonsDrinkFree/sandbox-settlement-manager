@@ -1,6 +1,7 @@
 # v1.0.3
 ## Minor
 - course menu now scrollable for case of large menu's.
+- Fixed save issue that could accidently create situations where information in templates might not be saved when the GM believes it should have been.
 # v1.0.2
 ## Minor
 - Added WWN v13 preset
