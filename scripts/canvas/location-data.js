@@ -114,6 +114,12 @@ export function buildEntryTypeData(typeId, subType) {
       items: []
     };
   }
+  if (typeId === LOCATION_TYPE_IDS.STABLE) {
+    const tpl = subType?.typeData?.stable ?? {};
+    return {
+      stableStock: (tpl.stableStock ?? []).map(s => instanceFromTemplate(s, TEMPLATE_FIELDS.stableAnimal))
+    };
+  }
   return {};
 }
 
@@ -861,6 +867,26 @@ export function buildStorageData(app, entry, location) {
     groups,
     hasGroups: groups.length > 0,
     isGM
+  };
+}
+
+/**
+ * Build Stable display data — a flat list of purchasable Actor listings. Display name/image are
+ * cached on the listing at drag-time (see #wireStableDragDrop in sub-type-edit.js), so this never
+ * needs to resolve the source Actor live; a listing stays purchasable indefinitely (proof-of-concept
+ * scope — no stock/quantity model, see roadmap notes).
+ */
+export function buildStableData(entry, location, currencies) {
+  const stable = location.typeData?.[entry.id] ?? { stableStock: [] };
+  const stableStock = (stable.stableStock ?? []).map(s => ({
+    ...s,
+    priceLabel: s.price ? formatAmounts({ [s.price.currencyId]: s.price.amount }, currencies) : "—",
+    overridden: isOverridden(s, TEMPLATE_FIELDS.stableAnimal)
+  }));
+  return {
+    stableStock,
+    hasStock: stableStock.length > 0,
+    isGM: game.user.isGM
   };
 }
 

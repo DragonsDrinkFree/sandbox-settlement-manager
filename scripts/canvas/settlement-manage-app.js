@@ -16,7 +16,7 @@ import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -59,6 +59,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       deleteTypeEntry:    SettlementManageApp.#onDeleteTypeEntry,
       removeTypeEntry:    SettlementManageApp.#onRemoveTypeEntry,
       rentLodging:        SettlementManageApp.#onRentLodging,
+      buyStableAnimal:    SettlementManageApp.#onBuyStableAnimal,
       dismissLedgerEntry: SettlementManageApp.#onDismissLedgerEntry,
       editBooking:        SettlementManageApp.#onEditBooking,
       addBooking:         SettlementManageApp.#onAddBooking,
@@ -224,6 +225,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       const isMerchant = entry.typeId === LOCATION_TYPE_IDS.MERCHANT;
       const isBank     = entry.typeId === LOCATION_TYPE_IDS.BANK;
       const isStorage  = entry.typeId === LOCATION_TYPE_IDS.STORAGE;
+      const isStable   = entry.typeId === LOCATION_TYPE_IDS.STABLE;
       const subType    = entry.subTypeId
         ? (subTypeMap[entry.typeId] ?? []).find(s => s.id === entry.subTypeId) ?? null
         : null;
@@ -232,6 +234,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
       const bankData = isBank ? buildBankData(this, entry, location, currencies) : null;
       const storageData = isStorage ? buildStorageData(this, entry, location) : null;
+      const stableData = isStable ? buildStableData(entry, location, currencies) : null;
 
       let merchantData = null;
       if (isMerchant) {
@@ -244,9 +247,9 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
         name:        coreType?.name ?? entry.typeId,
         subTypeName: subType?.name ?? null,
         icon:        coreType?.icon ?? "fa-solid fa-question",
-        typeId: entry.typeId, isInn, isMerchant, isBank, isStorage,
-        isOther: !isInn && !isMerchant && !isBank && !isStorage,
-        innData, bankData, merchantData, storageData
+        typeId: entry.typeId, isInn, isMerchant, isBank, isStorage, isStable,
+        isOther: !isInn && !isMerchant && !isBank && !isStorage && !isStable,
+        innData, bankData, merchantData, storageData, stableData
       };
     }));
 
@@ -684,6 +687,22 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       locationName: location.name,
       entryId: this._activeTab,
       lodging
+    });
+    CartApp.open();
+  }
+
+  static async #onBuyStableAnimal(event, target) {
+    const stockId = target.dataset.stockId;
+    if (!stockId) return;
+    const location = this.#syncSelectedLocation();
+    const listing  = location?.typeData?.[this._activeTab]?.stableStock?.find(s => s.id === stockId);
+    if (!listing) return;
+    cartManager.addStableAnimal({
+      sceneId: canvas.scene?.id,
+      locationId: location.id,
+      locationName: location.name,
+      entryId: this._activeTab,
+      listing
     });
     CartApp.open();
   }

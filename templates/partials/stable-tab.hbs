@@ -1,0 +1,44 @@
+<div class="ssm-stable-detail">
+  <div class="inn-section">
+    <div class="inn-section-header">
+      <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.title"}}</span>
+      {{#if this.isGM}}
+      <div class="inn-section-actions">
+        <button type="button" class="icon" data-action="editLocationEntry"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+      {{/if}}
+    </div>
+
+    {{#if this.hasStock}}
+    <table class="stable-stock-runtime-table ssm-table">
+      <thead>
+        <tr>
+          <th class="col-auto"></th>
+          <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colName"}}</th>
+          <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}</th>
+          <th class="ssm-col-action"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each this.stableStock}}
+        <tr>
+          <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="24" height="24" alt=""></td>
+          <td class="col-name">{{this.name}}</td>
+          <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
+          <td class="ssm-col-action">
+            <button type="button" class="buy-button" data-action="buyStableAnimal" data-stock-id="{{this.id}}">
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.buyButton"}}
+            </button>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noStock"}}</em></p>
+    {{/if}}
+  </div>
+</div>

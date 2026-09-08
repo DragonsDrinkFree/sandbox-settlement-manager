@@ -356,6 +356,50 @@
     </fieldset>
   </div>
   {{/if}}
+  {{#if showStableSection}}
+  <div class="stable-only"{{#unless isStable}} hidden{{/unless}}>
+    <fieldset class="stable-stock-templates">
+      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.stockLegend"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableStock'}}"></i></legend>
+      <div class="stable-drop-zone merchant-drop-zone">
+        <i class="fa-solid fa-horse"></i>
+        <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.dropHint"}}</span>
+      </div>
+      <table class="stable-stock-table">
+        <thead>
+          <tr>
+            <th class="col-auto"></th>
+            <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colName"}}</th>
+            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each stableStock}}
+          <tr class="stable-stock-row" data-stock-id="{{this.id}}">
+            <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="20" height="20" alt=""></td>
+            <td class="col-lname">{{this.name}}</td>
+            <td class="col-price">
+              {{> ssm-price-input attr="data-field" field="price" price=this.price currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
+            </td>
+            <td class="col-del">
+              <button type="button" class="icon" data-action="deleteStableStock" data-index="{{@index}}"
+                      aria-label="Remove">
+                <i class="fa-solid fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="4" class="lodging-table-empty">
+              <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noStock"}}</em>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+  {{/if}}
   {{#if showMerchantSection}}
   <div class="merchant-only"{{#unless isMerchant}} hidden{{/unless}}>
     <nav class="ssm-merchant-tabs">

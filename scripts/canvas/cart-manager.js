@@ -73,6 +73,28 @@ class CartManager {
     this.#notify();
   }
 
+  /**
+   * Add a Stable listing to the cart. Purchasing creates an independent copy of the listed Actor —
+   * the listing itself is never consumed, so (unlike addMerchantItem) there's no stock cap or
+   * merge-into-existing-line logic; buying the same listing twice is two separate lines/copies.
+   */
+  addStableAnimal({ sceneId, locationId, locationName, entryId, listing }) {
+    this.#items.push({
+      id: foundry.utils.randomID(),
+      type: 'stableAnimal',
+      sceneId,
+      locationId,
+      locationName,
+      entryId: entryId ?? null,
+      listingId: listing.id,
+      actorUuid: listing.actorUuid,
+      itemName: listing.name,
+      price: listing.price,
+      quantity: 1
+    });
+    this.#notify();
+  }
+
   /** Add an item being sold by the player to the cart. */
   addSellItem({ sceneId, locationId, locationName, actorId, actorName, actorItemId, itemName, itemLinkedUuid, salePrice }) {
     this.#items.push({
@@ -171,7 +193,7 @@ class CartManager {
         return null;
       }
     }
-    if (item.type === 'menuItem' || item.type === 'merchantItem') {
+    if (item.type === 'menuItem' || item.type === 'merchantItem' || item.type === 'stableAnimal') {
       if (!item.price) return null;
       // No Math.round: a price-varied merchant item's `amount` may be fractional in its base
       // denomination (its exact value lives in the coin breakdown); rounding here would drop it.

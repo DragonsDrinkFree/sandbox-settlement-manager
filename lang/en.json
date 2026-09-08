@@ -112,7 +112,8 @@
       "bankStorageRentals": "Attach a Storage template to this Bank and price each of its Storage Types for rent, with separate daily, weekly, and monthly rates. Players rent a Storage Area directly from the Bank tab, choosing a rate and prepaying a number of those periods. If rent lapses, the renter loses access; an empty Area is destroyed automatically, while an occupied one accrues an owed balance until paid.",
       "storageMinPeriod": "The shortest rate a renter may choose. Rates below it aren't offered — set this to Week to require at least a week's commitment, or Month for a month. A rental already in progress always keeps the rate it was signed at.",
       "storageAccessLevels": "<ul><li><strong>Primary:</strong> One or more characters can be assigned Primary access, giving them the ability to use the storage and invite guests to use the storage space. Players may only invite guests from a list of Actors they have at least \"Observer\" permission for.</li><li><strong>Guest:</strong> Guests have the ability to use the storage but cannot invite additional guests.</li></ul>",
-      "manageGuests": "Adding a guest allows them to access the storage area, but guests do not have the ability to invite additional guests. This is an excellent way of giving mounts/retainers access to add things to/from their character sheets."
+      "manageGuests": "Adding a guest allows them to access the storage area, but guests do not have the ability to invite additional guests. This is an excellent way of giving mounts/retainers access to add things to/from their character sheets.",
+      "stableStock": "Drag an Actor (a pet, mount, or hireling) from the sidebar to list it for sale. Set a price for each listing. Purchasing one creates an independent copy of that Actor and assigns ownership to the player who owns the receiving character — the listing itself is never consumed and stays purchasable again."
     },
     "importExport": {
       "title": "Import / Export Configuration",
@@ -705,6 +706,16 @@
         "forceTake": "Force Take",
         "forceTakeTitle": "GM: remove this item and give it to any character, bypassing normal retrieval rules"
       }
+    },
+    "stable": {
+      "title": "Stable",
+      "stockLegend": "Stable Stock",
+      "dropHint": "Drag an actor here from the sidebar to list it for sale",
+      "colName": "Name",
+      "colPrice": "Price",
+      "noStock": "No animals listed for sale.",
+      "buyButton": "Buy",
+      "purchaseComplete": "Purchase complete — a copy of {name} has been created for {actor}."
     },
     "attributePicker": {
       "title": "Browse Attributes",

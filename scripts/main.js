@@ -25,7 +25,8 @@ Hooks.once("init", () => {
   foundry.applications.handlebars.loadTemplates({
     "ssm-price-input":      `modules/${MODULE_ID}/templates/partials/price-input.hbs`,
     "ssm-price-var-config": `modules/${MODULE_ID}/templates/partials/price-var-config.hbs`,
-    "ssm-storage-tab":      `modules/${MODULE_ID}/templates/partials/storage-tab.hbs`
+    "ssm-storage-tab":      `modules/${MODULE_ID}/templates/partials/storage-tab.hbs`,
+    "ssm-stable-tab":       `modules/${MODULE_ID}/templates/partials/stable-tab.hbs`
   });
 
   registerSettings();

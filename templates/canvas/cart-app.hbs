@@ -43,6 +43,8 @@
           <option value="days"{{#if (eq this.unit 'days')}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.days"}}</option>
           <option value="weeks"{{#if (eq this.unit 'weeks')}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.weeks"}}</option>
         </select>
+        {{else if this.isStableAnimal}}
+        {{! One purchase = one Actor copy — no quantity control; buy again for another copy. }}
         {{else}}
         <label class="ssm-cart-qty-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.cart.qty"}}:</label>
         <input type="number" class="ssm-cart-quantity" min="1" {{#if this.maxStock}}max="{{this.maxStock}}"{{/if}} value="{{this.quantity}}"

@@ -61,6 +61,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _menu = { courses: [] };
   _templateInventory = [];
   _storageTypes = [];
+  _stableStock = [];
   _merchantTab = "inventory";
   _purchasingProfile = [];
   _stockType = null;        // tracks merchantStockType <select> across re-renders
@@ -119,6 +120,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteTemplateInventoryItem: SubTypeEditApp.#onDeleteTemplateInventoryItem,
       addStorageType:             SubTypeEditApp.#onAddStorageType,
       deleteStorageType:          SubTypeEditApp.#onDeleteStorageType,
+      deleteStableStock:          SubTypeEditApp.#onDeleteStableStock,
       addStorageRentalOption:     SubTypeEditApp.#onAddStorageRentalOption,
       deleteStorageRentalOption:  SubTypeEditApp.#onDeleteStorageRentalOption,
       sortInventory:              SubTypeEditApp.#onSortInventory,
@@ -147,6 +149,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._purchasingProfile  = foundry.utils.deepClone(subType.typeData?.merchant?.purchasingProfile ?? []);
       app._storageTypes       = foundry.utils.deepClone(subType.typeData?.storage?.storageTypes ?? []);
       app._storageRentalOptions = foundry.utils.deepClone(subType.typeData?.bank?.storageRentalOptions ?? []);
+      app._stableStock        = foundry.utils.deepClone(subType.typeData?.stable?.stableStock ?? []);
       app._resolve  = resolve;
       app.render(true);
     });
@@ -179,6 +182,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.STORAGE) {
       syntheticTypeData.storage = { storageTypes: entryData.storageTypes ?? [] };
     }
+    if (typeId === LOCATION_TYPE_IDS.STABLE) {
+      syntheticTypeData.stable = { stableStock: entryData.stableStock ?? [] };
+    }
     return new Promise(resolve => {
       const app = new SubTypeEditApp({ name: locationName, typeData: syntheticTypeData });
       app._typeId            = typeId;
@@ -193,6 +199,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._templateInventory = foundry.utils.deepClone(entryData.inventory ?? []);
       app._purchasingProfile = foundry.utils.deepClone(entryData.purchasingProfile ?? []);
       app._storageTypes      = foundry.utils.deepClone(entryData.storageTypes ?? []);
+      app._stableStock       = foundry.utils.deepClone(entryData.stableStock ?? []);
       app._stockType         = entryData.stockType ?? null;
       app._restockFrequency  = entryData.restockFrequency ?? null;
       app._priceVarMin        = entryData.priceVarMin        ?? null;
@@ -228,11 +235,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const isMerchant        = this._typeId === LOCATION_TYPE_IDS.MERCHANT;
     const isBank             = this._typeId === LOCATION_TYPE_IDS.BANK;
     const isStorage          = this._typeId === LOCATION_TYPE_IDS.STORAGE;
+    const isStable           = this._typeId === LOCATION_TYPE_IDS.STABLE;
     const showTypeSelect    = !this._typeId;
     const showInnSections     = isInn || showTypeSelect;
     const showMerchantSection = isMerchant || showTypeSelect;
     const showBankSection     = isBank || showTypeSelect;
     const showStorageSection  = isStorage || showTypeSelect;
+    const showStableSection   = isStable || showTypeSelect;
     const merchantData     = this._subType.typeData?.merchant ?? {};
     const stockType        = this._stockType        ?? merchantData.stockType        ?? "percent";
     const restockFrequency = this._restockFrequency ?? merchantData.restockFrequency ?? "weekly";
@@ -275,7 +284,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     let courses = [];
     let templateInventory = [];
     let storageRentalOptions = [];
-    if (showInnSections || showMerchantSection || showBankSection) {
+    let stableStock = [];
+    if (showInnSections || showMerchantSection || showBankSection || showStableSection) {
       const currencyConfig = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG);
       currencies = currencyConfig.currencies ?? [];
       const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
@@ -349,6 +359,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           };
         });
       }
+      if (showStableSection) {
+        stableStock = this._stableStock.map(s => ({
+          ...s,
+          price: s.price ?? { currencyId: defaultCurrencyId, amount: 0 }
+        }));
+      }
     }
     let storageTypes = [];
     if (showStorageSection) {
@@ -384,13 +400,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isMerchant,
       isBank,
       isStorage,
+      isStable,
       showTypeSelect,
       showInnSections,
       showMerchantSection,
       showBankSection,
       showStorageSection,
+      showStableSection,
       bankData,
-      showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection || showStorageSection,
+      showTypeSpecificSections: showInnSections || showMerchantSection || showBankSection || showStorageSection || showStableSection,
       coreTypes: CORE_LOCATION_TYPES,
       selectedType: this._selectedType,
       lodgings,
@@ -398,6 +416,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       courses,
       templateInventory,
       storageTypes,
+      stableStock,
       settlementTypes,
       stockType,
       restockFrequency,
@@ -439,6 +458,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#wireWeeklyLinks();
     this.#wireStorageRentalLinks();
     this.#wireMerchantDragDrop();
+    this.#wireStableDragDrop();
     this.#wireStorageUnlimitedToggles();
 
     // Switching stock type swaps the Availability field (number ↔ X-in-6 dropdown), so re-render.
@@ -803,6 +823,65 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /**
+   * A dragged-in Actor becomes one Stable listing. Only name/image/uuid are captured here — price
+   * defaults to 0 and is set afterward via the row's own price input, exactly like a fresh Merchant
+   * inventory row defaults before the GM sets its price.
+   */
+  #wireStableDragDrop() {
+    const dropZone = this.element.querySelector('.stable-drop-zone');
+    if (!dropZone) return;
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('dragenter', () => dropZone.classList.add('drag-over'));
+    dropZone.addEventListener('drop', async e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      let data;
+      try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+      if (data?.type !== 'Actor') return;
+
+      const actor = await fromUuid(data.uuid).catch(() => null);
+      if (!actor) return;
+
+      const { currencies } = getCurrencyContext();
+      const defaultCurrencyId = getStandardCurrency(currencies)?.id ?? "";
+
+      // Capture current DOM state before re-rendering.
+      this.#syncSubTypeName();
+      this.#syncStableStockFromDOM();
+
+      this._stableStock.push({
+        id: foundry.utils.randomID(),
+        name: actor.name,
+        actorUuid: actor.uuid,
+        actorImg: actor.img,
+        price: { currencyId: defaultCurrencyId, amount: 0 }
+      });
+      this.render({ parts: ['form'] });
+    });
+  }
+
+  /** Rebuild _stableStock from the DOM — only price is editable per row; name/actorUuid/actorImg are
+   *  carried through unedited from the existing-by-id record, same as Storage Type rows preserve
+   *  link metadata across a sync. */
+  #syncStableStockFromDOM() {
+    const rows = this.element?.querySelectorAll('.stable-stock-row') ?? [];
+    const byId = new Map(this._stableStock.map(s => [s.id, s]));
+    this._stableStock = [...rows].map(row => {
+      const id = row.dataset.stockId;
+      const existing = byId.get(id);
+      if (!existing) return null;
+      return {
+        ...existing,
+        price: {
+          currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? existing.price?.currencyId ?? "",
+          amount: parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
+        }
+      };
+    }).filter(Boolean);
+  }
+
   #syncSubTypeName() {
     this._subType.name = this.element.querySelector('[name="name"]')?.value ?? this._subType.name;
     // Preserve the chosen template type across re-renders (add-template flow only).
@@ -1064,6 +1143,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static #onDeleteStableStock(event, target) {
+    this.#syncSubTypeName();
+    this.#syncStableStockFromDOM();
+    const index = parseInt(target.dataset.index);
+    this._stableStock.splice(index, 1);
+    this.render({ parts: ["form"] });
+  }
+
   static #onAddStorageRentalOption() {
     this.#syncSubTypeName();
     this.#syncStorageRentalOptionsFromDOM();
@@ -1218,6 +1305,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#syncStorageTypesFromDOM();
       result.typeData = { storage: { storageTypes: this._storageTypes.filter(st => st.name) } };
     }
+    if (typeId === LOCATION_TYPE_IDS.STABLE) {
+      this.#syncStableStockFromDOM();
+      result.typeData = { stable: { stableStock: this._stableStock } };
+    }
     result._templateTypeId = typeId;
 
     const resolve = this._resolve;
@@ -1315,6 +1406,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } else if (typeId === LOCATION_TYPE_IDS.STORAGE) {
       this.#syncStorageTypesFromDOM();
       result = { ...base, storageTypes: this._storageTypes.filter(st => st.name) };
+    } else if (typeId === LOCATION_TYPE_IDS.STABLE) {
+      this.#syncStableStockFromDOM();
+      result = { ...base, stableStock: this._stableStock };
     }
 
     const resolve = this._resolve;

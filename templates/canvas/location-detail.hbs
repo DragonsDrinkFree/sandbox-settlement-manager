@@ -572,6 +572,8 @@
     </div>
     {{else if this.isStorage}}
     {{> ssm-storage-tab this.storageData}}
+    {{else if this.isStable}}
+    {{> ssm-stable-tab this.stableData}}
     {{else}}
     <p class="notification info">{{localize "SANDBOX_SETTLEMENT_MANAGER.location.noDetailView"}}</p>
     {{/if}}

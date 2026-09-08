@@ -4,7 +4,7 @@ import { CART_HOOK, cartManager } from './cart-manager.js';
 import { PurchaseDialog } from './purchase-dialog.js';
 import { calculateChange, formatAmounts, parseExchangeRate, costInStandard, getSettlementMaxDenomValue, grantStandardToActor, removeCoinsFromActor, readActorBalance } from '../utils/currency-utils.js';
 import { getWorldTimeConfig } from '../time/world-time.js';
-import { SOCKET_CHANNEL, SOCKET_TYPES } from '../socket.js';
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handlePurchaseStableAnimal } from '../socket.js';
 import { findActiveBookingForLodging, createNewLodgingBooking, extendLodgingBooking, promptNewOrExtendLodging } from './lodging-fulfillment.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -83,7 +83,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const item of rawItems) {
       const lineTotal = cartManager.computeLineTotal(item, currencies);
       let lineTotalLabel = '—';
-      const mapped = { ...item, isLodging: item.type === 'lodging', isSellItem: item.type === 'sellItem', isExchange: item.type === 'exchange', lineTotalLabel };
+      const mapped = { ...item, isLodging: item.type === 'lodging', isSellItem: item.type === 'sellItem', isExchange: item.type === 'exchange', isStableAnimal: item.type === 'stableAnimal', lineTotalLabel };
 
       if (item.type === 'exchange') {
         const fromCurr = currencies.find(c => c.id === item.fromCurrencyId);
@@ -514,6 +514,22 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
           foundry.utils.setProperty(itemData, 'system.quantity', item.quantity ?? 1);
           await actor.createEmbeddedDocuments('Item', [itemData]);
         }
+      }
+    }
+
+    // Fulfill Stable purchases: create an independent copy of the listed Actor, owned by whoever
+    // owns the receiving actor. Actor.create requires GM-level permission, so this always routes
+    // through the GM the same way other privileged mutations in this module do — payment has
+    // already been settled above, this step only ever creates the copy.
+    if (actor) {
+      for (const si of items.filter(i => i.type === 'stableAnimal')) {
+        const payload = {
+          actorUuid: si.actorUuid, payingActorId: actorId, receivingActorId,
+          sceneId: si.sceneId, locationId: si.locationId, entryId: si.entryId, listingId: si.listingId,
+          userId: game.user.id
+        };
+        if (game.user.isGM) await _handlePurchaseStableAnimal(payload);
+        else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PURCHASE_STABLE_ANIMAL, payload });
       }
     }
 

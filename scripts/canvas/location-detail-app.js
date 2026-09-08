@@ -14,7 +14,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -55,6 +55,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       switchTab:          LocationDetailApp.#onSwitchTab,
       editLocationEntry:  LocationDetailApp.#onEditLocationEntry,
       rentLodging:        LocationDetailApp.#onRentLodging,
+      buyStableAnimal:    LocationDetailApp.#onBuyStableAnimal,
       dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
       editBooking:        LocationDetailApp.#onEditBooking,
       addBooking:         LocationDetailApp.#onAddBooking,
@@ -207,6 +208,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       const isMerchant = entry.typeId === LOCATION_TYPE_IDS.MERCHANT;
       const isBank     = entry.typeId === LOCATION_TYPE_IDS.BANK;
       const isStorage  = entry.typeId === LOCATION_TYPE_IDS.STORAGE;
+      const isStable   = entry.typeId === LOCATION_TYPE_IDS.STABLE;
 
       const innData = isInn ? buildInnData(entry, this._location, currencies, isGM) : null;
       if (innData?._needsSave && isGM) this.#saveEntryData(entry.id, innData._updatedInn).catch(err => console.error(`${MODULE_ID} | Failed to save inn menu refresh`, err));
@@ -219,17 +221,19 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       }
       const bankData = isBank ? buildBankData(this, entry, this._location, currencies) : null;
       const storageData = isStorage ? buildStorageData(this, entry, this._location) : null;
+      const stableData = isStable ? buildStableData(entry, this._location, currencies) : null;
 
       return {
         id: entry.id,
         name: subType?.name ?? coreType?.name ?? entry.typeId,
         icon: coreType?.icon ?? "fa-solid fa-question",
         active: entry.id === this._activeTab && !this._sellTabActive,
-        isInn, isMerchant, isBank, isStorage,
+        isInn, isMerchant, isBank, isStorage, isStable,
         innData,
         merchantData,
         bankData,
-        storageData
+        storageData,
+        stableData
       };
     }));
 
@@ -301,6 +305,21 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       locationName: this._location.name,
       entryId: this._activeTab,
       lodging
+    });
+    CartApp.open();
+  }
+
+  static async #onBuyStableAnimal(event, target) {
+    const stockId = target.dataset.stockId;
+    if (!stockId) return;
+    const listing = (this._location.typeData?.[this._activeTab]?.stableStock ?? []).find(s => s.id === stockId);
+    if (!listing) return;
+    cartManager.addStableAnimal({
+      sceneId: canvas.scene?.id,
+      locationId: this._location.id,
+      locationName: this._location.name,
+      entryId: this._activeTab,
+      listing
     });
     CartApp.open();
   }

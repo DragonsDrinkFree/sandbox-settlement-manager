@@ -17,7 +17,8 @@ export const SOCKET_TYPES = {
   REPAY_LOAN:             "repayLoan",
   RENT_STORAGE:           "rentStorage",
   EXTEND_STORAGE_RENTAL:  "extendStorageRental",
-  PAY_STORAGE_RENT:       "payStorageRent"
+  PAY_STORAGE_RENT:       "payStorageRent",
+  PURCHASE_STABLE_ANIMAL: "purchaseStableAnimal"
 };
 
 export function registerSocketHandlers() {
@@ -49,6 +50,8 @@ export function registerSocketHandlers() {
       await _handleExtendStorageRental(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.PAY_STORAGE_RENT) {
       await _handlePayStorageRent(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.PURCHASE_STABLE_ANIMAL) {
+      await _handlePurchaseStableAnimal(data.payload ?? data);
     } else {
       console.warn(`${MODULE_ID} | Unknown socket message type: ${data.type}`);
     }
@@ -489,6 +492,36 @@ export async function _handlePayStorageRent({ rentalId, payCoins, locationId, en
 
   await scene.setFlag(MODULE_ID, FLAGS.LOCATIONS, locations);
   _refreshBankApps();
+}
+
+/**
+ * GM-side: a player purchases a Stable listing. Creates an independent copy of the listed Actor and
+ * assigns Foundry ownership to whichever User(s) own the receiving character — which may differ from
+ * the paying character, exactly like buying a merchant item "for" someone else. Validates the
+ * requesting user controls the *paying* actor (not the receiving one — that would break gifting).
+ * Payment itself already happened client-side before this call; a listing is never consumed on
+ * purchase (proof-of-concept scope — see roadmap notes), so nothing here mutates the location.
+ */
+export async function _handlePurchaseStableAnimal({ actorUuid, payingActorId, receivingActorId, sceneId, locationId, entryId, listingId, userId }) {
+  if (!_userOwnsActor(userId, payingActorId)) return;
+  const location = (game.scenes.get(sceneId)?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []).find(r => r.id === locationId);
+  const listing = (location?.typeData?.[entryId]?.stableStock ?? []).find(l => l.id === listingId);
+  if (!listing) return;
+  // Re-resolve the source Actor from the authoritative listing, never the client-supplied actorUuid,
+  // so a malicious client can't substitute a different (more powerful) actor than what's listed.
+  const source = await fromUuid(listing.actorUuid).catch(() => null);
+  const receivingActor = game.actors.get(receivingActorId);
+  if (!source || !receivingActor) return;
+
+  const ownership = { default: 0 };
+  for (const u of game.users.filter(u => !u.isGM && receivingActor.testUserPermission(u, "OWNER"))) {
+    ownership[u.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+  }
+  const actorData = source.toObject();
+  delete actorData._id;
+  delete actorData.folder;
+  actorData.ownership = ownership;
+  await Actor.create(actorData);
 }
 
 /** GM-side: append ledger entries to the scene flag. */
