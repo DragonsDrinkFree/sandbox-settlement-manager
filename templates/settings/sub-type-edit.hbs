@@ -358,6 +358,12 @@
   {{/if}}
   {{#if showStableSection}}
   <div class="stable-only"{{#unless isStable}} hidden{{/unless}}>
+    <div class="naming-templates-toolbar">
+      <button type="button" class="lodging-add-btn" data-action="configureNamingTemplates"
+              data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.namingTemplates'}}">
+        <i class="fa-solid fa-signature"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.configureNamingTemplates"}}
+      </button>
+    </div>
     <fieldset class="stable-stock-templates">
       <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.stockLegend"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableStock'}}"></i></legend>
       <div class="merchant-stock-config">
@@ -382,12 +388,12 @@
         <thead>
           <tr>
             <th class="col-auto"></th>
+            <th class="col-naming">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colNameOption"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableNameOption'}}"></i></th>
             <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colName"}}</th>
             <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}</th>
             <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantSettlementSize'}}"></i></th>
             <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantAvailability'}}"></i></th>
             <th class="col-mformula">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantStockFormula'}}"></i></th>
-            <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colNameOption"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableNameOption'}}"></i></th>
             <th class="col-del"></th>
           </tr>
         </thead>
@@ -395,6 +401,13 @@
           {{#each stableStock}}
           <tr class="stable-stock-row" data-stock-id="{{this.id}}">
             <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="20" height="20" alt=""></td>
+            <td class="col-naming">
+              <select data-field="nameOption">
+                {{#each this.nameOptionOptions}}
+                <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+            </td>
             <td class="col-lname">{{this.name}}</td>
             <td class="col-price">
               {{> ssm-price-input attr="data-field" field="price" price=this.price currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
@@ -423,15 +436,8 @@
               <input type="text" data-field="stockFormula" value="{{this.stockFormula}}"
                      placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormulaHint'}}">
             </td>
-            <td class="col-msize">
-              <select data-field="nameOption">
-                {{#each this.nameOptionOptions}}
-                <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </select>
-            </td>
             <td class="col-del">
-              <button type="button" class="icon" data-action="deleteStableStock" data-index="{{@index}}"
+              <button type="button" class="icon stable-stock-del-btn" data-action="deleteStableStock" data-index="{{@index}}"
                       aria-label="Remove">
                 <i class="fa-solid fa-times"></i>
               </button>
@@ -439,55 +445,13 @@
           </tr>
           {{else}}
           <tr>
-            <td colspan="7" class="lodging-table-empty">
+            <td colspan="8" class="lodging-table-empty">
               <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noStock"}}</em>
             </td>
           </tr>
           {{/each}}
         </tbody>
       </table>
-    </fieldset>
-
-    <fieldset class="naming-templates-fieldset">
-      <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingTemplatesLegend"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.namingTemplates'}}"></i></legend>
-      <table class="naming-templates-table">
-        <thead>
-          <tr>
-            <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingTemplateName"}}</th>
-            <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPieceCount"}}</th>
-            <th class="col-del"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {{#each namingTemplates}}
-          <tr class="naming-template-row" data-template-id="{{this.id}}">
-            <td class="col-lname">{{this.name}}</td>
-            <td class="col-mavail">{{this.pieceCount}}</td>
-            <td class="col-del">
-              <button type="button" class="icon" data-action="editNamingTemplate" data-template-id="{{this.id}}"
-                      aria-label="Edit">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button type="button" class="icon" data-action="deleteNamingTemplate" data-template-id="{{this.id}}"
-                      aria-label="Remove">
-                <i class="fa-solid fa-times"></i>
-              </button>
-            </td>
-          </tr>
-          {{else}}
-          <tr>
-            <td colspan="3" class="lodging-table-empty">
-              <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noNamingTemplates"}}</em>
-            </td>
-          </tr>
-          {{/each}}
-        </tbody>
-      </table>
-      <div class="merchant-inventory-actions">
-        <button type="button" data-action="addNamingTemplate" class="lodging-add-btn">
-          <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.addNamingTemplate"}}
-        </button>
-      </div>
     </fieldset>
   </div>
   {{/if}}

@@ -1333,13 +1333,15 @@
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-table-empty {
+#sandbox-settlement-manager-sub-type-edit .lodging-table-empty,
+#sandbox-settlement-manager-naming-templates-list .lodging-table-empty {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
   padding: 0.3rem;
 }
 
-#sandbox-settlement-manager-sub-type-edit .lodging-add-btn {
+#sandbox-settlement-manager-sub-type-edit .lodging-add-btn,
+#sandbox-settlement-manager-naming-templates-list .lodging-add-btn {
   align-self: flex-start;
   font-size: var(--font-size-12, 12px);
   margin-top: 0.2rem;
@@ -2450,6 +2452,33 @@
   min-width: 100px;
 }
 
+#sandbox-settlement-manager-sub-type-edit .col-naming {
+  min-width: 90px;
+}
+
+/* Keep the Stable stock price amount + denomination on one line, same treatment as Merchant's. */
+#sandbox-settlement-manager-sub-type-edit .stable-stock-table td.col-price {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Smaller than the module's default icon button, freeing horizontal space for the price fields. */
+#sandbox-settlement-manager-sub-type-edit .stable-stock-table .col-del {
+  width: 1.5rem;
+  text-align: center;
+}
+
+#sandbox-settlement-manager-sub-type-edit .stable-stock-del-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+  min-height: 0;
+  line-height: 1;
+  padding: 0;
+  font-size: var(--font-size-11, 11px);
+}
+
 #sandbox-settlement-manager-settlement-manage .col-stock,
 #sandbox-settlement-manager-location-detail .col-stock {
   width: 50px;
@@ -2460,8 +2489,9 @@
 /*  Stable Naming Templates                      */
 /* -------------------------------------------- */
 
-#sandbox-settlement-manager-sub-type-edit .naming-templates-fieldset {
-  margin-top: 0.75rem;
+#sandbox-settlement-manager-sub-type-edit .naming-templates-toolbar {
+  display: flex;
+  margin-bottom: 0.5rem;
 }
 
 #sandbox-settlement-manager-naming-template-edit .naming-piece-fieldset {
@@ -4202,7 +4232,8 @@ hr.ssm-settings-divider {
 /* -------------------------------------------- */
 /*  Merchant inventory actions + sort dialog     */
 /* -------------------------------------------- */
-#sandbox-settlement-manager-sub-type-edit .merchant-inventory-actions {
+#sandbox-settlement-manager-sub-type-edit .merchant-inventory-actions,
+#sandbox-settlement-manager-naming-templates-list .merchant-inventory-actions {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.25rem;

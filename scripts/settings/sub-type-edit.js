@@ -6,7 +6,7 @@ import { getCurrencyContext, costInStandard, getStandardCurrency } from "../util
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
 import { rollStockAvailability } from "../canvas/location-data.js";
-import { NamingTemplateEditApp } from "./naming-template-edit.js";
+import { NamingTemplatesListApp } from "./naming-templates-list.js";
 import { LodgingStorageConfigApp } from "./lodging-storage-config-app.js";
 import { LOAN_PERIOD_DAYS } from "../utils/loan-utils.js";
 import { resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
@@ -129,9 +129,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addStorageType:             SubTypeEditApp.#onAddStorageType,
       deleteStorageType:          SubTypeEditApp.#onDeleteStorageType,
       deleteStableStock:          SubTypeEditApp.#onDeleteStableStock,
-      addNamingTemplate:          SubTypeEditApp.#onAddNamingTemplate,
-      editNamingTemplate:         SubTypeEditApp.#onEditNamingTemplate,
-      deleteNamingTemplate:       SubTypeEditApp.#onDeleteNamingTemplate,
+      configureNamingTemplates:   SubTypeEditApp.#onConfigureNamingTemplates,
       addStorageRentalOption:     SubTypeEditApp.#onAddStorageRentalOption,
       deleteStorageRentalOption:  SubTypeEditApp.#onDeleteStorageRentalOption,
       sortInventory:              SubTypeEditApp.#onSortInventory,
@@ -472,7 +470,6 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       templateInventory,
       storageTypes,
       stableStock,
-      namingTemplates: this._namingTemplates.map(t => ({ ...t, pieceCount: (t.pieces ?? []).length })),
       settlementTypes,
       stockType,
       restockFrequency,
@@ -1231,36 +1228,25 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
-  static async #onAddNamingTemplate() {
-    const result = await NamingTemplateEditApp.open(null);
-    if (!result) return;
+  /**
+   * Opens the standalone Naming Templates list window (NamingTemplatesListApp) scoped to this
+   * Stable, handing it the current working array and taking back whatever it resolves with (the
+   * list window always resolves its live state on close, there's no separate cancel — see
+   * naming-templates-list.js). Any stock row pointing at a template the GM deleted there falls back
+   * to Prompt, rather than an orphaned id.
+   */
+  static async #onConfigureNamingTemplates() {
     this.#syncSubTypeName();
     this.#syncStableStockFromDOM();
-    this._namingTemplates.push(result);
-    this.render({ parts: ["form"] });
-  }
-
-  static async #onEditNamingTemplate(event, target) {
-    const id = target.dataset.templateId;
-    const existing = this._namingTemplates.find(t => t.id === id);
-    if (!existing) return;
-    const result = await NamingTemplateEditApp.open(existing);
-    if (!result) return;
-    this.#syncSubTypeName();
-    this.#syncStableStockFromDOM();
-    const index = this._namingTemplates.findIndex(t => t.id === id);
-    if (index !== -1) this._namingTemplates[index] = result;
-    this.render({ parts: ["form"] });
-  }
-
-  static #onDeleteNamingTemplate(event, target) {
-    this.#syncSubTypeName();
-    this.#syncStableStockFromDOM();
-    const id = target.dataset.templateId;
-    this._namingTemplates = this._namingTemplates.filter(t => t.id !== id);
-    // Any listing pointing at the deleted template falls back to Prompt, rather than an orphaned id.
-    for (const s of this._stableStock) {
-      if (s.nameOption === id) s.nameOption = "prompt";
+    const before = new Set(this._namingTemplates.map(t => t.id));
+    const updated = await NamingTemplatesListApp.open(this._namingTemplates);
+    this._namingTemplates = updated;
+    const after = new Set(updated.map(t => t.id));
+    const removedIds = [...before].filter(id => !after.has(id));
+    if (removedIds.length) {
+      for (const s of this._stableStock) {
+        if (removedIds.includes(s.nameOption)) s.nameOption = "prompt";
+      }
     }
     this.render({ parts: ["form"] });
   }

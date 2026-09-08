@@ -723,6 +723,7 @@
       "restocked": "Stable stock refreshed.",
       "nameOptionPrompt": "Prompt",
       "namingTemplatesLegend": "Naming Templates",
+      "configureNamingTemplates": "Configure Naming Templates",
       "namingTemplateName": "Template Name",
       "namingTemplateEditTitle": "Edit Naming Template",
       "namingTemplateAddTitle": "Add Naming Template",

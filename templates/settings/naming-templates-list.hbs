@@ -1,0 +1,40 @@
+<div class="naming-templates-list-form">
+  <table class="naming-templates-table">
+    <thead>
+      <tr>
+        <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingTemplateName"}}</th>
+        <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPieceCount"}}</th>
+        <th class="col-del"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each templates}}
+      <tr class="naming-template-row" data-template-id="{{this.id}}">
+        <td class="col-lname">{{this.name}}</td>
+        <td class="col-mavail">{{this.pieceCount}}</td>
+        <td class="col-del">
+          <button type="button" class="icon" data-action="editNamingTemplate" data-template-id="{{this.id}}"
+                  aria-label="Edit">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button type="button" class="icon" data-action="deleteNamingTemplate" data-template-id="{{this.id}}"
+                  aria-label="Remove">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </td>
+      </tr>
+      {{else}}
+      <tr>
+        <td colspan="3" class="lodging-table-empty">
+          <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noNamingTemplates"}}</em>
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <div class="merchant-inventory-actions">
+    <button type="button" data-action="addNamingTemplate" class="lodging-add-btn">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.addNamingTemplate"}}
+    </button>
+  </div>
+</div>
