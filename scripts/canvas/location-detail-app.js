@@ -14,7 +14,7 @@ import { MerchantItemEditApp } from "./merchant-item-edit-app.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
-import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollStockAvailability, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -67,6 +67,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       editMerchantItem:         LocationDetailApp.#onEditMerchantItem,
       restoreFromMerchantTemplate:    LocationDetailApp.#onRestoreFromMerchantTemplate,
       forceRestockMerchant:           LocationDetailApp.#onForceRestockMerchant,
+      forceRestockStable:             LocationDetailApp.#onForceRestockStable,
       switchToSellTab:                LocationDetailApp.#onSwitchToSellTab,
       switchFromSellTab:        LocationDetailApp.#onSwitchFromSellTab,
       addToSellCart:            LocationDetailApp.#onAddToSellCart,
@@ -221,7 +222,12 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       }
       const bankData = isBank ? buildBankData(this, entry, this._location, currencies) : null;
       const storageData = isStorage ? buildStorageData(this, entry, this._location) : null;
-      const stableData = isStable ? buildStableData(entry, this._location, currencies) : null;
+
+      let stableData = null;
+      if (isStable) {
+        stableData = await buildStableData(entry, this._location, currencies, isGM);
+        if (stableData._needsSave && isGM) this.#saveEntryData(entry.id, stableData._updatedStable).catch(err => console.error(`${MODULE_ID} | Failed to save stable restock`, err));
+      }
 
       return {
         id: entry.id,
@@ -548,13 +554,24 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!game.user.isGM) return;
     const merchant = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { inventory: [] });
     const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
-    await rollMerchantRestock(merchant.inventory ?? [], merchant.stockType ?? "percent");
+    await rollStockAvailability(merchant.inventory ?? [], merchant.stockType ?? "percent");
     applyPriceVariation(merchant.inventory ?? [], readPriceVarConfig(merchant), currencies);
     rollMerchantBuyRates(merchant.purchasingProfile ?? []);
     merchant.lastRestocked = game.time.worldTime;
     merchant.buybackItems  = [];
     await this.#saveEntryData(this._activeTab, merchant);
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
+  }
+
+  static async #onForceRestockStable() {
+    if (!game.user.isGM) return;
+    const stable = foundry.utils.deepClone(this._location.typeData?.[this._activeTab] ?? { stableStock: [] });
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+    await rollStockAvailability(stable.stableStock ?? [], stable.stockType ?? "percent");
+    applyPriceVariation(stable.stableStock ?? [], readPriceVarConfig(stable), currencies);
+    stable.lastRestocked = game.time.worldTime;
+    await this.#saveEntryData(this._activeTab, stable);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.restocked"));
   }
 
   static async #onForceRefreshInn() {

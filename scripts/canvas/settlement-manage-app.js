@@ -16,7 +16,7 @@ import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
 import { mergePurchasingProfiles, findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { MerchantRestoreDialog } from "./merchant-restore-dialog.js";
 import { restoreFields, TEMPLATE_FIELDS } from "./template-link.js";
-import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollMerchantRestock, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
+import { getSubTypeMap, buildMerchantData, buildBankData, buildInnData, buildSellData, buildStorageData, buildStableData, buildEntryTypeData, ensureLinkedStorageEntry, reconcileLinkedStorageForEntry, findLocalStorageEntry, rollStockAvailability, applyPriceVariation, rollMerchantBuyRates, readPriceVarConfig, forceRefreshInn } from "./location-data.js";
 import { SubTypeEditApp } from "../settings/sub-type-edit.js";
 import { restoreLodgingAvailability, consumeLodgingAvailability } from "./lodging-utils.js";
 import { BookingEditApp } from "./inn/booking-edit-app.js";
@@ -69,6 +69,7 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
       restoreFromTemplate:         SettlementManageApp.#onRestoreFromTemplate,
       restoreFromMerchantTemplate: SettlementManageApp.#onRestoreFromMerchantTemplate,
       forceRestockMerchant:        SettlementManageApp.#onForceRestockMerchant,
+      forceRestockStable:          SettlementManageApp.#onForceRestockStable,
       addMerchantItem:             SettlementManageApp.#onAddMerchantItem,
       deleteMerchantItem:     SettlementManageApp.#onDeleteMerchantItem,
       editMerchantItem:       SettlementManageApp.#onEditMerchantItem,
@@ -234,7 +235,12 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
 
       const bankData = isBank ? buildBankData(this, entry, location, currencies) : null;
       const storageData = isStorage ? buildStorageData(this, entry, location) : null;
-      const stableData = isStable ? buildStableData(entry, location, currencies) : null;
+
+      let stableData = null;
+      if (isStable) {
+        stableData = await buildStableData(entry, location, currencies, isGM);
+        if (stableData._needsSave && isGM) this.#saveEntryData(entry.id, stableData._updatedStable).catch(err => console.error(`${MODULE_ID} | Failed to save stable restock`, err));
+      }
 
       let merchantData = null;
       if (isMerchant) {
@@ -872,13 +878,26 @@ export class SettlementManageApp extends HandlebarsApplicationMixin(ApplicationV
     if (!location || !this._activeTab) return;
     const merchant = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { inventory: [] });
     const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
-    await rollMerchantRestock(merchant.inventory ?? [], merchant.stockType ?? "percent");
+    await rollStockAvailability(merchant.inventory ?? [], merchant.stockType ?? "percent");
     applyPriceVariation(merchant.inventory ?? [], readPriceVarConfig(merchant), currencies);
     rollMerchantBuyRates(merchant.purchasingProfile ?? []);
     merchant.lastRestocked = game.time.worldTime;
     merchant.buybackItems  = [];
     await this.#saveEntryData(this._activeTab, merchant);
     ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.merchant.restocked"));
+  }
+
+  static async #onForceRestockStable() {
+    if (!game.user.isGM) return;
+    const location = this.#syncSelectedLocation();
+    if (!location || !this._activeTab) return;
+    const stable = foundry.utils.deepClone(location.typeData?.[this._activeTab] ?? { stableStock: [] });
+    const currencies = game.settings.get(MODULE_ID, SETTINGS.CURRENCY_CONFIG).currencies ?? [];
+    await rollStockAvailability(stable.stableStock ?? [], stable.stockType ?? "percent");
+    applyPriceVariation(stable.stableStock ?? [], readPriceVarConfig(stable), currencies);
+    stable.lastRestocked = game.time.worldTime;
+    await this.#saveEntryData(this._activeTab, stable);
+    ui.notifications.info(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.restocked"));
   }
 
   static async #onForceRefreshInn() {

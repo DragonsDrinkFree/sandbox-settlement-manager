@@ -1,0 +1,58 @@
+<div class="naming-template-edit-form">
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingTemplateName"}}</label>
+    <input type="text" name="name" value="{{template.name}}" placeholder="Human">
+  </div>
+
+  <fieldset class="naming-piece-fieldset">
+    <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingPiecesLegend"}}</legend>
+
+    <div class="naming-piece-toolbar">
+      <button type="button" class="lodging-add-btn" data-action="addTable">
+        <i class="fa-solid fa-magnifying-glass"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.addTable"}}
+      </button>
+    </div>
+
+    <div class="naming-table-search"{{#unless showTableSearch}} hidden{{/unless}}>
+      <div class="naming-table-search-row">
+        <input type="text" class="naming-table-search-input"
+               placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.tableSearchPlaceholder'}}">
+        <button type="button" class="icon" data-action="closeTableSearch" aria-label="Close">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <ul class="item-search-results naming-table-search-results"></ul>
+    </div>
+
+    <div class="naming-piece-drop-zone merchant-drop-zone">
+      <i class="fa-solid fa-table-list"></i>
+      <span>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.pieceDropHint"}}</span>
+    </div>
+
+    <ul class="naming-piece-list">
+      {{#each pieces}}
+      <li class="naming-piece-row" draggable="true" data-piece-id="{{this.id}}">
+        <i class="fa-solid fa-grip-vertical naming-piece-drag-handle"></i>
+        <span class="naming-piece-table-name">{{this.tableName}}</span>
+        <select data-field="connector" class="naming-piece-connector">
+          {{#each this.connectorOptions}}
+          <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+        <input type="text" data-field="customSymbol" class="naming-piece-custom-symbol"
+               value="{{this.customSymbol}}"
+               placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.customSymbolPlaceholder'}}"
+               {{#unless this.isCustom}}hidden{{/unless}}>
+        <button type="button" class="icon" data-action="deletePiece" data-index="{{this.index}}"
+                aria-label="Remove">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </li>
+      {{else}}
+      <li class="naming-piece-empty">
+        <em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.noPieces"}}</em>
+      </li>
+      {{/each}}
+    </ul>
+  </fieldset>
+</div>

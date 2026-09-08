@@ -18,12 +18,20 @@ export const SOCKET_TYPES = {
   RENT_STORAGE:           "rentStorage",
   EXTEND_STORAGE_RENTAL:  "extendStorageRental",
   PAY_STORAGE_RENT:       "payStorageRent",
-  PURCHASE_STABLE_ANIMAL: "purchaseStableAnimal"
+  PURCHASE_STABLE_ANIMAL: "purchaseStableAnimal",
+  PROMPT_ACTOR_NAME:      "promptActorName"
 };
 
 export function registerSocketHandlers() {
   game.socket.on(SOCKET_CHANNEL, async (data) => {
     if (!data?.type) return;
+
+    // GM → specific player messages: every client receives them, but only the addressed user acts.
+    if (data.type === SOCKET_TYPES.PROMPT_ACTOR_NAME) {
+      if (data.targetUserId !== game.user.id) return;
+      await _handlePromptActorName(data);
+      return;
+    }
 
     // Player → GM messages: only the active GM processes each message once.
     if (!game.user.isGM) return;
@@ -495,17 +503,63 @@ export async function _handlePayStorageRent({ rentalId, payCoins, locationId, en
 }
 
 /**
- * GM-side: a player purchases a Stable listing. Creates an independent copy of the listed Actor and
- * assigns Foundry ownership to whichever User(s) own the receiving character — which may differ from
- * the paying character, exactly like buying a merchant item "for" someone else. Validates the
- * requesting user controls the *paying* actor (not the receiving one — that would break gifting).
- * Payment itself already happened client-side before this call; a listing is never consumed on
- * purchase (proof-of-concept scope — see roadmap notes), so nothing here mutates the location.
+ * Roll a Naming Template's pieces in order and concatenate their results with each piece's own
+ * connector-to-next (none / space / a custom symbol). Silent draws (`displayChat: false`) — never
+ * posts to chat — and safe to call repeatedly on a Compendium-sourced RollTable (see
+ * reference/foundry-reference/RollTable-draw.md). A piece whose table no longer resolves is skipped
+ * rather than aborting the whole roll.
  */
-export async function _handlePurchaseStableAnimal({ actorUuid, payingActorId, receivingActorId, sceneId, locationId, entryId, listingId, userId }) {
+export async function rollNamingTemplate(template) {
+  const parts = [];
+  for (const piece of template.pieces ?? []) {
+    const table = await fromUuid(piece.tableUuid).catch(() => null);
+    if (!table) continue;
+    const { results } = await table.draw({ displayChat: false });
+    parts.push({ text: results.map(r => r.name).join(""), connector: piece.connector, customSymbol: piece.customSymbol });
+  }
+  return parts.map((p, i) => {
+    if (i === parts.length - 1) return p.text;
+    const sep = p.connector === "space" ? " " : p.connector === "custom" ? (p.customSymbol ?? "") : "";
+    return p.text + sep;
+  }).join("");
+}
+
+/**
+ * Runs on the targeted player's own client (see the targetUserId-filtered branch in
+ * registerSocketHandlers, below) — not gated by isGM. The receiving user already owns this Actor
+ * (ownership was granted at creation time in _handlePurchaseStableAnimal), so no GM relay is needed
+ * for the rename itself.
+ */
+export async function _handlePromptActorName({ actorUuid, baseName }) {
+  const actor = await fromUuid(actorUuid).catch(() => null);
+  if (!actor) return;
+  const chosen = await foundry.applications.api.DialogV2.prompt({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.namePromptTitle") },
+    content: `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.namePromptBody", { name: baseName })}</p>
+               <input type="text" name="chosenName" autofocus>`,
+    ok: {
+      label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.namePromptConfirm"),
+      callback: (event, btn) => btn.form.elements.chosenName.value.trim()
+    },
+    rejectClose: false
+  });
+  if (!chosen) return;
+  await actor.update({ name: `${chosen} (${baseName})` });
+}
+
+/**
+ * GM-side: a player purchases `quantity` copies of a Stable listing. Each copy is an independent
+ * Actor, owned by whoever owns the receiving character — which may differ from the paying character,
+ * exactly like buying a merchant item "for" someone else. Validates the requesting user controls the
+ * *paying* actor (not the receiving one — that would break gifting). Payment and stock decrement
+ * already happened client-side before this call (see cart-app.js#processFulfillments); this only
+ * creates the Actor copies and, for "Prompt"-named listings, asks the receiving player to name theirs.
+ */
+export async function _handlePurchaseStableAnimal({ actorUuid, payingActorId, receivingActorId, sceneId, locationId, entryId, listingId, quantity, userId }) {
   if (!_userOwnsActor(userId, payingActorId)) return;
   const location = (game.scenes.get(sceneId)?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []).find(r => r.id === locationId);
-  const listing = (location?.typeData?.[entryId]?.stableStock ?? []).find(l => l.id === listingId);
+  const stable  = location?.typeData?.[entryId];
+  const listing = (stable?.stableStock ?? []).find(l => l.id === listingId);
   if (!listing) return;
   // Re-resolve the source Actor from the authoritative listing, never the client-supplied actorUuid,
   // so a malicious client can't substitute a different (more powerful) actor than what's listed.
@@ -517,11 +571,34 @@ export async function _handlePurchaseStableAnimal({ actorUuid, payingActorId, re
   for (const u of game.users.filter(u => !u.isGM && receivingActor.testUserPermission(u, "OWNER"))) {
     ownership[u.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
   }
-  const actorData = source.toObject();
-  delete actorData._id;
-  delete actorData.folder;
-  actorData.ownership = ownership;
-  await Actor.create(actorData);
+  // The first currently-connected owning player, if any — the target for a "Prompt" naming dialog.
+  // No active owner (offline, or nobody but a GM controls the receiving actor) means the naming
+  // prompt can't be delivered anywhere, so the copy simply keeps its original name.
+  const activeOwnerId = Object.keys(ownership).filter(id => id !== "default").find(id => game.users.get(id)?.active);
+
+  const namingTemplate = listing.nameOption && listing.nameOption !== "prompt"
+    ? (stable?.namingTemplates ?? []).find(t => t.id === listing.nameOption)
+    : null;
+
+  for (let i = 0; i < (quantity ?? 1); i++) {
+    let name = source.name;
+    if (namingTemplate) {
+      const rolled = await rollNamingTemplate(namingTemplate);
+      if (rolled) name = `${rolled} (${source.name})`;
+    }
+    const actorData = source.toObject();
+    delete actorData._id;
+    delete actorData.folder;
+    actorData.name = name;
+    actorData.ownership = ownership;
+    const created = await Actor.create(actorData);
+    if (created && !namingTemplate && listing.nameOption === "prompt" && activeOwnerId) {
+      game.socket.emit(SOCKET_CHANNEL, {
+        type: SOCKET_TYPES.PROMPT_ACTOR_NAME,
+        targetUserId: activeOwnerId, actorUuid: created.uuid, baseName: source.name
+      });
+    }
+  }
 }
 
 /** GM-side: append ledger entries to the scene flag. */

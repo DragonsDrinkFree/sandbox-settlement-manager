@@ -5,7 +5,8 @@ import { readItemName, readItemPrice } from "../utils/item-utils.js";
 import { getCurrencyContext, costInStandard, getStandardCurrency } from "../utils/currency-utils.js";
 import { MerchantSortDialog } from "./merchant-sort-dialog.js";
 import { CompendiumItemPickerApp } from "./compendium-item-picker-app.js";
-import { rollMerchantRestock } from "../canvas/location-data.js";
+import { rollStockAvailability } from "../canvas/location-data.js";
+import { NamingTemplateEditApp } from "./naming-template-edit.js";
 import { LodgingStorageConfigApp } from "./lodging-storage-config-app.js";
 import { LOAN_PERIOD_DAYS } from "../utils/loan-utils.js";
 import { resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
@@ -62,6 +63,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _templateInventory = [];
   _storageTypes = [];
   _stableStock = [];
+  _namingTemplates = [];
   _merchantTab = "inventory";
   _purchasingProfile = [];
   _stockType = null;        // tracks merchantStockType <select> across re-renders
@@ -70,6 +72,12 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _priceVarMax = null;
   _priceVarIndividual = null;
   _priceVarRounding = null;
+  _stableStockType = null;        // tracks stableStockType <select> across re-renders — separate from Merchant's
+  _stableRestockFrequency = null; // tracks stableRestockFrequency <select> across re-renders
+  _stablePriceVarMin = null;         // tracks Stable's own price-variation config across re-renders
+  _stablePriceVarMax = null;
+  _stablePriceVarIndividual = null;
+  _stablePriceVarRounding = null;
   _lodgingPriceVarMin = null;  // inn lodging price-variation config (survives add-lodging/add-course re-renders)
   _lodgingPriceVarMax = null;
   _lodgingPriceVarIndividual = null;
@@ -121,6 +129,9 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addStorageType:             SubTypeEditApp.#onAddStorageType,
       deleteStorageType:          SubTypeEditApp.#onDeleteStorageType,
       deleteStableStock:          SubTypeEditApp.#onDeleteStableStock,
+      addNamingTemplate:          SubTypeEditApp.#onAddNamingTemplate,
+      editNamingTemplate:         SubTypeEditApp.#onEditNamingTemplate,
+      deleteNamingTemplate:       SubTypeEditApp.#onDeleteNamingTemplate,
       addStorageRentalOption:     SubTypeEditApp.#onAddStorageRentalOption,
       deleteStorageRentalOption:  SubTypeEditApp.#onDeleteStorageRentalOption,
       sortInventory:              SubTypeEditApp.#onSortInventory,
@@ -150,6 +161,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._storageTypes       = foundry.utils.deepClone(subType.typeData?.storage?.storageTypes ?? []);
       app._storageRentalOptions = foundry.utils.deepClone(subType.typeData?.bank?.storageRentalOptions ?? []);
       app._stableStock        = foundry.utils.deepClone(subType.typeData?.stable?.stableStock ?? []);
+      app._namingTemplates    = foundry.utils.deepClone(subType.typeData?.stable?.namingTemplates ?? []);
+      app._stableStockType         = subType.typeData?.stable?.stockType        ?? null;
+      app._stableRestockFrequency  = subType.typeData?.stable?.restockFrequency ?? null;
+      app._stablePriceVarMin        = subType.typeData?.stable?.priceVarMin        ?? null;
+      app._stablePriceVarMax        = subType.typeData?.stable?.priceVarMax        ?? null;
+      app._stablePriceVarIndividual = subType.typeData?.stable?.priceVarIndividual ?? null;
+      app._stablePriceVarRounding   = subType.typeData?.stable?.priceVarRounding   ?? null;
       app._resolve  = resolve;
       app.render(true);
     });
@@ -183,7 +201,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       syntheticTypeData.storage = { storageTypes: entryData.storageTypes ?? [] };
     }
     if (typeId === LOCATION_TYPE_IDS.STABLE) {
-      syntheticTypeData.stable = { stableStock: entryData.stableStock ?? [] };
+      syntheticTypeData.stable = {
+        stableStock: entryData.stableStock ?? [],
+        stockType: entryData.stockType, restockFrequency: entryData.restockFrequency,
+        namingTemplates: entryData.namingTemplates ?? []
+      };
     }
     return new Promise(resolve => {
       const app = new SubTypeEditApp({ name: locationName, typeData: syntheticTypeData });
@@ -200,12 +222,19 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._purchasingProfile = foundry.utils.deepClone(entryData.purchasingProfile ?? []);
       app._storageTypes      = foundry.utils.deepClone(entryData.storageTypes ?? []);
       app._stableStock       = foundry.utils.deepClone(entryData.stableStock ?? []);
+      app._namingTemplates   = foundry.utils.deepClone(entryData.namingTemplates ?? []);
       app._stockType         = entryData.stockType ?? null;
       app._restockFrequency  = entryData.restockFrequency ?? null;
       app._priceVarMin        = entryData.priceVarMin        ?? null;
       app._priceVarMax        = entryData.priceVarMax        ?? null;
       app._priceVarIndividual = entryData.priceVarIndividual ?? null;
       app._priceVarRounding   = entryData.priceVarRounding   ?? null;
+      app._stableStockType         = entryData.stockType ?? null;
+      app._stableRestockFrequency  = entryData.restockFrequency ?? null;
+      app._stablePriceVarMin        = entryData.priceVarMin        ?? null;
+      app._stablePriceVarMax        = entryData.priceVarMax        ?? null;
+      app._stablePriceVarIndividual = entryData.priceVarIndividual ?? null;
+      app._stablePriceVarRounding   = entryData.priceVarRounding   ?? null;
       app._lodgingPriceVarMin        = entryData.lodgingPriceVarMin        ?? null;
       app._lodgingPriceVarMax        = entryData.lodgingPriceVarMax        ?? null;
       app._lodgingPriceVarIndividual = entryData.lodgingPriceVarIndividual ?? null;
@@ -250,6 +279,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const priceVarMax        = this._priceVarMax        ?? merchantData.priceVarMax        ?? 0;
     const priceVarIndividual = this._priceVarIndividual ?? merchantData.priceVarIndividual ?? false;
     const priceVarRounding   = this._priceVarRounding   ?? merchantData.priceVarRounding   ?? "same";
+    const stableTypeData        = this._subType.typeData?.stable ?? {};
+    const stableStockType        = this._stableStockType        ?? stableTypeData.stockType        ?? "percent";
+    const stableRestockFrequency = this._stableRestockFrequency ?? stableTypeData.restockFrequency ?? "weekly";
+    const isStableXInSix         = stableStockType === "x-in-6";
+    const stablePriceVarMin        = this._stablePriceVarMin        ?? stableTypeData.priceVarMin        ?? 0;
+    const stablePriceVarMax        = this._stablePriceVarMax        ?? stableTypeData.priceVarMax        ?? 0;
+    const stablePriceVarIndividual = this._stablePriceVarIndividual ?? stableTypeData.priceVarIndividual ?? false;
+    const stablePriceVarRounding   = this._stablePriceVarRounding   ?? stableTypeData.priceVarRounding   ?? "same";
     const innData = this._subType.typeData ?? {};
     const lodgingPriceVarMin        = this._lodgingPriceVarMin        ?? innData.lodgingPriceVarMin        ?? 0;
     const lodgingPriceVarMax        = this._lodgingPriceVarMax        ?? innData.lodgingPriceVarMax        ?? 0;
@@ -278,6 +315,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       storageTemplateOptions.push({ ...localOption, selected: linkedStorageTemplateId === LOCAL_STORAGE_LINK_ID });
       bankStorageTemplateOptions.push({ ...localOption, selected: bankLinkedStorageTemplateId === LOCAL_STORAGE_LINK_ID });
     }
+
+    const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
 
     let lodgings = [];
     let currencies = [];
@@ -360,10 +399,27 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         });
       }
       if (showStableSection) {
-        stableStock = this._stableStock.map(s => ({
-          ...s,
-          price: s.price ?? { currencyId: defaultCurrencyId, amount: 0 }
-        }));
+        const nameOptionBase = [{
+          value: "prompt",
+          label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.nameOptionPrompt")
+        }, ...this._namingTemplates.map(t => ({ value: t.id, label: t.name }))];
+        stableStock = this._stableStock.map(s => {
+          const entry = {
+            ...s,
+            price: s.price ?? { currencyId: defaultCurrencyId, amount: 0 },
+            nameOptionOptions: nameOptionBase.map(o => ({ ...o, selected: (s.nameOption ?? "prompt") === o.value }))
+          };
+          if (isStableXInSix) {
+            const v   = parseInt(s.stockAvailability);
+            const cur = (Number.isInteger(v) && v >= 1 && v <= 6) ? v : 6;
+            entry.xin6Options = [1, 2, 3, 4, 5, 6].map(n => ({
+              value: n,
+              label: game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.merchant.xInSixOption", { n }),
+              selected: n === cur
+            }));
+          }
+          return entry;
+        });
       }
     }
     let storageTypes = [];
@@ -379,7 +435,6 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }));
     }
 
-    const settlementTypes = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
     const bankData     = this._subType.typeData?.bank ?? {};
 
     const rawTypes = game.system.documentTypes?.Item ?? [];
@@ -417,6 +472,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       templateInventory,
       storageTypes,
       stableStock,
+      namingTemplates: this._namingTemplates.map(t => ({ ...t, pieceCount: (t.pieces ?? []).length })),
       settlementTypes,
       stockType,
       restockFrequency,
@@ -425,6 +481,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       priceVarMax,
       priceVarIndividual,
       priceVarRounding,
+      stableStockType,
+      stableRestockFrequency,
+      isStableXInSix,
+      stablePriceVarMin,
+      stablePriceVarMax,
+      stablePriceVarIndividual,
+      stablePriceVarRounding,
       lodgingPriceVarMin,
       lodgingPriceVarMax,
       lodgingPriceVarIndividual,
@@ -471,6 +534,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render({ parts: ["form"] });
     });
 
+    // Same idea for Stable's own stock type — independent of Merchant's.
+    this.element.querySelector('[name="stableStockType"]')?.addEventListener('change', () => {
+      this.#syncSubTypeName();
+      this.#syncStableStockFromDOM();
+      this.render({ parts: ["form"] });
+    });
+
     // Changing the linked Storage template enables/disables every row's Storage config button and
     // repopulates its Storage Type options, so re-render.
     this.element.querySelector('[name="linkedStorageTemplateId"]')?.addEventListener('change', () => {
@@ -495,11 +565,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const merchantSection = this.element.querySelector('.merchant-only');
     const bankSection     = this.element.querySelector('.bank-only');
     const storageSection  = this.element.querySelector('.storage-only');
+    const stableSection   = this.element.querySelector('.stable-only');
     const toggle = () => {
       if (innSection)      innSection.hidden      = (sel.value !== LOCATION_TYPE_IDS.INN);
       if (merchantSection) merchantSection.hidden = (sel.value !== LOCATION_TYPE_IDS.MERCHANT);
       if (bankSection)     bankSection.hidden     = (sel.value !== LOCATION_TYPE_IDS.BANK);
       if (storageSection)  storageSection.hidden  = (sel.value !== LOCATION_TYPE_IDS.STORAGE);
+      if (stableSection)   stableSection.hidden   = (sel.value !== LOCATION_TYPE_IDS.STABLE);
     };
     sel.addEventListener('change', toggle);
     toggle();
@@ -856,15 +928,19 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         name: actor.name,
         actorUuid: actor.uuid,
         actorImg: actor.img,
-        price: { currencyId: defaultCurrencyId, amount: 0 }
+        price: { currencyId: defaultCurrencyId, amount: 0 },
+        minSettlementSize: "",
+        stockAvailability: 100,
+        stockFormula: "",
+        nameOption: "prompt"
       });
       this.render({ parts: ['form'] });
     });
   }
 
-  /** Rebuild _stableStock from the DOM — only price is editable per row; name/actorUuid/actorImg are
-   *  carried through unedited from the existing-by-id record, same as Storage Type rows preserve
-   *  link metadata across a sync. */
+  /** Rebuild _stableStock from the DOM — name/actorUuid/actorImg are carried through unedited from
+   *  the existing-by-id record (they're the source Actor's own identity, not editable), same as
+   *  Storage Type rows preserve link metadata across a sync. */
   #syncStableStockFromDOM() {
     const rows = this.element?.querySelectorAll('.stable-stock-row') ?? [];
     const byId = new Map(this._stableStock.map(s => [s.id, s]));
@@ -877,7 +953,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         price: {
           currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? existing.price?.currencyId ?? "",
           amount: parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
-        }
+        },
+        minSettlementSize: (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
+        stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
+        stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
+        nameOption:       row.querySelector('[data-field="nameOption"]')?.value ?? "prompt"
       };
     }).filter(Boolean);
   }
@@ -1151,6 +1231,40 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render({ parts: ["form"] });
   }
 
+  static async #onAddNamingTemplate() {
+    const result = await NamingTemplateEditApp.open(null);
+    if (!result) return;
+    this.#syncSubTypeName();
+    this.#syncStableStockFromDOM();
+    this._namingTemplates.push(result);
+    this.render({ parts: ["form"] });
+  }
+
+  static async #onEditNamingTemplate(event, target) {
+    const id = target.dataset.templateId;
+    const existing = this._namingTemplates.find(t => t.id === id);
+    if (!existing) return;
+    const result = await NamingTemplateEditApp.open(existing);
+    if (!result) return;
+    this.#syncSubTypeName();
+    this.#syncStableStockFromDOM();
+    const index = this._namingTemplates.findIndex(t => t.id === id);
+    if (index !== -1) this._namingTemplates[index] = result;
+    this.render({ parts: ["form"] });
+  }
+
+  static #onDeleteNamingTemplate(event, target) {
+    this.#syncSubTypeName();
+    this.#syncStableStockFromDOM();
+    const id = target.dataset.templateId;
+    this._namingTemplates = this._namingTemplates.filter(t => t.id !== id);
+    // Any listing pointing at the deleted template falls back to Prompt, rather than an orphaned id.
+    for (const s of this._stableStock) {
+      if (s.nameOption === id) s.nameOption = "prompt";
+    }
+    this.render({ parts: ["form"] });
+  }
+
   static #onAddStorageRentalOption() {
     this.#syncSubTypeName();
     this.#syncStorageRentalOptionsFromDOM();
@@ -1306,8 +1420,11 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       result.typeData = { storage: { storageTypes: this._storageTypes.filter(st => st.name) } };
     }
     if (typeId === LOCATION_TYPE_IDS.STABLE) {
+      const stockType        = (formData.object.stableStockType        ?? "percent");
+      const restockFrequency = (formData.object.stableRestockFrequency ?? "weekly");
+      const pv = this.#readPriceVarFromForm(form, "stable", "stable");
       this.#syncStableStockFromDOM();
-      result.typeData = { stable: { stableStock: this._stableStock } };
+      result.typeData = { stable: { stockType, restockFrequency, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates } };
     }
     result._templateTypeId = typeId;
 
@@ -1400,15 +1517,30 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return Number(old.stockAvailability ?? 100) !== Number(it.stockAvailability ?? 100)
             || (old.stockFormula ?? "").trim() !== (it.stockFormula ?? "").trim();
       });
-      await rollMerchantRestock(toRoll, stockType);
+      await rollStockAvailability(toRoll, stockType);
 
       result = { ...base, stockType, restockFrequency, ...pv, inventory: this._templateInventory, purchasingProfile: this._purchasingProfile };
     } else if (typeId === LOCATION_TYPE_IDS.STORAGE) {
       this.#syncStorageTypesFromDOM();
       result = { ...base, storageTypes: this._storageTypes.filter(st => st.name) };
     } else if (typeId === LOCATION_TYPE_IDS.STABLE) {
+      const stockType        = (formData.object.stableStockType        ?? "percent");
+      const restockFrequency = (formData.object.stableRestockFrequency ?? "weekly");
+      const pv = this.#readPriceVarFromForm(form, "stable", "stable");
       this.#syncStableStockFromDOM();
-      result = { ...base, stableStock: this._stableStock };
+
+      // Same immediate-roll-on-change treatment Merchant gets: new/changed listings don't sit at ∞
+      // until the next timed restock.
+      const oldById = new Map((this._entryBase?.stableStock ?? []).map(it => [it.id, it]));
+      const toRoll = this._stableStock.filter(it => {
+        const old = oldById.get(it.id);
+        if (!old || it.quantity === undefined) return true;
+        return Number(old.stockAvailability ?? 100) !== Number(it.stockAvailability ?? 100)
+            || (old.stockFormula ?? "").trim() !== (it.stockFormula ?? "").trim();
+      });
+      await rollStockAvailability(toRoll, stockType);
+
+      result = { ...base, stockType, restockFrequency, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates };
     }
 
     const resolve = this._resolve;

@@ -117,7 +117,21 @@ export function buildEntryTypeData(typeId, subType) {
   if (typeId === LOCATION_TYPE_IDS.STABLE) {
     const tpl = subType?.typeData?.stable ?? {};
     return {
-      stableStock: (tpl.stableStock ?? []).map(s => instanceFromTemplate(s, TEMPLATE_FIELDS.stableAnimal))
+      stockType:            tpl.stockType        ?? "percent",
+      restockFrequency:     tpl.restockFrequency ?? "weekly",
+      _tplStockType:        tpl.stockType        ?? "percent",
+      _tplRestockFrequency: tpl.restockFrequency ?? "weekly",
+      priceVarMin:            tpl.priceVarMin        ?? 0,
+      priceVarMax:            tpl.priceVarMax        ?? 0,
+      priceVarIndividual:     tpl.priceVarIndividual ?? false,
+      priceVarRounding:       tpl.priceVarRounding   ?? "same",
+      _tplPriceVarMin:        tpl.priceVarMin        ?? 0,
+      _tplPriceVarMax:        tpl.priceVarMax        ?? 0,
+      _tplPriceVarIndividual: tpl.priceVarIndividual ?? false,
+      _tplPriceVarRounding:   tpl.priceVarRounding   ?? "same",
+      lastRestocked:        null,
+      namingTemplates:      foundry.utils.deepClone(tpl.namingTemplates ?? []),
+      stableStock: (tpl.stableStock ?? []).map(s => instanceFromTemplate(s, TEMPLATE_FIELDS.stableAnimal, { quantity: null }))
     };
   }
   return {};
@@ -322,10 +336,12 @@ export function buildRentalDisplayList(location, bank, now, currencies) {
 /**
  * Re-roll each inventory item's stock in place: an availability check (x-in-6 die or percent chance)
  * decides whether the item is in stock this cycle, then a stock formula (if any) sets the quantity —
- * items with no formula show ∞ (null) when available or 0 when sold out. Shared by the passive
- * restock timer in buildMerchantData and the GM's manual "Refresh Stock" action so both roll identically.
+ * items with no formula show ∞ (null) when available or 0 when sold out. Field-agnostic (only reads
+ * price/stockAvailability/stockFormula/quantity), shared by both Merchant and Stable's passive restock
+ * timer (in buildMerchantData/buildStableData) and their GM manual "Force Restock" actions, so every
+ * caller rolls identically.
  */
-export async function rollMerchantRestock(inventory, stockType) {
+export async function rollStockAvailability(inventory, stockType) {
   for (const item of inventory) {
     const hasFormula = !!(item.stockFormula ?? "").trim();
     const avail = stockType === "x-in-6"
@@ -553,7 +569,7 @@ export async function buildMerchantData(entry, location, currencies, isGM = true
   let workingProfile = null;
 
   if (restockDue) {
-    await rollMerchantRestock(workingInventory, stockType);
+    await rollStockAvailability(workingInventory, stockType);
     applyPriceVariation(workingInventory, readPriceVarConfig(merchant), currencies);
     workingProfile = rollMerchantBuyRates(foundry.utils.deepClone(merchant.purchasingProfile ?? []));
     _needsSave = true;
@@ -871,22 +887,60 @@ export function buildStorageData(app, entry, location) {
 }
 
 /**
- * Build Stable display data — a flat list of purchasable Actor listings. Display name/image are
- * cached on the listing at drag-time (see #wireStableDragDrop in sub-type-edit.js), so this never
- * needs to resolve the source Actor live; a listing stays purchasable indefinitely (proof-of-concept
- * scope — no stock/quantity model, see roadmap notes).
+ * Build Stable display data, restocking if due (GM only) — mirrors buildMerchantData's passive
+ * restock/price-variation logic (rollStockAvailability + applyPriceVariation), and Merchant's
+ * settlement-size display gate. Display name/image are cached on each listing at drag-time (see
+ * #wireStableDragDrop in sub-type-edit.js), so this never needs to resolve the source Actor live.
+ * Returns `_needsSave` / `_updatedStable`; the caller persists via its own #saveEntryData.
  */
-export function buildStableData(entry, location, currencies) {
-  const stable = location.typeData?.[entry.id] ?? { stableStock: [] };
-  const stableStock = (stable.stableStock ?? []).map(s => ({
+export async function buildStableData(entry, location, currencies, isGM = true) {
+  const stable        = location.typeData?.[entry.id] ?? { stableStock: [] };
+  const stockType        = stable.stockType        ?? "percent";
+  const restockFrequency = stable.restockFrequency ?? "weekly";
+
+  const settlementTypes       = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
+  const currentSettlementType = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
+  const currentSettlementIdx  = settlementTypes.findIndex(t => t.name === currentSettlementType);
+
+  const { hoursPerDay, daysPerWeek } = getWorldTimeConfig();
+  const spd         = hoursPerDay * 3600;
+  const cadenceSecs = { daily: spd, weekly: spd * daysPerWeek, monthly: spd * daysPerWeek * 4 }[restockFrequency] ?? spd;
+  const restockDue  = isGM && (stable.lastRestocked == null || game.time.worldTime >= stable.lastRestocked + cadenceSecs);
+
+  let _needsSave = false;
+  const workingStock = foundry.utils.deepClone(stable.stableStock ?? []);
+
+  if (restockDue) {
+    await rollStockAvailability(workingStock, stockType);
+    applyPriceVariation(workingStock, readPriceVarConfig(stable), currencies);
+    _needsSave = true;
+  }
+
+  const displayStock = workingStock.filter(s => {
+    const min = s.minSettlementSize ?? "";
+    if (!min) return true;
+    const minIdx = settlementTypes.findIndex(t => t.name === min);
+    return minIdx === -1 || currentSettlementIdx >= minIdx;
+  });
+
+  const stableStock = displayStock.map(s => ({
     ...s,
-    priceLabel: s.price ? formatAmounts({ [s.price.currencyId]: s.price.amount }, currencies) : "—",
+    priceLabel: s.currentPrice?.coins
+      ? formatAmounts(s.currentPrice.coins, currencies)
+      : (s.price ? formatAmounts({ [s.price.currencyId]: s.price.amount }, currencies) : "—"),
+    stockLabel: s.quantity == null ? "∞" : String(s.quantity),
+    isSoldOut: s.quantity === 0,
     overridden: isOverridden(s, TEMPLATE_FIELDS.stableAnimal)
-  }));
+  })).filter(s => isGM || !s.isSoldOut);
+
+  const updatedStable = { ...stable, stableStock: workingStock, lastRestocked: game.time.worldTime };
+
   return {
     stableStock,
     hasStock: stableStock.length > 0,
-    isGM: game.user.isGM
+    isGM,
+    _needsSave,
+    _updatedStable: updatedStable
   };
 }
 

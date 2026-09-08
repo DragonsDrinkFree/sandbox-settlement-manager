@@ -2457,6 +2457,130 @@
 }
 
 /* -------------------------------------------- */
+/*  Stable Naming Templates                      */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .naming-templates-fieldset {
+  margin-top: 0.75rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-fieldset {
+  margin-top: 0.5rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  min-height: 2rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  margin-bottom: 0.25rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-row.dragging {
+  opacity: 0.35;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-drag-handle {
+  cursor: grab;
+  color: var(--color-text-dark-inactive, #999);
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-table-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-connector {
+  flex: 0 0 auto;
+  max-width: 8rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-custom-symbol {
+  flex: 0 0 auto;
+  width: 4rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-empty {
+  padding: 0.5rem;
+  font-style: italic;
+  color: var(--color-text-dark-inactive, #999);
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-piece-toolbar {
+  display: flex;
+  margin-bottom: 0.4rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-table-search {
+  margin-bottom: 0.5rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-table-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+#sandbox-settlement-manager-naming-template-edit .naming-table-search-input {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-results:empty {
+  display: none;
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-result:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.08));
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-result img {
+  object-fit: contain;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-naming-template-edit .item-search-pack-tag {
+  margin-left: auto;
+  font-size: var(--font-size-11, 11px);
+  color: var(--color-text-dark-inactive, #999);
+}
+
+/* -------------------------------------------- */
 /*  Cart Panel                                  */
 /* -------------------------------------------- */
 

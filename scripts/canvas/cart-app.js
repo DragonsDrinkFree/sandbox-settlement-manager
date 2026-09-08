@@ -331,6 +331,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static #findStockShortfalls(items) {
     const merchantWanted = new Map();
+    const stableWanted   = new Map();
     const lodgingWanted  = new Map();
     for (const item of items) {
       if (item.type === 'merchantItem') {
@@ -338,6 +339,11 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const agg = merchantWanted.get(key) ?? { name: item.itemName, qty: 0, ...item };
         agg.qty += item.quantity ?? 1;
         merchantWanted.set(key, agg);
+      } else if (item.type === 'stableAnimal') {
+        const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.listingId}`;
+        const agg = stableWanted.get(key) ?? { name: item.itemName, qty: 0, ...item };
+        agg.qty += item.quantity ?? 1;
+        stableWanted.set(key, agg);
       } else if (item.type === 'lodging') {
         const key = `${item.sceneId}:${item.locationId}:${item.entryId ?? ''}:${item.lodgingId}`;
         const agg = lodgingWanted.get(key) ?? { name: item.lodgingName, qty: 0, ...item };
@@ -353,6 +359,13 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const location  = locationsFor(w.sceneId).find(r => r.id === w.locationId);
       const entryId   = w.entryId ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.MERCHANT)?.id;
       const stock     = location?.typeData?.[entryId]?.inventory?.find(i => i.id === w.inventoryItemId)?.quantity;
+      if (typeof stock === 'number' && w.qty > stock) short.push(w.name);
+    }
+
+    for (const w of stableWanted.values()) {
+      const location  = locationsFor(w.sceneId).find(r => r.id === w.locationId);
+      const entryId   = w.entryId ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.STABLE)?.id;
+      const stock     = location?.typeData?.[entryId]?.stableStock?.find(i => i.id === w.listingId)?.quantity;
       if (typeof stock === 'number' && w.qty > stock) short.push(w.name);
     }
 
@@ -422,7 +435,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // buyback caching all share one deepClone + one save per location, so a buy and a sell at the
     // same location in a single checkout can't clobber each other.
     const mutationSceneIds = new Set([
-      ...items.filter(i => i.type === 'lodging' || i.type === 'merchantItem').map(i => i.sceneId),
+      ...items.filter(i => i.type === 'lodging' || i.type === 'merchantItem' || i.type === 'stableAnimal').map(i => i.sceneId),
       ...[...buybackByLocation.values()].map(b => b.sceneId)
     ]);
 
@@ -467,6 +480,20 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const invItem  = location?.typeData?.[entryId]?.inventory?.find(i => i.id === cartItem.inventoryItemId);
         if (invItem && typeof invItem.quantity === 'number') {
           invItem.quantity = Math.max(0, invItem.quantity - (cartItem.quantity ?? 1));
+          dirtyIds.add(cartItem.locationId);
+        }
+      }
+
+      // Stable purchases: decrement tracked stock (null quantity = unlimited, left untouched). The
+      // Actor copy itself is created separately, GM-side, after this loop (see below) — this only
+      // adjusts the listing's remaining count.
+      for (const cartItem of items.filter(i => i.type === 'stableAnimal' && i.sceneId === sceneId)) {
+        const location = locations.find(r => r.id === cartItem.locationId);
+        const entryId  = cartItem.entryId
+          ?? getTypeEntries(location ?? {}).find(e => e.typeId === LOCATION_TYPE_IDS.STABLE)?.id;
+        const stockItem = location?.typeData?.[entryId]?.stableStock?.find(i => i.id === cartItem.listingId);
+        if (stockItem && typeof stockItem.quantity === 'number') {
+          stockItem.quantity = Math.max(0, stockItem.quantity - (cartItem.quantity ?? 1));
           dirtyIds.add(cartItem.locationId);
         }
       }
@@ -526,7 +553,7 @@ export class CartApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const payload = {
           actorUuid: si.actorUuid, payingActorId: actorId, receivingActorId,
           sceneId: si.sceneId, locationId: si.locationId, entryId: si.entryId, listingId: si.listingId,
-          userId: game.user.id
+          quantity: si.quantity ?? 1, userId: game.user.id
         };
         if (game.user.isGM) await _handlePurchaseStableAnimal(payload);
         else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PURCHASE_STABLE_ANIMAL, payload });

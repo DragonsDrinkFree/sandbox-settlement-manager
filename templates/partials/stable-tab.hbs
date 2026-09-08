@@ -4,6 +4,11 @@
       <span class="inn-section-title">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.title"}}</span>
       {{#if this.isGM}}
       <div class="inn-section-actions">
+        <button type="button" class="icon" data-action="forceRestockStable"
+                aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.forceRestockLabel'}}"
+                data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.forceRestockLabel'}}">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
         <button type="button" class="icon" data-action="editLocationEntry"
                 aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.location.editEntry'}}">
           <i class="fa-solid fa-gear"></i>

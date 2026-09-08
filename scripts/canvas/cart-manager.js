@@ -74,11 +74,34 @@ class CartManager {
   }
 
   /**
-   * Add a Stable listing to the cart. Purchasing creates an independent copy of the listed Actor —
-   * the listing itself is never consumed, so (unlike addMerchantItem) there's no stock cap or
-   * merge-into-existing-line logic; buying the same listing twice is two separate lines/copies.
+   * Add a Stable listing to the cart. Stable listings now carry real stock like Merchant items
+   * (see rollStockAvailability), so this mirrors addMerchantItem's stock cap / merge-into-existing-
+   * line logic exactly — quantity > 1 buys that many independent copies on checkout.
    */
   addStableAnimal({ sceneId, locationId, locationName, entryId, listing }) {
+    const maxStock = typeof listing.quantity === 'number' ? listing.quantity : null;
+
+    if (maxStock === 0) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.cart.outOfStock"));
+      return;
+    }
+
+    const existing = this.#items.find(i =>
+      i.type === 'stableAnimal' &&
+      i.sceneId === sceneId && i.locationId === locationId &&
+      (i.entryId ?? null) === (entryId ?? null) && i.listingId === listing.id
+    );
+    if (existing) {
+      if (maxStock !== null && existing.quantity >= maxStock) {
+        ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.cart.stockCapReached"));
+        return;
+      }
+      existing.quantity = maxStock !== null ? Math.min(existing.quantity + 1, maxStock) : existing.quantity + 1;
+      existing.maxStock = maxStock;
+      this.#notify();
+      return;
+    }
+
     this.#items.push({
       id: foundry.utils.randomID(),
       type: 'stableAnimal',
@@ -90,7 +113,8 @@ class CartManager {
       actorUuid: listing.actorUuid,
       itemName: listing.name,
       price: listing.price,
-      quantity: 1
+      quantity: 1,
+      maxStock
     });
     this.#notify();
   }
@@ -155,8 +179,8 @@ class CartManager {
     const item = this.#items.find(i => i.id === cartId);
     if (!item) return;
     Object.assign(item, updates);
-    // Clamp stock-limited merchant items to their available stock.
-    if (item.type === 'merchantItem' && typeof item.maxStock === 'number') {
+    // Clamp stock-limited merchant/stable items to their available stock.
+    if ((item.type === 'merchantItem' || item.type === 'stableAnimal') && typeof item.maxStock === 'number') {
       item.quantity = Math.max(1, Math.min(item.quantity, item.maxStock));
     }
     this.#notify();
