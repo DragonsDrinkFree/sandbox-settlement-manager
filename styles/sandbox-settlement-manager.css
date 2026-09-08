@@ -2121,7 +2121,8 @@
 
 #sandbox-settlement-manager-settlement-manage .merchant-drop-zone,
 #sandbox-settlement-manager-location-detail .merchant-drop-zone,
-#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone {
+#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone,
+#sandbox-settlement-manager-naming-template-edit .merchant-drop-zone {
   border: 2px dashed var(--color-border-light-secondary, #aaa);
   border-radius: 4px;
   padding: 0.75rem 1rem;
@@ -2141,7 +2142,8 @@
 
 #sandbox-settlement-manager-settlement-manage .merchant-drop-zone.drag-over,
 #sandbox-settlement-manager-location-detail .merchant-drop-zone.drag-over,
-#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone.drag-over {
+#sandbox-settlement-manager-sub-type-edit .merchant-drop-zone.drag-over,
+#sandbox-settlement-manager-naming-template-edit .merchant-drop-zone.drag-over {
   border-color: var(--color-text-success, #4a8);
   color: var(--color-text-dark-primary, #333);
   background: rgba(68, 170, 136, 0.05);
@@ -2494,6 +2496,14 @@
   margin-bottom: 0.5rem;
 }
 
+#sandbox-settlement-manager-naming-templates-list .naming-templates-table td.col-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
 #sandbox-settlement-manager-naming-template-edit .naming-piece-fieldset {
   margin-top: 0.5rem;
 }
@@ -2556,58 +2566,71 @@
   margin-bottom: 0.4rem;
 }
 
-#sandbox-settlement-manager-naming-template-edit .naming-table-search {
-  margin-bottom: 0.5rem;
+/* Body-mounted — not scoped to app ID; uses explicit colors like .ssm-actor-dropdown-list above */
+.naming-table-search-popover {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  width: 260px;
+  max-height: 280px;
+  background: var(--color-bg-primary, #f0ede0);
+  color: #2a2a2a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  padding: 0.4rem;
 }
 
-#sandbox-settlement-manager-naming-template-edit .naming-table-search-row {
+.naming-table-search-popover.is-open {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.25rem;
 }
 
-#sandbox-settlement-manager-naming-template-edit .naming-table-search-input {
-  flex: 1;
+.naming-table-search-popover .naming-table-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.3rem;
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-results {
+.naming-table-search-popover .item-search-results {
   list-style: none;
   padding: 0;
   margin: 0;
-  border: 1px solid var(--color-border-light-tertiary, #ccc);
-  border-radius: 3px;
-  max-height: 160px;
   overflow-y: auto;
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-results:empty {
+.naming-table-search-popover .item-search-results:empty {
   display: none;
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-result {
+.naming-table-search-popover .item-search-result {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.3rem 0.5rem;
-  cursor: pointer;
-  font-size: var(--font-size-13, 13px);
+  padding: 0.25rem 0.2rem;
+  font-size: var(--font-size-12, 12px);
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-result:hover {
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.08));
+.naming-table-search-popover .item-search-result:hover {
+  background: rgba(0, 0, 0, 0.07);
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-result img {
+.naming-table-search-popover .item-search-result img {
   object-fit: contain;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-#sandbox-settlement-manager-naming-template-edit .item-search-pack-tag {
+.naming-table-search-popover .item-search-pack-tag {
   margin-left: auto;
   font-size: var(--font-size-11, 11px);
-  color: var(--color-text-dark-inactive, #999);
+  color: rgba(42, 42, 42, 0.6);
+}
+
+.naming-table-search-popover .naming-table-add-btn {
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+  color: #2a2a2a;
 }
 
 /* -------------------------------------------- */

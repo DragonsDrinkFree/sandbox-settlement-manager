@@ -730,7 +730,7 @@
       "namingPiecesLegend": "Name Pieces",
       "addTable": "Add Table",
       "tableSearchPlaceholder": "Search Rollable Tables...",
-      "pieceDropHint": "Drag a Rollable Table here (from the sidebar or a compendium) to add a name piece",
+      "pieceDropHint": "Drag & Drop Table to add",
       "colPieceCount": "Pieces",
       "connectorNone": "Nothing",
       "connectorSpace": "Space",

@@ -8,20 +8,9 @@
     <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.namingPiecesLegend"}}</legend>
 
     <div class="naming-piece-toolbar">
-      <button type="button" class="lodging-add-btn" data-action="addTable">
+      <button type="button" class="lodging-add-btn naming-add-table-btn">
         <i class="fa-solid fa-magnifying-glass"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.addTable"}}
       </button>
-    </div>
-
-    <div class="naming-table-search"{{#unless showTableSearch}} hidden{{/unless}}>
-      <div class="naming-table-search-row">
-        <input type="text" class="naming-table-search-input"
-               placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.tableSearchPlaceholder'}}">
-        <button type="button" class="icon" data-action="closeTableSearch" aria-label="Close">
-          <i class="fa-solid fa-times"></i>
-        </button>
-      </div>
-      <ul class="item-search-results naming-table-search-results"></ul>
     </div>
 
     <div class="naming-piece-drop-zone merchant-drop-zone">

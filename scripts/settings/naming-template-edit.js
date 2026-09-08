@@ -12,7 +12,10 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class NamingTemplateEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _resolve = null;
   _template;
-  _showTableSearch = false; // survives re-renders so adding several tables in a row doesn't require re-clicking "Add Table"
+  #searchPopover = null; // body-mounted (see reference/foundry-reference/Body-mounted-Pickers.md) —
+                          // persists across this app's own re-renders, so adding several tables in a
+                          // row doesn't require reopening it; removed on close.
+  #searchAbort = null;
 
   constructor(template, options = {}) {
     super(options);
@@ -32,9 +35,7 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
     form: { handler: NamingTemplateEditApp.#onSubmit, closeOnSubmit: true },
     position: { width: 480 },
     actions: {
-      deletePiece:       NamingTemplateEditApp.#onDeletePiece,
-      addTable:          NamingTemplateEditApp.#onAddTable,
-      closeTableSearch:  NamingTemplateEditApp.#onCloseTableSearch
+      deletePiece: NamingTemplateEditApp.#onDeletePiece
     }
   };
 
@@ -64,7 +65,6 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
 
     return {
       template: this._template,
-      showTableSearch: this._showTableSearch,
       pieces: (this._template.pieces ?? []).map((p, i) => ({
         ...p,
         index: i,
@@ -81,8 +81,11 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
     this.#wireConnectorToggles();
     this.#setupDragSort();
     this.#wireTableSearch();
-    if (this._showTableSearch) this.element.querySelector('.naming-table-search-input')?.focus();
-    else this.element.querySelector('[name="name"]')?.focus();
+    // Re-renders happen while the popover may be open (e.g. deleting a piece) — don't steal focus
+    // from it back to the name field in that case.
+    if (!this.#searchPopover?.classList.contains('is-open')) {
+      this.element.querySelector('[name="name"]')?.focus();
+    }
   }
 
   #wireDropZone() {
@@ -115,55 +118,97 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
   }
 
   /**
-   * Live text search across both world Rollable Tables and every RollTable compendium's index —
-   * an alternative to dragging a table in, for tables that aren't conveniently visible in the
-   * sidebar. Modeled on CurrencyEditApp's item search (currency-edit.js#setupItemSearch).
+   * A body-mounted filter popover, anchored under the "Add Table" button — escapes the window's own
+   * overflow/stacking context (see reference/foundry-reference/Body-mounted-Pickers.md). Filters
+   * across both world Rollable Tables and every RollTable compendium's index; each result has its
+   * own "+" to add it as a piece without closing the popover, so several can be added in a row.
+   * Closes on an outside click. The popover element itself is created once and reused across this
+   * app's re-renders — only the trigger button (recreated by every render) is rewired each time.
    */
   #wireTableSearch() {
-    const searchInput = this.element.querySelector('.naming-table-search-input');
-    const resultsList = this.element.querySelector('.naming-table-search-results');
-    if (!searchInput || !resultsList) return;
+    const trigger = this.element.querySelector('.naming-add-table-btn');
+    if (!trigger) return;
 
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.trim().toLowerCase();
-      if (!query) { resultsList.innerHTML = ""; return; }
+    if (!this.#searchPopover) {
+      this.#searchAbort = new AbortController();
+      const { signal } = this.#searchAbort;
 
-      const worldMatches = game.tables.contents
-        .filter(t => t.name.toLowerCase().includes(query))
-        .map(t => ({ uuid: t.uuid, name: t.name, img: t.img, fromPack: false }));
+      const popover = document.createElement('div');
+      popover.className = 'naming-table-search-popover';
+      popover.innerHTML = `
+        <input type="text" class="naming-table-search-input"
+               placeholder="${foundry.utils.escapeHTML(game.i18n.localize('SANDBOX_SETTLEMENT_MANAGER.stable.tableSearchPlaceholder'))}">
+        <ul class="item-search-results naming-table-search-results"></ul>
+      `;
+      document.body.appendChild(popover);
+      this.#searchPopover = popover;
 
-      const packMatches = [];
-      for (const pack of game.packs) {
-        if (pack.documentName !== "RollTable") continue;
-        for (const entry of pack.index) {
-          if (entry.name.toLowerCase().includes(query))
-            packMatches.push({ uuid: entry.uuid, name: entry.name, img: entry.img, fromPack: true });
-        }
+      const searchInput = popover.querySelector('.naming-table-search-input');
+      const resultsList  = popover.querySelector('.naming-table-search-results');
+      searchInput.addEventListener('input', () => this.#refreshTableSearchResults(searchInput, resultsList), { signal });
+
+      document.addEventListener('click', e => {
+        if (popover.contains(e.target) || e.target.closest('.naming-add-table-btn')) return;
+        popover.classList.remove('is-open');
+      }, { signal });
+    }
+
+    const popover = this.#searchPopover;
+    trigger.addEventListener('click', e => {
+      e.stopPropagation();
+      if (popover.classList.contains('is-open')) { popover.classList.remove('is-open'); return; }
+      const rect = trigger.getBoundingClientRect();
+      popover.style.top  = `${rect.bottom + 4}px`;
+      popover.style.left = `${rect.left}px`;
+      popover.classList.add('is-open');
+      popover.querySelector('.naming-table-search-input')?.focus();
+    });
+  }
+
+  #refreshTableSearchResults(searchInput, resultsList) {
+    const query = searchInput.value.trim().toLowerCase();
+    if (!query) { resultsList.innerHTML = ""; return; }
+
+    const worldMatches = game.tables.contents
+      .filter(t => t.name.toLowerCase().includes(query))
+      .map(t => ({ uuid: t.uuid, name: t.name, img: t.img, fromPack: false }));
+
+    const packMatches = [];
+    for (const pack of game.packs) {
+      if (pack.documentName !== "RollTable") continue;
+      for (const entry of pack.index) {
+        if (entry.name.toLowerCase().includes(query))
+          packMatches.push({ uuid: entry.uuid, name: entry.name, img: entry.img, fromPack: true });
       }
+    }
 
-      const matches = [...worldMatches, ...packMatches].slice(0, 12);
+    const matches = [...worldMatches, ...packMatches].slice(0, 12);
 
-      resultsList.innerHTML = matches
-        .map(t => `<li class="item-search-result naming-table-search-result" data-uuid="${t.uuid}">
-          ${t.img ? `<img src="${t.img}" width="18" height="18">` : ""}
-          <span>${t.name}</span>${t.fromPack ? `<em class="item-search-pack-tag">(Compendium)</em>` : ""}</li>`)
-        .join("");
+    resultsList.innerHTML = matches
+      .map(t => `<li class="item-search-result naming-table-search-result">
+        ${t.img ? `<img src="${t.img}" width="18" height="18">` : ""}
+        <span>${t.name}</span>${t.fromPack ? `<em class="item-search-pack-tag">(Compendium)</em>` : ""}
+        <button type="button" class="icon naming-table-add-btn" data-uuid="${t.uuid}" aria-label="Add">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </li>`)
+      .join("");
 
-      resultsList.querySelectorAll('.naming-table-search-result').forEach(li => {
-        li.addEventListener('click', async () => {
-          const table = await fromUuid(li.dataset.uuid).catch(() => null);
-          if (!table) return;
-          this.#syncNameFromDOM();
-          this.#syncPiecesFromDOM();
-          this._template.pieces.push({
-            id: foundry.utils.randomID(),
-            tableUuid: table.uuid,
-            tableName: table.name,
-            connector: "none",
-            customSymbol: ""
-          });
-          this.render({ parts: ['form'] });
+    resultsList.querySelectorAll('.naming-table-add-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const table = await fromUuid(btn.dataset.uuid).catch(() => null);
+        if (!table) return;
+        this.#syncNameFromDOM();
+        this.#syncPiecesFromDOM();
+        this._template.pieces.push({
+          id: foundry.utils.randomID(),
+          tableUuid: table.uuid,
+          tableName: table.name,
+          connector: "none",
+          customSymbol: ""
         });
+        this.render({ parts: ['form'] });
       });
     });
   }
@@ -246,20 +291,6 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
     this.render({ parts: ["form"] });
   }
 
-  static #onAddTable() {
-    this.#syncNameFromDOM();
-    this.#syncPiecesFromDOM();
-    this._showTableSearch = true;
-    this.render({ parts: ["form"] });
-  }
-
-  static #onCloseTableSearch() {
-    this.#syncNameFromDOM();
-    this.#syncPiecesFromDOM();
-    this._showTableSearch = false;
-    this.render({ parts: ["form"] });
-  }
-
   static async #onSubmit(event, form, formData) {
     const name = (formData.object.name ?? "").trim();
     this.#syncPiecesFromDOM();
@@ -274,6 +305,10 @@ export class NamingTemplateEditApp extends HandlebarsApplicationMixin(Applicatio
 
   async _onClose(options) {
     await super._onClose(options);
+    // Body-mounted elements aren't children of this app's root, so they don't clean up on their own.
+    this.#searchAbort?.abort();
+    this.#searchPopover?.remove();
+    this.#searchPopover = null;
     this._resolve?.(null);
     this._resolve = null;
   }
