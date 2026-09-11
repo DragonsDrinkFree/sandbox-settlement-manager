@@ -93,6 +93,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table,
 #sandbox-settlement-manager-location-detail .ssm-table,
+#sandbox-settlement-manager-contract-manager .ssm-table,
 #sandbox-settlement-manager-course-edit .ssm-table {
   width: 100%;
   border-collapse: collapse;
@@ -102,6 +103,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table thead th,
 #sandbox-settlement-manager-location-detail .ssm-table thead th,
+#sandbox-settlement-manager-contract-manager .ssm-table thead th,
 #sandbox-settlement-manager-course-edit .ssm-table thead th {
   text-align: left;
   font-size: var(--font-size-11, 11px);
@@ -117,6 +119,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table tbody td,
 #sandbox-settlement-manager-location-detail .ssm-table tbody td,
+#sandbox-settlement-manager-contract-manager .ssm-table tbody td,
 #sandbox-settlement-manager-course-edit .ssm-table tbody td {
   padding: 0.2rem 0.3rem;
   vertical-align: middle;
@@ -124,12 +127,14 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table tbody tr:nth-child(even) td,
 #sandbox-settlement-manager-location-detail .ssm-table tbody tr:nth-child(even) td,
+#sandbox-settlement-manager-contract-manager .ssm-table tbody tr:nth-child(even) td,
 #sandbox-settlement-manager-course-edit .ssm-table tbody tr:nth-child(even) td {
   background: var(--color-bg-option, rgba(0, 0, 0, 0.025));
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-table tbody tr:hover td,
 #sandbox-settlement-manager-location-detail .ssm-table tbody tr:hover td,
+#sandbox-settlement-manager-contract-manager .ssm-table tbody tr:hover td,
 #sandbox-settlement-manager-course-edit .ssm-table tbody tr:hover td {
   background: var(--color-bg-option, rgba(0, 0, 0, 0.06));
 }
@@ -137,12 +142,14 @@
 /* Column modifier utilities */
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-col-controls,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-col-controls,
+#sandbox-settlement-manager-contract-manager .ssm-table .ssm-col-controls,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-col-controls {
   width: 3rem;
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-col-right,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-col-right,
+#sandbox-settlement-manager-contract-manager .ssm-table .ssm-col-right,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-col-right {
   text-align: right;
   white-space: nowrap;
@@ -150,6 +157,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-col-action,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-col-action,
+#sandbox-settlement-manager-contract-manager .ssm-table .ssm-col-action,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-col-action {
   text-align: right;
   white-space: nowrap;
@@ -157,6 +165,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-col-center,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-col-center,
+#sandbox-settlement-manager-contract-manager .ssm-table .ssm-col-center,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-col-center {
   text-align: center;
   white-space: nowrap;
@@ -164,6 +173,7 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-table .ssm-empty,
 #sandbox-settlement-manager-location-detail .ssm-table .ssm-empty,
+#sandbox-settlement-manager-contract-manager .ssm-table .ssm-empty,
 #sandbox-settlement-manager-course-edit .ssm-table .ssm-empty {
   font-size: var(--font-size-12, 12px);
   color: var(--color-text-dark-inactive, #999);
@@ -3352,7 +3362,8 @@
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-bank-placeholder,
-#sandbox-settlement-manager-location-detail .ssm-bank-placeholder {
+#sandbox-settlement-manager-location-detail .ssm-bank-placeholder,
+#sandbox-settlement-manager-contract-manager .ssm-bank-placeholder {
   color: var(--color-text-dark-secondary, #888);
   font-style: italic;
   margin: 0.25rem 0;
@@ -4759,5 +4770,70 @@ hr.ssm-settings-divider {
   align-items: center;
   gap: 0.3rem;
   margin-left: auto;
+}
+
+/* -------------------------------------------- */
+/*  Stable Contracts                             */
+/* -------------------------------------------- */
+
+#sandbox-settlement-manager-sub-type-edit .ssm-contract-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-negotiate-contract .ssm-negotiate-intro {
+  margin: 0 0 0.5rem;
+}
+
+#sandbox-settlement-manager-negotiate-contract .ssm-negotiate-wage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+#sandbox-settlement-manager-contract-details .ssm-contract-terms {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+#sandbox-settlement-manager-contract-details .ssm-contract-terms dt {
+  font-weight: bold;
+  color: var(--color-text-dark-secondary, #555);
+}
+
+#sandbox-settlement-manager-contract-details .ssm-contract-terms dd {
+  margin: 0;
+}
+
+#sandbox-settlement-manager-contract-details .ssm-contract-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
+#sandbox-settlement-manager-contract-details .ssm-contract-notes textarea {
+  font-family: inherit;
+  font-size: var(--font-size-12, 12px);
+  resize: vertical;
+}
+
+#sandbox-settlement-manager-contract-manager .ssm-contract-manager-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+/* The sheet-injected "Contract Details" header-control button, left of the kebab. */
+.ssm-contract-btn {
+  cursor: pointer;
 }
 

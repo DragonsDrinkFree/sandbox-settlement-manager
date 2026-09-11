@@ -14,6 +14,7 @@ import { registerSettingsUI } from "./settings/settings-ui.js";
 import { SetupWizardApp } from "./settings/setup-wizard-app.js";
 import { registerSceneConfigTab } from "./scene/scene-config.js";
 import { registerSettlementControls } from "./canvas/settlement-controls.js";
+import { registerContractSheetButton } from "./canvas/contract-sheet-button.js";
 import { registerWorldTimeHooks } from "./time/world-time.js";
 import { registerSocketHandlers } from "./socket.js";
 import "./canvas/cart-manager.js";
@@ -32,6 +33,7 @@ Hooks.once("init", () => {
   registerSettings();
   registerSettingsUI();
   registerSettlementControls();
+  registerContractSheetButton();
   registerWorldTimeHooks();
   registerSceneConfigTab();
 });

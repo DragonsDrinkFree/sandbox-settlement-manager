@@ -2,12 +2,8 @@
 - Price variability/reputation system
 
 
-# Storage
-- Display: needs refinement, proper list., button alignments. Checkboxes
-
-
 # Stable Requirements
-- Random Name Source
-- "nameable" checkbox to prompt owner for name. (owner, not purchaser)
 - Mercentary vs pet? Contract?
 - Random Inventory.
+
+- NPC contracts, Centralized Configuration per actor. add randomization?

@@ -1,0 +1,47 @@
+<div class="ssm-contract-manager">
+  {{#if hasRows}}
+  <table class="ssm-table ssm-contract-manager-table">
+    <thead>
+      <tr>
+        <th class="col-auto"></th>
+        <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colActor"}}</th>
+        <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colHiring"}}</th>
+        <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colTermsShort"}}</th>
+        <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colWage"}}</th>
+        <th class="ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colOwed"}}</th>
+        <th>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colTreasure"}}</th>
+        <th class="ssm-col-action"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+      <tr>
+        <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="24" height="24" alt=""></td>
+        <td>{{this.actorName}}</td>
+        <td>{{this.hiringActorName}}</td>
+        <td>{{this.termsLabel}}</td>
+        <td>{{this.wageRateLabel}}</td>
+        <td class="ssm-col-right">{{this.owedLabel}}</td>
+        <td>{{this.treasureShareLabel}}</td>
+        <td class="ssm-col-action ssm-contract-manager-actions">
+          <button type="button" class="icon" data-action="openContractDetails" data-actor-uuid="{{this.actorUuid}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailsTitleShort'}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailsTitleShort'}}">
+            <i class="fa-solid fa-file-signature"></i>
+          </button>
+          <button type="button" class="icon" data-action="requestPayment" data-actor-uuid="{{this.actorUuid}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.requestPayment'}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.requestPayment'}}">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+          </button>
+          <button type="button" class="icon" data-action="revokeContract" data-actor-uuid="{{this.actorUuid}}"
+                  data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.revoke'}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.revoke'}}">
+            <i class="fa-solid fa-file-circle-xmark"></i>
+          </button>
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="ssm-bank-placeholder"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.managerEmpty"}}</em></p>
+  {{/if}}
+</div>

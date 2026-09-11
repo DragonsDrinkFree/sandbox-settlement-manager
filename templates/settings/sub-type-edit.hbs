@@ -363,6 +363,13 @@
               data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.namingTemplates'}}">
         <i class="fa-solid fa-signature"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.configureNamingTemplates"}}
       </button>
+      <label class="ssm-contract-type-label">
+        {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contractTypeLabel"}}
+        <select name="stableContractType">
+          <option value="purchase"{{#if (eq stableContractType "purchase")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contractTypePurchase"}}</option>
+          <option value="contract"{{#if (eq stableContractType "contract")}} selected{{/if}}>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contractTypeContract"}}</option>
+        </select>
+      </label>
     </div>
     <fieldset class="stable-stock-templates">
       <legend>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.stockLegend"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableStock'}}"></i></legend>
@@ -390,7 +397,7 @@
             <th class="col-auto"></th>
             <th class="col-naming">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colNameOption"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.stableNameOption'}}"></i></th>
             <th class="col-lname">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colName"}}</th>
-            <th class="col-price">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}</th>
+            <th class="col-price">{{#if stableIsContract}}{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colTerms"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}{{/if}}</th>
             <th class="col-msize">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.settlementSize"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantSettlementSize'}}"></i></th>
             <th class="col-mavail">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockAvailability"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantAvailability'}}"></i></th>
             <th class="col-mformula">{{localize "SANDBOX_SETTLEMENT_MANAGER.merchant.stockFormula"}} <i class="fa-solid fa-circle-question ssm-help" data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.help.merchantStockFormula'}}"></i></th>
@@ -410,7 +417,15 @@
             </td>
             <td class="col-lname">{{this.name}}</td>
             <td class="col-price">
+              {{#if ../stableIsContract}}
+              <select data-field="contractTerms">
+                {{#each this.contractTermsOptions}}
+                <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+              </select>
+              {{else}}
               {{> ssm-price-input attr="data-field" field="price" price=this.price currencies=../currencies amountClass="lodging-price-input" selectClass="price-currency-select"}}
+              {{/if}}
             </td>
             <td class="col-msize">
               <select data-field="minSettlementSize">

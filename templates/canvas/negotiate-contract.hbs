@@ -1,0 +1,39 @@
+<div class="ssm-negotiate-contract-form">
+  <p class="ssm-negotiate-intro">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.negotiateIntro"}} <strong>{{listingName}}</strong></p>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.hiringCharacter"}}</label>
+    <select name="hiringActorId">
+      <option value="">— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —</option>
+      {{#each ownedActors}}
+      <option value="{{this.id}}">{{this.name}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  {{#if wantsWage}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.wageLabel"}}</label>
+    <div class="ssm-negotiate-wage-row">
+      {{> ssm-price-input attr="name" field="wage" price=wagePrice currencies=currencies amountClass="ssm-loan-amount-input" selectClass="ssm-loan-currency-select"}}
+      <span class="ssm-loan-per-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.perLabel"}}</span>
+      <select name="wagePeriod">
+        {{#each periods}}
+        <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+  {{/if}}
+
+  {{#if wantsTreasure}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.treasureLabel"}}</label>
+    <select name="treasureShare">
+      {{#each treasureShares}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+  {{/if}}
+</div>

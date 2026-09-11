@@ -74,6 +74,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _priceVarRounding = null;
   _stableStockType = null;        // tracks stableStockType <select> across re-renders — separate from Merchant's
   _stableRestockFrequency = null; // tracks stableRestockFrequency <select> across re-renders
+  _stableContractType = null;     // tracks stableContractType <select> ("purchase" | "contract") across re-renders
   _stablePriceVarMin = null;         // tracks Stable's own price-variation config across re-renders
   _stablePriceVarMax = null;
   _stablePriceVarIndividual = null;
@@ -162,6 +163,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._namingTemplates    = foundry.utils.deepClone(subType.typeData?.stable?.namingTemplates ?? []);
       app._stableStockType         = subType.typeData?.stable?.stockType        ?? null;
       app._stableRestockFrequency  = subType.typeData?.stable?.restockFrequency ?? null;
+      app._stableContractType      = subType.typeData?.stable?.contractType     ?? null;
       app._stablePriceVarMin        = subType.typeData?.stable?.priceVarMin        ?? null;
       app._stablePriceVarMax        = subType.typeData?.stable?.priceVarMax        ?? null;
       app._stablePriceVarIndividual = subType.typeData?.stable?.priceVarIndividual ?? null;
@@ -202,6 +204,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       syntheticTypeData.stable = {
         stableStock: entryData.stableStock ?? [],
         stockType: entryData.stockType, restockFrequency: entryData.restockFrequency,
+        contractType: entryData.contractType,
         namingTemplates: entryData.namingTemplates ?? []
       };
     }
@@ -229,6 +232,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       app._priceVarRounding   = entryData.priceVarRounding   ?? null;
       app._stableStockType         = entryData.stockType ?? null;
       app._stableRestockFrequency  = entryData.restockFrequency ?? null;
+      app._stableContractType      = entryData.contractType ?? null;
       app._stablePriceVarMin        = entryData.priceVarMin        ?? null;
       app._stablePriceVarMax        = entryData.priceVarMax        ?? null;
       app._stablePriceVarIndividual = entryData.priceVarIndividual ?? null;
@@ -280,6 +284,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const stableTypeData        = this._subType.typeData?.stable ?? {};
     const stableStockType        = this._stableStockType        ?? stableTypeData.stockType        ?? "percent";
     const stableRestockFrequency = this._stableRestockFrequency ?? stableTypeData.restockFrequency ?? "weekly";
+    const stableContractType     = this._stableContractType     ?? stableTypeData.contractType     ?? "purchase";
+    const stableIsContract       = stableContractType === "contract";
     const isStableXInSix         = stableStockType === "x-in-6";
     const stablePriceVarMin        = this._stablePriceVarMin        ?? stableTypeData.priceVarMin        ?? 0;
     const stablePriceVarMax        = this._stablePriceVarMax        ?? stableTypeData.priceVarMax        ?? 0;
@@ -401,10 +407,15 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
           value: "prompt",
           label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.nameOptionPrompt")
         }, ...this._namingTemplates.map(t => ({ value: t.id, label: t.name }))];
+        const contractTermsBase = ["wages", "treasure", "both"].map(v => ({
+          value: v, label: game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.stable.contract.terms.${v}`)
+        }));
         stableStock = this._stableStock.map(s => {
           const entry = {
             ...s,
             price: s.price ?? { currencyId: defaultCurrencyId, amount: 0 },
+            contractTerms: s.contractTerms ?? "wages",
+            contractTermsOptions: contractTermsBase.map(o => ({ ...o, selected: (s.contractTerms ?? "wages") === o.value })),
             nameOptionOptions: nameOptionBase.map(o => ({ ...o, selected: (s.nameOption ?? "prompt") === o.value }))
           };
           if (isStableXInSix) {
@@ -480,6 +491,8 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       priceVarRounding,
       stableStockType,
       stableRestockFrequency,
+      stableContractType,
+      stableIsContract,
       isStableXInSix,
       stablePriceVarMin,
       stablePriceVarMax,
@@ -533,6 +546,13 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Same idea for Stable's own stock type — independent of Merchant's.
     this.element.querySelector('[name="stableStockType"]')?.addEventListener('change', () => {
+      this.#syncSubTypeName();
+      this.#syncStableStockFromDOM();
+      this.render({ parts: ["form"] });
+    });
+
+    // Switching Contract Type swaps the per-listing price column ↔ contract-terms dropdown, so re-render.
+    this.element.querySelector('[name="stableContractType"]')?.addEventListener('change', () => {
       this.#syncSubTypeName();
       this.#syncStableStockFromDOM();
       this.render({ parts: ["form"] });
@@ -926,6 +946,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
         actorUuid: actor.uuid,
         actorImg: actor.img,
         price: { currencyId: defaultCurrencyId, amount: 0 },
+        contractTerms: "wages",
         minSettlementSize: "",
         stockAvailability: 100,
         stockFormula: "",
@@ -945,12 +966,18 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const id = row.dataset.stockId;
       const existing = byId.get(id);
       if (!existing) return null;
+      // In Contract mode the price inputs aren't in the DOM — carry the stored price through
+      // untouched rather than zeroing it.
+      const priceAmtEl = row.querySelector('[data-field="priceAmount"]');
       return {
         ...existing,
-        price: {
-          currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? existing.price?.currencyId ?? "",
-          amount: parseFloat(row.querySelector('[data-field="priceAmount"]')?.value) || 0
-        },
+        price: priceAmtEl
+          ? {
+              currencyId: row.querySelector('[data-field="priceCurrencyId"]')?.value ?? existing.price?.currencyId ?? "",
+              amount: parseFloat(priceAmtEl.value) || 0
+            }
+          : (existing.price ?? { currencyId: "", amount: 0 }),
+        contractTerms:    row.querySelector('[data-field="contractTerms"]')?.value ?? existing.contractTerms ?? "wages",
         minSettlementSize: (row.querySelector('[data-field="minSettlementSize"]')?.value ?? "").trim(),
         stockAvailability: parseFloat(row.querySelector('[data-field="stockAvailability"]')?.value) || 100,
         stockFormula:     (row.querySelector('[data-field="stockFormula"]')?.value ?? "").trim(),
@@ -971,6 +998,14 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (st) this._stockType = st;
     const rf = this.element?.querySelector('[name="merchantRestockFrequency"]')?.value;
     if (rf) this._restockFrequency = rf;
+    // Preserve the stable stock config + contract type across re-renders (their selects trigger
+    // full re-renders — the contract-type select swaps the per-listing price/terms column).
+    const sst = this.element?.querySelector('[name="stableStockType"]')?.value;
+    if (sst) this._stableStockType = sst;
+    const srf = this.element?.querySelector('[name="stableRestockFrequency"]')?.value;
+    if (srf) this._stableRestockFrequency = srf;
+    const sct = this.element?.querySelector('[name="stableContractType"]')?.value;
+    if (sct) this._stableContractType = sct;
     // Preserve price-variation config (these inputs leave the DOM on the purchasing tab).
     const pvMin = this.element?.querySelector('[name="merchantPriceVarMin"]');
     if (pvMin) this._priceVarMin = parseFloat(pvMin.value) || 0;
@@ -1408,9 +1443,10 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (typeId === LOCATION_TYPE_IDS.STABLE) {
       const stockType        = (formData.object.stableStockType        ?? "percent");
       const restockFrequency = (formData.object.stableRestockFrequency ?? "weekly");
+      const contractType     = (formData.object.stableContractType     ?? "purchase");
       const pv = this.#readPriceVarFromForm(form, "stable", "stable");
       this.#syncStableStockFromDOM();
-      result.typeData = { stable: { stockType, restockFrequency, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates } };
+      result.typeData = { stable: { stockType, restockFrequency, contractType, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates } };
     }
     result._templateTypeId = typeId;
 
@@ -1512,6 +1548,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } else if (typeId === LOCATION_TYPE_IDS.STABLE) {
       const stockType        = (formData.object.stableStockType        ?? "percent");
       const restockFrequency = (formData.object.stableRestockFrequency ?? "weekly");
+      const contractType     = (formData.object.stableContractType     ?? "purchase");
       const pv = this.#readPriceVarFromForm(form, "stable", "stable");
       this.#syncStableStockFromDOM();
 
@@ -1526,7 +1563,7 @@ export class SubTypeEditApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       await rollStockAvailability(toRoll, stockType);
 
-      result = { ...base, stockType, restockFrequency, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates };
+      result = { ...base, stockType, restockFrequency, contractType, ...pv, stableStock: this._stableStock, namingTemplates: this._namingTemplates };
     }
 
     const resolve = this._resolve;

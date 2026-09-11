@@ -23,7 +23,7 @@
         <tr>
           <th class="col-auto"></th>
           <th class="col-name">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colName"}}</th>
-          <th class="col-price ssm-col-right">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}</th>
+          <th class="col-price ssm-col-right">{{#if this.isContract}}{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.colTerms"}}{{else}}{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.colPrice"}}{{/if}}</th>
           <th class="ssm-col-action"></th>
         </tr>
       </thead>
@@ -32,11 +32,17 @@
         <tr>
           <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="24" height="24" alt=""></td>
           <td class="col-name">{{this.name}}</td>
-          <td class="col-price ssm-col-right">{{this.priceLabel}}</td>
+          <td class="col-price ssm-col-right">{{#if ../isContract}}{{this.contractTermsLabel}}{{else}}{{this.priceLabel}}{{/if}}</td>
           <td class="ssm-col-action">
+            {{#if ../isContract}}
+            <button type="button" class="buy-button" data-action="negotiateStableContract" data-stock-id="{{this.id}}">
+              {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.negotiateButton"}}
+            </button>
+            {{else}}
             <button type="button" class="buy-button" data-action="buyStableAnimal" data-stock-id="{{this.id}}">
               {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.buyButton"}}
             </button>
+            {{/if}}
           </td>
         </tr>
         {{/each}}

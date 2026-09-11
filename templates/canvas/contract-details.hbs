@@ -1,0 +1,49 @@
+<div class="ssm-contract-details">
+  {{#if missing}}
+  <p class="ssm-contract-missing"><em>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.noContract"}}</em></p>
+  {{else}}
+  <dl class="ssm-contract-terms">
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailTerms"}}</dt>
+    <dd>{{termsLabel}}</dd>
+
+    {{#if isWage}}
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailWage"}}</dt>
+    <dd>{{wageRateLabel}}</dd>
+    {{/if}}
+
+    {{#if isTreasure}}
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailTreasure"}}</dt>
+    <dd>{{treasureShareLabel}}</dd>
+    {{/if}}
+
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailSource"}}</dt>
+    <dd>{{sourceActorName}}</dd>
+
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailHiring"}}</dt>
+    <dd>{{hiringActorName}}</dd>
+
+    {{#if locationName}}
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailLocation"}}</dt>
+    <dd>{{locationName}}</dd>
+    {{/if}}
+
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailInitiated"}}</dt>
+    <dd>{{initiatedLabel}}</dd>
+
+    {{#if isWage}}
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailLastPaid"}}</dt>
+    <dd>{{lastPaidLabel}}</dd>
+
+    <dt>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.detailOwed"}}</dt>
+    <dd>{{owedLabel}}</dd>
+    {{/if}}
+  </dl>
+
+  {{#if isGM}}
+  <label class="ssm-contract-notes">
+    {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.gmNotesLabel"}}
+    <textarea name="gmNotes" rows="4">{{gmNotes}}</textarea>
+  </label>
+  {{/if}}
+  {{/if}}
+</div>

@@ -1,9 +1,10 @@
 import { MODULE_ID, FLAGS, SETTINGS } from "./constants.js";
-import { grantCoinsToActor, grantStandardToActor, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard } from "./utils/currency-utils.js";
-import { accrueLoan, periodSecondsFor } from "./utils/loan-utils.js";
+import { grantCoinsToActor, grantStandardToActor, parseExchangeRate, totalOfferedInStandard, getMaxDenomValue, costInStandard, getCurrencyContext, formatAmounts, removeCoinsFromActor } from "./utils/currency-utils.js";
+import { accrueLoan, periodSecondsFor, insufficientCurrencies } from "./utils/loan-utils.js";
 import { accrueStorageRent, resolveRentalPricing, availablePeriodUnits } from "./utils/rental-utils.js";
 import { resolveInstanceStorageType, nextFreeAreaName } from "./utils/storage-utils.js";
 import { getWorldTimeConfig } from "./time/world-time.js";
+import { contractTermsLabel, treasureShareLabel } from "./utils/contract-utils.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
@@ -19,7 +20,9 @@ export const SOCKET_TYPES = {
   EXTEND_STORAGE_RENTAL:  "extendStorageRental",
   PAY_STORAGE_RENT:       "payStorageRent",
   PURCHASE_STABLE_ANIMAL: "purchaseStableAnimal",
-  PROMPT_ACTOR_NAME:      "promptActorName"
+  PROMPT_ACTOR_NAME:      "promptActorName",
+  PROPOSE_STABLE_CONTRACT:  "proposeStableContract",
+  STABLE_CONTRACT_RESOLVED: "stableContractResolved"
 };
 
 export function registerSocketHandlers() {
@@ -30,6 +33,11 @@ export function registerSocketHandlers() {
     if (data.type === SOCKET_TYPES.PROMPT_ACTOR_NAME) {
       if (data.targetUserId !== game.user.id) return;
       await _handlePromptActorName(data);
+      return;
+    }
+    if (data.type === SOCKET_TYPES.STABLE_CONTRACT_RESOLVED) {
+      if (data.targetUserId !== game.user.id) return;
+      await _handleStableContractResolved(data);
       return;
     }
 
@@ -60,6 +68,8 @@ export function registerSocketHandlers() {
       await _handlePayStorageRent(data.payload ?? data);
     } else if (data.type === SOCKET_TYPES.PURCHASE_STABLE_ANIMAL) {
       await _handlePurchaseStableAnimal(data.payload ?? data);
+    } else if (data.type === SOCKET_TYPES.PROPOSE_STABLE_CONTRACT) {
+      await _handleProposeStableContract(data.payload ?? data);
     } else {
       console.warn(`${MODULE_ID} | Unknown socket message type: ${data.type}`);
     }
@@ -598,6 +608,172 @@ export async function _handlePurchaseStableAnimal({ actorUuid, payingActorId, re
         targetUserId: activeOwnerId, actorUuid: created.uuid, baseName: source.name
       });
     }
+  }
+}
+
+/**
+ * GM-side (active GM only): a player has proposed a Stable contract. Show the GM an Accept/Deny
+ * review; on Accept, clone the listed Actor exactly like a purchase (ownership → the hiring
+ * character's non-GM owners, naming per the listing's nameOption), stamp a `contract` flag on the
+ * clone, and notify the proposer. On Deny, notify the proposer. Dismissing the dialog drops the
+ * offer silently (transient — no persisted "pending" record). Contracts NEVER consume stock: no
+ * `stableStock[].quantity` / `lastRestocked` / scene-flag write here.
+ */
+export async function _handleProposeStableContract({ proposerUserId, hiringActorId, sceneId, locationId, entryId, listingId, wageAmount, wageCurrencyId, wagePeriod, treasureShare }) {
+  if (!_userOwnsActor(proposerUserId, hiringActorId)) return;
+
+  const location = (game.scenes.get(sceneId)?.getFlag(MODULE_ID, FLAGS.LOCATIONS) ?? []).find(r => r.id === locationId);
+  const stable   = location?.typeData?.[entryId];
+  const listing  = (stable?.stableStock ?? []).find(l => l.id === listingId);
+  if (!listing) return;
+  const contractTerms = listing.contractTerms ?? "wages"; // trust the listing, not the payload
+  const source = await fromUuid(listing.actorUuid).catch(() => null);
+  const hiringActor = game.actors.get(hiringActorId);
+  if (!source || !hiringActor) return;
+
+  const { currencies } = getCurrencyContext();
+  const { hoursPerDay } = getWorldTimeConfig();
+  const wantsWage = contractTerms === "wages" || contractTerms === "both";
+  const wantsTreasure = contractTerms === "treasure" || contractTerms === "both";
+  const periodLabel = game.i18n.localize(`SANDBOX_SETTLEMENT_MANAGER.bank.loans.period.${["day", "week", "month"].includes(wagePeriod) ? wagePeriod : "week"}`);
+  const wageCoins = wantsWage && wageCurrencyId ? { [wageCurrencyId]: Math.max(0, wageAmount || 0) } : {};
+
+  const lines = [
+    `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.gmReviewBody", {
+      hiring: foundry.utils.escapeHTML(hiringActor.name), source: foundry.utils.escapeHTML(source.name)
+    })}</p>`,
+    `<p><strong>${foundry.utils.escapeHTML(contractTermsLabel(contractTerms))}</strong></p>`
+  ];
+  if (wantsWage) lines.push(`<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.wageLine", {
+    amount: foundry.utils.escapeHTML(formatAmounts(wageCoins, currencies)), period: foundry.utils.escapeHTML(periodLabel)
+  })}</p>`);
+  if (wantsTreasure) lines.push(`<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.treasureLine", {
+    share: foundry.utils.escapeHTML(treasureShareLabel(treasureShare))
+  })}</p>`);
+
+  const decision = await foundry.applications.api.DialogV2.wait({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.contract.gmReviewTitle") },
+    content: lines.join(""),
+    buttons: [
+      { action: "accept", label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.contract.accept"), icon: "fa-solid fa-check", default: true, callback: () => "accept" },
+      { action: "deny",   label: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.contract.deny"),   icon: "fa-solid fa-xmark", callback: () => "deny" }
+    ],
+    rejectClose: false
+  });
+  if (!decision) return; // dismissed — offer dropped
+
+  if (decision === "deny") {
+    game.socket.emit(SOCKET_CHANNEL, {
+      type: SOCKET_TYPES.STABLE_CONTRACT_RESOLVED,
+      targetUserId: proposerUserId, accepted: false, listingName: source.name
+    });
+    return;
+  }
+
+  // ---- Accept: clone + own + stamp contract ----
+  const ownership = { default: 0 };
+  for (const u of game.users.filter(u => !u.isGM && hiringActor.testUserPermission(u, "OWNER"))) {
+    ownership[u.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+  }
+  const activeOwnerId = Object.keys(ownership).filter(id => id !== "default").find(id => game.users.get(id)?.active);
+
+  const namingTemplate = listing.nameOption && listing.nameOption !== "prompt"
+    ? (stable?.namingTemplates ?? []).find(t => t.id === listing.nameOption)
+    : null;
+  let name = source.name;
+  if (namingTemplate) {
+    const rolled = await rollNamingTemplate(namingTemplate);
+    if (rolled) name = `${rolled} (${source.name})`;
+  }
+
+  const now = game.time.worldTime;
+  const wp = ["day", "week", "month"].includes(wagePeriod) ? wagePeriod : "week";
+  const contract = {
+    id: foundry.utils.randomID(),
+    contractTerms,
+    sourceActorName: source.name,
+    sourceActorUuid: listing.actorUuid,
+    hiringActorId, hiringActorName: hiringActor.name,
+    sceneId, locationId, locationName: location.name, entryId, listingId,
+    wageAmount: wantsWage ? Math.max(0, wageAmount || 0) : 0,
+    wageCurrencyId: wantsWage ? (wageCurrencyId ?? "") : "",
+    wageCoins,
+    wagePerPeriodStandard: wantsWage ? costInStandard({ currencyId: wageCurrencyId, amount: Math.max(0, wageAmount || 0) }, currencies) : 0,
+    wagePeriod: wp,
+    periodSeconds: periodSecondsFor(wp, hoursPerDay * 3600),
+    treasureShare: wantsTreasure ? (treasureShare ?? "1/2") : null,
+    initiatedAt: now, lastPaidAt: now, lastAccrualAt: now,
+    owedStandard: 0, gmNotes: "", status: "active"
+  };
+
+  const actorData = source.toObject();
+  delete actorData._id;
+  delete actorData.folder;
+  actorData.name = name;
+  actorData.ownership = ownership;
+  foundry.utils.setProperty(actorData, `flags.${MODULE_ID}.${FLAGS.CONTRACT}`, contract);
+  const created = await Actor.create(actorData);
+  if (!created) return;
+
+  if (!namingTemplate && listing.nameOption === "prompt" && activeOwnerId) {
+    game.socket.emit(SOCKET_CHANNEL, {
+      type: SOCKET_TYPES.PROMPT_ACTOR_NAME,
+      targetUserId: activeOwnerId, actorUuid: created.uuid, baseName: source.name
+    });
+  }
+
+  game.socket.emit(SOCKET_CHANNEL, wantsWage
+    ? {
+        type: SOCKET_TYPES.STABLE_CONTRACT_RESOLVED, targetUserId: proposerUserId,
+        accepted: true, needsInitialWage: true,
+        actorUuid: created.uuid, wageCoins, hiringActorId, contractId: contract.id, listingName: source.name
+      }
+    : {
+        type: SOCKET_TYPES.STABLE_CONTRACT_RESOLVED, targetUserId: proposerUserId,
+        accepted: true, needsInitialWage: false, listingName: source.name
+      });
+}
+
+/**
+ * Runs on the proposing player's own client (the STABLE_CONTRACT_RESOLVED branch runs before the
+ * isGM gate). Denied / accepted-without-wage → a toast. Accepted-with-wage → a "pay the initial
+ * wage?" confirm; the player owns both the hiring actor and the cloned actor (ownership was granted
+ * GM-side), so the wage deduction + the clone's contract-flag timestamp update are done directly
+ * client-side — same trust model as _handlePromptActorName.
+ */
+export async function _handleStableContractResolved(data) {
+  if (data.accepted === false) {
+    ui.notifications.info(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.denied", { name: data.listingName }));
+    return;
+  }
+  if (!data.needsInitialWage) {
+    ui.notifications.info(game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.accepted", { name: data.listingName }));
+    return;
+  }
+
+  const actor = await fromUuid(data.actorUuid).catch(() => null);
+  const hiringActor = game.actors.get(data.hiringActorId);
+  if (!actor || !hiringActor) return;
+
+  const { currencies, mode } = getCurrencyContext();
+  const coinsLabel = formatAmounts(data.wageCoins ?? {}, currencies);
+  const short = mode === "loose" ? [] : insufficientCurrencies(hiringActor, data.wageCoins ?? {}, currencies, mode);
+
+  const confirmed = await foundry.applications.api.DialogV2.confirm({
+    window: { title: game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.contract.payInitialTitle") },
+    content: short.length
+      ? `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.payInitialShort", { coins: coinsLabel, short: short.join(", ") })}</p>`
+      : `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.payInitialBody", { coins: coinsLabel })}</p>`,
+    rejectClose: false
+  });
+  if (!confirmed) return; // contract persists; wage just accrues
+
+  if (mode !== "loose" && !short.length) await removeCoinsFromActor(hiringActor, data.wageCoins ?? {}, currencies, mode);
+
+  const cur = actor.getFlag(MODULE_ID, FLAGS.CONTRACT);
+  if (cur) {
+    const t = game.time.worldTime;
+    await actor.setFlag(MODULE_ID, FLAGS.CONTRACT, { ...cur, lastPaidAt: t, lastAccrualAt: t });
   }
 }
 

@@ -5,7 +5,8 @@ import { getWorldTimeConfig } from "../time/world-time.js";
 import { getCurrencyContext, calculateChange, formatAmounts, parseExchangeRate, totalOfferedInStandard, removeCoinsFromActor, getMaxDenomValue, costInStandard, settlePayment } from "../utils/currency-utils.js";
 import { WithdrawalDialog } from "./withdrawal-dialog.js";
 import { CurrencyPaymentDialog } from "./currency-payment-dialog.js";
-import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan, _handleRentStorage, _handleExtendStorageRental, _handlePayStorageRent } from "../socket.js";
+import { SOCKET_CHANNEL, SOCKET_TYPES, _handleRecordDeposit, _handleProcessWithdrawal, _handleEditDeposit, _handleAcceptLoan, _handleDeclineLoan, _handleRepayLoan, _handleRentStorage, _handleExtendStorageRental, _handlePayStorageRent, _handleProposeStableContract } from "../socket.js";
+import { NegotiateContractApp } from "./negotiate-contract-app.js";
 import { DepositEditApp } from "./deposit-edit-app.js";
 import { LoanOfferApp } from "./loan-offer-app.js";
 import { periodSecondsFor, accrueLoan, insufficientCurrencies, selectPayoffCoins } from "../utils/loan-utils.js";
@@ -56,6 +57,7 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       editLocationEntry:  LocationDetailApp.#onEditLocationEntry,
       rentLodging:        LocationDetailApp.#onRentLodging,
       buyStableAnimal:    LocationDetailApp.#onBuyStableAnimal,
+      negotiateStableContract: LocationDetailApp.#onNegotiateStableContract,
       dismissLedgerEntry: LocationDetailApp.#onDismissLedgerEntry,
       editBooking:        LocationDetailApp.#onEditBooking,
       addBooking:         LocationDetailApp.#onAddBooking,
@@ -328,6 +330,39 @@ export class LocationDetailApp extends HandlebarsApplicationMixin(ApplicationV2)
       listing
     });
     CartApp.open();
+  }
+
+  static async #onNegotiateStableContract(event, target) {
+    const stockId = target.dataset.stockId;
+    if (!stockId) return;
+    const listing = (this._location.typeData?.[this._activeTab]?.stableStock ?? []).find(s => s.id === stockId);
+    if (!listing) return;
+    if (!game.users.activeGM) {
+      ui.notifications.warn(game.i18n.localize("SANDBOX_SETTLEMENT_MANAGER.stable.contract.noGM"));
+      return;
+    }
+    const { currencies } = getCurrencyContext();
+    const offer = await NegotiateContractApp.open({
+      currencies,
+      contractTerms: listing.contractTerms ?? "wages",
+      listingName: listing.name
+    });
+    if (!offer) return;
+    const payload = {
+      proposerUserId: game.user.id,
+      hiringActorId: offer.hiringActorId,
+      sceneId: canvas.scene?.id,
+      locationId: this._location.id,
+      entryId: this._activeTab,
+      listingId: listing.id,
+      contractTerms: listing.contractTerms ?? "wages",
+      wageAmount: offer.wageAmount,
+      wageCurrencyId: offer.wageCurrencyId,
+      wagePeriod: offer.wagePeriod,
+      treasureShare: offer.treasureShare
+    };
+    if (game.user.isGM) await _handleProposeStableContract(payload);
+    else game.socket.emit(SOCKET_CHANNEL, { type: SOCKET_TYPES.PROPOSE_STABLE_CONTRACT, payload });
   }
 
   static async #onDismissLedgerEntry(event, target) {

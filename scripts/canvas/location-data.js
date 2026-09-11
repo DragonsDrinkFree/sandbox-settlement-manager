@@ -25,6 +25,7 @@ import { findEffectiveRule, computeSalePrice } from "./purchasing-utils.js";
 import { isOverridden, instanceFromTemplate, snapshot, TEMPLATE_FIELDS } from "./template-link.js";
 import { accrueLoan, computeOwedCoins } from "../utils/loan-utils.js";
 import { accrueStorageRent, resolveRentalPricing, availablePeriodUnits } from "../utils/rental-utils.js";
+import { contractTermsLabel } from "../utils/contract-utils.js";
 import { computeItemWeight, computeGroupUsedWeight, resolveEffectivePolicy, canRetrieve, getGroupAccessList, canManageGuests, resolveInstanceStorageType } from "../utils/storage-utils.js";
 
 /** The configured location sub-type map, guarded against the legacy array/undefined shape. */
@@ -130,6 +131,7 @@ export function buildEntryTypeData(typeId, subType) {
       _tplPriceVarIndividual: tpl.priceVarIndividual ?? false,
       _tplPriceVarRounding:   tpl.priceVarRounding   ?? "same",
       lastRestocked:        null,
+      contractType:         tpl.contractType ?? "purchase",
       namingTemplates:      foundry.utils.deepClone(tpl.namingTemplates ?? []),
       stableStock: (tpl.stableStock ?? []).map(s => instanceFromTemplate(s, TEMPLATE_FIELDS.stableAnimal, { quantity: null }))
     };
@@ -897,6 +899,8 @@ export async function buildStableData(entry, location, currencies, isGM = true) 
   const stable        = location.typeData?.[entry.id] ?? { stableStock: [] };
   const stockType        = stable.stockType        ?? "percent";
   const restockFrequency = stable.restockFrequency ?? "weekly";
+  const contractType     = stable.contractType     ?? "purchase";
+  const isContract       = contractType === "contract";
 
   const settlementTypes       = game.settings.get(MODULE_ID, SETTINGS.SETTLEMENT_TYPES) ?? [];
   const currentSettlementType = canvas.scene?.getFlag(MODULE_ID, FLAGS.SETTLEMENT_TYPE) ?? "";
@@ -928,6 +932,7 @@ export async function buildStableData(entry, location, currencies, isGM = true) 
     priceLabel: s.currentPrice?.coins
       ? formatAmounts(s.currentPrice.coins, currencies)
       : (s.price ? formatAmounts({ [s.price.currencyId]: s.price.amount }, currencies) : "—"),
+    contractTermsLabel: contractTermsLabel(s.contractTerms ?? "wages"),
     stockLabel: s.quantity == null ? "∞" : String(s.quantity),
     isSoldOut: s.quantity === 0,
     overridden: isOverridden(s, TEMPLATE_FIELDS.stableAnimal)
@@ -939,6 +944,8 @@ export async function buildStableData(entry, location, currencies, isGM = true) 
     stableStock,
     hasStock: stableStock.length > 0,
     isGM,
+    contractType,
+    isContract,
     _needsSave,
     _updatedStable: updatedStable
   };
