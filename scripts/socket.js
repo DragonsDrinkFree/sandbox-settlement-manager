@@ -4,7 +4,7 @@ import { accrueLoan, periodSecondsFor, insufficientCurrencies } from "./utils/lo
 import { accrueStorageRent, resolveRentalPricing, availablePeriodUnits } from "./utils/rental-utils.js";
 import { resolveInstanceStorageType, nextFreeAreaName } from "./utils/storage-utils.js";
 import { getWorldTimeConfig } from "./time/world-time.js";
-import { contractTermsLabel, treasureShareLabel } from "./utils/contract-utils.js";
+import { contractTermsLabel, treasureShareLabel, buildContractRecord } from "./utils/contract-utils.js";
 
 export const SOCKET_CHANNEL = `module.${MODULE_ID}`;
 
@@ -687,24 +687,14 @@ export async function _handleProposeStableContract({ proposerUserId, hiringActor
   }
 
   const now = game.time.worldTime;
-  const wp = ["day", "week", "month"].includes(wagePeriod) ? wagePeriod : "week";
-  const contract = {
-    id: foundry.utils.randomID(),
+  const contract = buildContractRecord({
     contractTerms,
-    sourceActorName: source.name,
-    sourceActorUuid: listing.actorUuid,
+    sourceActorName: source.name, sourceActorUuid: listing.actorUuid,
     hiringActorId, hiringActorName: hiringActor.name,
     sceneId, locationId, locationName: location.name, entryId, listingId,
-    wageAmount: wantsWage ? Math.max(0, wageAmount || 0) : 0,
-    wageCurrencyId: wantsWage ? (wageCurrencyId ?? "") : "",
-    wageCoins,
-    wagePerPeriodStandard: wantsWage ? costInStandard({ currencyId: wageCurrencyId, amount: Math.max(0, wageAmount || 0) }, currencies) : 0,
-    wagePeriod: wp,
-    periodSeconds: periodSecondsFor(wp, hoursPerDay * 3600),
-    treasureShare: wantsTreasure ? (treasureShare ?? "1/2") : null,
-    initiatedAt: now, lastPaidAt: now, lastAccrualAt: now,
-    owedStandard: 0, gmNotes: "", status: "active"
-  };
+    wageAmount, wageCurrencyId, wagePeriod, treasureShare,
+    currencies, hoursPerDay, now
+  });
 
   const actorData = source.toObject();
   delete actorData._id;
@@ -740,6 +730,12 @@ export async function _handleProposeStableContract({ proposerUserId, hiringActor
  * wage?" confirm; the player owns both the hiring actor and the cloned actor (ownership was granted
  * GM-side), so the wage deduction + the clone's contract-flag timestamp update are done directly
  * client-side — same trust model as _handlePromptActorName.
+ *
+ * If this client never receives the message at all (the proposer was offline when the GM accepted —
+ * Foundry's socket relay doesn't queue undelivered messages, it just drops them for disconnected
+ * clients, so there's nothing left "hanging" server-side to clean up), the contract's `owedStandard`
+ * was already initialized to one period's wage at creation (see _handleProposeStableContract), so the
+ * Contract Manager correctly shows it as owed instead of silently treating it as paid.
  */
 export async function _handleStableContractResolved(data) {
   if (data.accepted === false) {
@@ -766,14 +762,18 @@ export async function _handleStableContractResolved(data) {
       : `<p>${game.i18n.format("SANDBOX_SETTLEMENT_MANAGER.stable.contract.payInitialBody", { coins: coinsLabel })}</p>`,
     rejectClose: false
   });
-  if (!confirmed) return; // contract persists; wage just accrues
+  // Not paid — leave the contract exactly as-is (the up-front wage stays owed, already reflected in
+  // owedStandard, and keeps accruing on its original schedule). Never advance lastPaidAt/lastAccrualAt
+  // here, or the debt would silently vanish without a single coin changing hands.
+  if (!confirmed) return;
+  if (mode !== "loose" && short.length) return;
 
-  if (mode !== "loose" && !short.length) await removeCoinsFromActor(hiringActor, data.wageCoins ?? {}, currencies, mode);
+  if (mode !== "loose") await removeCoinsFromActor(hiringActor, data.wageCoins ?? {}, currencies, mode);
 
   const cur = actor.getFlag(MODULE_ID, FLAGS.CONTRACT);
   if (cur) {
     const t = game.time.worldTime;
-    await actor.setFlag(MODULE_ID, FLAGS.CONTRACT, { ...cur, lastPaidAt: t, lastAccrualAt: t });
+    await actor.setFlag(MODULE_ID, FLAGS.CONTRACT, { ...cur, owedStandard: 0, lastPaidAt: t, lastAccrualAt: t });
   }
 }
 

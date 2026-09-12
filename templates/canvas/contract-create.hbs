@@ -1,0 +1,86 @@
+<div class="ssm-negotiate-contract-form">
+  <div class="form-group ssm-loan-actor-row">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.hiringCharacter"}}</label>
+    <div class="ssm-actor-picker-row">
+      <div class="ssm-actor-dropdown-widget" data-actor-context="hiring">
+        <button type="button" class="ssm-actor-dropdown-trigger">
+          <span class="ssm-actor-selected-name">{{#if selectedHiringActorName}}{{selectedHiringActorName}}{{else}}— {{localize "SANDBOX_SETTLEMENT_MANAGER.bank.selectCharacter"}} —{{/if}}</span>
+          <i class="fa-solid fa-caret-down" inert></i>
+        </button>
+        <ul class="ssm-actor-dropdown-list">
+          <li class="ssm-actor-dropdown-search-row">
+            <input type="text" class="ssm-actor-dropdown-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+          </li>
+          {{#each hiringActors}}
+          <li class="ssm-actor-option{{#if (eq this.id ../selectedHiringActorId)}} selected{{/if}}" data-actor-id="{{this.id}}">{{this.name}}</li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#if isGM}}
+      <button type="button" class="ssm-actor-filter-btn{{#if hiringFilterActive}} active{{/if}}" data-actor-context="hiring"
+              aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterBtn'}}">
+        <i class="fa-solid fa-filter" inert></i>
+      </button>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="form-group ssm-contract-mode-row">
+    <label class="ssm-contract-mode-option">
+      <input type="radio" name="mode" value="clone"{{#if (eq mode "clone")}} checked{{/if}}>
+      {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.modeClone"}}
+    </label>
+    <label class="ssm-contract-mode-option">
+      <input type="radio" name="mode" value="link"{{#if (eq mode "link")}} checked{{/if}}>
+      {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.modeLink"}}
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.linkActorLabel"}}</label>
+    <div class="ssm-actor-link-selected{{#unless selectedSourceActorName}} hidden{{/unless}}">
+      <span class="ssm-actor-link-selected-name">{{selectedSourceActorName}}</span>
+      <a class="ssm-actor-link-clear"><i class="fa-solid fa-xmark" inert></i></a>
+    </div>
+    <div class="ssm-actor-link-row{{#if selectedSourceActorName}} hidden{{/if}}">
+      <input type="text" class="ssm-actor-link-search" placeholder="{{localize 'SANDBOX_SETTLEMENT_MANAGER.actor.filterPlaceholder'}}" autocomplete="off">
+      <button type="button" class="ssm-actor-link-btn">{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.linkActorButton"}}</button>
+    </div>
+    <ul class="ssm-actor-link-results"></ul>
+  </div>
+
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.contractTermsFieldLabel"}}</label>
+    <select name="contractTerms">
+      {{#each contractTermsOptions}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+
+  {{#if wantsWage}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.wageLabel"}}</label>
+    <div class="ssm-negotiate-wage-row">
+      {{> ssm-price-input attr="name" field="wage" price=wagePrice currencies=currencies amountClass="ssm-loan-amount-input" selectClass="ssm-loan-currency-select"}}
+      <span class="ssm-loan-per-label">{{localize "SANDBOX_SETTLEMENT_MANAGER.bank.loans.perLabel"}}</span>
+      <select name="wagePeriod" class="ssm-wage-period-select">
+        {{#each periods}}
+        <option value="{{this.id}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+  {{/if}}
+
+  {{#if wantsTreasure}}
+  <div class="form-group">
+    <label>{{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.treasureLabel"}}</label>
+    <select name="treasureShare">
+      {{#each treasureShares}}
+      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+  </div>
+  {{/if}}
+</div>

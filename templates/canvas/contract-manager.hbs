@@ -1,4 +1,13 @@
 <div class="ssm-contract-manager">
+  <div class="ssm-contract-manager-toolbar">
+    <button type="button" class="lodging-add-btn" data-action="createContract">
+      <i class="fa-solid fa-plus"></i> {{localize "SANDBOX_SETTLEMENT_MANAGER.stable.contract.createContract"}}
+    </button>
+    <button type="button" class="icon" data-action="refreshContracts"
+            data-tooltip="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.refresh'}}" aria-label="{{localize 'SANDBOX_SETTLEMENT_MANAGER.stable.contract.refresh'}}">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </button>
+  </div>
   {{#if hasRows}}
   <table class="ssm-table ssm-contract-manager-table">
     <thead>
@@ -17,7 +26,7 @@
       {{#each rows}}
       <tr>
         <td class="col-auto"><img src="{{this.actorImg}}" class="ssm-cp-item-img" width="24" height="24" alt=""></td>
-        <td>{{this.actorName}}</td>
+        <td><button type="button" class="ssm-item-link" data-uuid="{{this.actorUuid}}">{{this.actorName}}</button></td>
         <td>{{this.hiringActorName}}</td>
         <td>{{this.termsLabel}}</td>
         <td>{{this.wageRateLabel}}</td>

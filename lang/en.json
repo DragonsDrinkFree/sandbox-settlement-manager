@@ -782,7 +782,7 @@
         "detailTerms": "Terms",
         "detailWage": "Wage",
         "detailTreasure": "Treasure Share",
-        "detailSource": "Stable Listing",
+        "detailSource": "Source Actor",
         "detailHiring": "Hiring Character",
         "detailLocation": "Stable",
         "detailInitiated": "Initiated",
@@ -806,7 +806,20 @@
         "colTermsShort": "Terms",
         "colWage": "Wage",
         "colOwed": "Owed",
-        "colTreasure": "Treasure Share"
+        "colTreasure": "Treasure Share",
+        "createContract": "New Contract",
+        "refresh": "Refresh",
+        "createTitle": "Create Contract",
+        "createSubmit": "Create Contract",
+        "modeLink": "Link Existing Actor",
+        "modeClone": "Clone to New Actor",
+        "linkActorLabel": "Link Actor",
+        "linkActorButton": "Link",
+        "noSourceActorMatch": "No matching actor found. Pick a suggestion or type an exact name.",
+        "contractTermsFieldLabel": "Contract Terms",
+        "noSourceActorWarn": "Choose an actor to link or clone.",
+        "alreadyContractedTitle": "Actor Already Under Contract",
+        "alreadyContractedConfirm": "{name} already has an active contract. Overwrite it?"
       }
     },
     "attributePicker": {

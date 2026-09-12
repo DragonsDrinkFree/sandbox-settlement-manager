@@ -2807,7 +2807,8 @@
 }
 
 #sandbox-settlement-manager-cart .ssm-item-link,
-#sandbox-settlement-manager-settlement-manage .ssm-item-link {
+#sandbox-settlement-manager-settlement-manage .ssm-item-link,
+#sandbox-settlement-manager-contract-manager .ssm-item-link {
   background: none;
   border: none;
   padding: 0;
@@ -3042,7 +3043,9 @@
 /* Actor dropdown widget + filter menu */
 #sandbox-settlement-manager-settlement-manage .ssm-actor-picker-row,
 #sandbox-settlement-manager-location-detail .ssm-actor-picker-row,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-picker-row {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-picker-row,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-picker-row,
+#sandbox-settlement-manager-contract-create .ssm-actor-picker-row {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -3052,7 +3055,9 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-widget,
 #sandbox-settlement-manager-location-detail .ssm-actor-dropdown-widget,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-widget {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-widget,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-dropdown-widget,
+#sandbox-settlement-manager-contract-create .ssm-actor-dropdown-widget {
   flex: 1;
   min-width: 0;
   position: relative;
@@ -3060,7 +3065,9 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-trigger,
 #sandbox-settlement-manager-location-detail .ssm-actor-dropdown-trigger,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-dropdown-trigger,
+#sandbox-settlement-manager-contract-create .ssm-actor-dropdown-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3081,7 +3088,9 @@
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
 #sandbox-settlement-manager-location-detail .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
-#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger .ssm-actor-selected-name {
+#sandbox-settlement-manager-purchase-dialog .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-dropdown-trigger .ssm-actor-selected-name,
+#sandbox-settlement-manager-contract-create .ssm-actor-dropdown-trigger .ssm-actor-selected-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -3220,7 +3229,9 @@
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn,
 #sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn,
-#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn {
+#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-filter-btn,
+#sandbox-settlement-manager-contract-create .ssm-actor-filter-btn {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
@@ -3239,14 +3250,18 @@
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn:hover,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn:hover,
 #sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn:hover,
-#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn:hover {
+#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn:hover,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-filter-btn:hover,
+#sandbox-settlement-manager-contract-create .ssm-actor-filter-btn:hover {
   background: rgba(0, 0, 0, 0.07);
 }
 
 #sandbox-settlement-manager-settlement-manage .ssm-actor-filter-btn.active,
 #sandbox-settlement-manager-location-detail .ssm-actor-filter-btn.active,
 #sandbox-settlement-manager-purchase-dialog .ssm-actor-filter-btn.active,
-#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn.active {
+#sandbox-settlement-manager-storage-access-add .ssm-actor-filter-btn.active,
+#sandbox-settlement-manager-negotiate-contract .ssm-actor-filter-btn.active,
+#sandbox-settlement-manager-contract-create .ssm-actor-filter-btn.active {
   background: rgba(0, 0, 0, 0.12);
   border-color: rgba(0, 0, 0, 0.4);
 }
@@ -4789,11 +4804,126 @@ hr.ssm-settings-divider {
   margin: 0 0 0.5rem;
 }
 
-#sandbox-settlement-manager-negotiate-contract .ssm-negotiate-wage-row {
+#sandbox-settlement-manager-negotiate-contract .ssm-negotiate-wage-row,
+#sandbox-settlement-manager-contract-create .ssm-negotiate-wage-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  flex-wrap: wrap;
+}
+
+#sandbox-settlement-manager-negotiate-contract .ssm-loan-amount-input,
+#sandbox-settlement-manager-contract-create .ssm-loan-amount-input {
+  width: 4.5rem;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-negotiate-contract .ssm-loan-currency-select,
+#sandbox-settlement-manager-negotiate-contract .ssm-wage-period-select,
+#sandbox-settlement-manager-contract-create .ssm-loan-currency-select,
+#sandbox-settlement-manager-contract-create .ssm-wage-period-select {
+  width: auto;
+  flex-shrink: 0;
+}
+
+#sandbox-settlement-manager-negotiate-contract .ssm-loan-per-label,
+#sandbox-settlement-manager-contract-create .ssm-loan-per-label {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-negotiate-contract .form-footer,
+#sandbox-settlement-manager-contract-create .form-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light-secondary, #ccc);
+}
+
+#sandbox-settlement-manager-contract-create .ssm-contract-mode-row {
+  display: flex;
+  gap: 1rem;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-contract-mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-row.hidden {
+  display: none;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-search {
+  flex: 1;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-selected {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.4rem;
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-selected.hidden {
+  display: none;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-selected-name {
+  flex: 1;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-clear {
+  cursor: pointer;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-results {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0 0;
+  border: 1px solid var(--color-border-light-tertiary, #ccc);
+  border-radius: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-results:empty {
+  display: none;
+  border: none;
+  margin: 0;
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-result {
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font-size: var(--font-size-13, 13px);
+}
+
+#sandbox-settlement-manager-contract-create .ssm-actor-link-result:hover {
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.08));
+}
+
+#sandbox-settlement-manager-contract-manager .ssm-contract-manager-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 #sandbox-settlement-manager-contract-details .ssm-contract-terms {
