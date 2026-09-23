@@ -1,3 +1,7 @@
+# v1.1.0
+## Major
+- Added Stables for handling pet/hireling purchases/rentals.
+- New "Contract Manager" added to canvas bar that tracks active hirelings, and payment statues.
 # v1.0.3
 ## Minor
 - course menu now scrollable for case of large menu's.
